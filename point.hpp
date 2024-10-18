@@ -23,6 +23,7 @@ namespace silicontrip {
 			point(std::string la, std::string ln);
 			point(double la, double ln);
 			point(point& p);
+			point();
 			//~point();
 			
 			std::string to_string() const;

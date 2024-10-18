@@ -27,7 +27,7 @@ point::point(std::string la, std::string ln) {
 point::point(long la, long ln) { latlng = S2LatLng::FromE6(la,ln); }
 point::point(double la, double ln) { latlng = S2LatLng::FromDegrees(la,ln); }
 point::point(point& p) { latlng = S2LatLng(p.latlng.lat(),p.latlng.lng()); }
-
+point::point() { ; }
 
 S2LatLng point::s2latlng() const { return latlng; }
 std::string point::to_string() const { return "" + std::to_string(latlng.lat().e6() / 1000000.0) + "," + std::to_string(latlng.lng().e6() / 1000000.0); }
