@@ -1,9 +1,10 @@
 #ifndef SILICONTRIP_LINE_HPP
 #define SILICONTRIP_LINE_HPP
 
+#include <string>
+
 #include "point.hpp"
 
-#include <string>
 #include <vector>
 #include <s2/s2latlng.h>
 #include <s2/s2edge_crosser.h>
@@ -14,7 +15,7 @@
 namespace silicontrip {
 
 	class line {
-		private:
+		protected:
 			point o_point;
 			point d_point;
 
@@ -45,6 +46,7 @@ namespace silicontrip {
 
 			line(point d, point o);
 			line(long dla, long dlo, long ola, long olo);
+			line();
 
 			bool operator==(const line& l) const;
 			bool found(std::vector<line> l) const;

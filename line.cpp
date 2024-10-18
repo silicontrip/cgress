@@ -15,12 +15,10 @@ double line::d_lng_double() const { return (double)d_point.s2latlng().lng().e6()
 double line::o_lat_double() const { return (double)o_point.s2latlng().lat().e6(); }
 double line::o_lng_double() const { return (double)o_point.s2latlng().lng().e6(); }
 
-//S2Point line::d_s2point() const { return d_point.ToPoint(); }
-//S2Point line::o_s2point() const { return o_point.ToPoint(); }
-
 S2LatLng line::d_s2latlng() const { return d_point.s2latlng(); }
 S2LatLng line::o_s2latlng() const { return o_point.s2latlng(); }
 
+line::line() { ; }
 line::line(point d, point o): d_point(d), o_point(o)
 { 
 	//d_point.FromE6(d.lat().e6(),d.lng().e6());
@@ -29,7 +27,6 @@ line::line(point d, point o): d_point(d), o_point(o)
 	o_s2Point = o_point.s2latlng().ToPoint();
 	d_s2Point = d_point.s2latlng().ToPoint();
 	// crosser.S2CopyingEdgeCrosser(d_point.ToPoint(),o_point.ToPoint());
-
 }
 line::line(long dla, long dlo, long ola, long olo): d_point(dla,dlo), o_point(ola,olo)
 { 
