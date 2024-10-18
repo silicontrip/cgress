@@ -49,7 +49,7 @@ point point::inverse() const {
 		return point(-this->lat_e6(), this->lng_e6() + 180000000);
 }
 S1Angle point::distance_to(point& p) const { return latlng.GetDistance(p.s2latlng()); }
-double point::geo_distance_to(point& p) const { return distance_to(p).radians() * earth_radius; }
+double point::geo_distance_to(point& p) const { return S2Earth::ToMeters(distance_to(p)) / 1000.0; }
 //S1Angle point::angle_between(point& p1, point& p2) 
 //S1Angle point::bearing_to(point& p) 
 		

@@ -7,6 +7,7 @@
 #include <s2/s2latlng.h>
 #include <s2/s2point.h>
 #include <s2/s1angle.h>
+#include <s2/s2earth.h>
 
 namespace silicontrip {
 class point {
@@ -14,9 +15,6 @@ class point {
 		S2LatLng latlng;
 	
 	public:
-
-		const double earth_radius = 6367.0;
-
 		long lat_e6() const;
 		long lng_e6() const;
 		double lat_double() const;
@@ -44,6 +42,11 @@ class point {
 		double geo_distance_to(point& p) const;
 		//S1Angle getAngle(point p1, point p2);
 		//S1Angle getBearing(point p);
+
+                int count_links( );
+                int count_dlinks( );
+                int count_olinks( );
+
 		
 		bool operator==(const silicontrip::point& o) const;
 		//std::ostream& operator<<(std::ostream& os, const point& p);
