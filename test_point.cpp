@@ -13,11 +13,9 @@ int main ()
 	using namespace silicontrip;
 	run_timer rt;
 
-	srand(time(NULL));
 	rt.start();
 
 	cout << "start." << endl;	
-
 
 	point p1 = point("-37.818408,144.949842");
 	cout << "p1: " << p1 <<". " << rt.split() << endl;
@@ -26,8 +24,7 @@ int main ()
 
 	cout << "p2: " << p2 <<". " << rt.split() << endl;
 
-	cout << "dist: " << p1.distance_to(p2) << endl;
-
+	cout << "dist: " << p1.s2latlng().GetDistance(p2.s2latlng()) << endl;
 
 	point p3 = point("-37.814997","144.947705");
 	cout << "p3: " << p3 <<". dist: " << p3.geo_distance_to(p1) << "km. " << rt.split() << endl;

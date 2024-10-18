@@ -1,63 +1,94 @@
 
 #include "point.hpp"
+#include "line.hpp"
+
+using std::istringstream;
 
 namespace silicontrip {
 
-long point::lat_e6() const { return latlng.lat().e6(); }
-long point::lng_e6() const { return latlng.lng().e6(); }
-double point::lat_double() const { return (double)latlng.lat().e6(); }
-double point::lng_double() const { return (double)latlng.lng().e6(); }
-double point::lat() const { return latlng.lat().degrees(); }
-double point::lng() const { return latlng.lng().degrees(); }
-S2LatLng point::s2latlng() const { return latlng; }
-double point::lat_radians() const { return latlng.lat().radians(); }
-double point::lng_radians() const { return latlng.lng().radians(); }
-S2Point point::s2point() const { return latlng.ToPoint(); }
-
-
-point::point(S2Point p) { latlng = S2LatLng(p); }
-point::point(long la, long ln) { latlng = S2LatLng::FromE6(la,ln); }
 point::point(std::string ld) 
 {
-        int f1 = ld.find(",", 0);
+    int f1 = ld.find(",", 0);
 	double lat;
 	double lng;
-        std::istringstream(ld.substr(0, f1)) >> lat;
-	std::istringstream(ld.substr(f1+1)) >> lng;
+    istringstream(ld.substr(0, f1)) >> lat;
+	istringstream(ld.substr(f1+1)) >> lng;
 
 	latlng = S2LatLng::FromDegrees(lat,lng);
 }
 point::point(std::string la, std::string ln) {  
 	double lat;
 	double lng;
-	std::istringstream(la) >> lat;
-	std::istringstream(ln) >> lng;
+	istringstream(la) >> lat;
+	istringstream(ln) >> lng;
 	latlng = S2LatLng::FromDegrees(lat,lng);
 }
-point::point(double la, double ln) { latlng = S2LatLng::FromDegrees(la,ln); } 
-point::point(point& p) { latlng = S2LatLng(p.s2latlng().ToPoint()); }
-point::~point() { ; }
-		
-std::string point::toString() const { return "" + std::to_string(lat_e6() / 1000000.0) + "," + std::to_string(lng_e6() / 1000000.0); }
 
-bool point::operator==(const point& o) const { return latlng == o.latlng; }
+point::point(long la, long ln) { latlng = S2LatLng::FromE6(la,ln); }
+point::point(double la, double ln) { latlng = S2LatLng::FromDegrees(la,ln); }
+point::point(point& p) { latlng = S2LatLng(p.latlng.lat(),p.latlng.lng()); }
+
+
+S2LatLng point::s2latlng() const { return latlng; }
+std::string point::to_string() const { return "" + std::to_string(latlng.lat().e6() / 1000000.0) + "," + std::to_string(latlng.lng().e6() / 1000000.0); }
+
 
 point point::inverse() const {
-	if (lng_radians() > 0) 
-		return point(-this->lat_e6(), this->lng_e6() - 180000000);
+	if (latlng.lng().radians() > 0) 
+		return point(-latlng.lat().e6(), latlng.lng().e6() - 180000000L);
 	else
-		return point(-this->lat_e6(), this->lng_e6() + 180000000);
+		return point(-latlng.lat().e6(), latlng.lng().e6() + 180000000L);
 }
-S1Angle point::distance_to(point& p) const { return latlng.GetDistance(p.s2latlng()); }
-double point::geo_distance_to(point& p) const { return S2Earth::ToMeters(distance_to(p)) / 1000.0; }
+
+double point::geo_distance_to(point& p) const { return S2Earth::ToMeters(latlng.GetDistance(p.s2latlng())) / 1000.0; }
 //S1Angle point::angle_between(point& p1, point& p2) 
 //S1Angle point::bearing_to(point& p) 
-		
+
+int point::count_links(std::vector<line> l)
+{
+	int count  = 0;
+	for (line li : l)
+	{
+		if (li.d_s2latlng() == latlng || li.o_s2latlng() == latlng )
+		{
+			count++;
+		}
+	}
+	return count;
+}
+
+int point::count_dlinks(std::vector<line> l)
+{
+	int count  = 0;
+	for (line li : l)
+	{
+		if (li.d_s2latlng() == latlng )
+		{
+			count++;
+		}
+	}
+	return count;
+}
+
+int point::count_olinks(std::vector<line> l)
+{
+	int count  = 0;
+	for (line li : l)
+	{
+		if (li.o_s2latlng() == latlng )
+		{
+			count++;
+		}
+	}
+	return count;
+}
+
+bool point::operator==(const point& p) const { return p.s2latlng() == latlng; }
 
 }
 
 std::ostream& operator<<(std::ostream& os, const silicontrip::point& p)
 {
-    os << p.toString();
+    os << p.to_string();
     return os;
 }
