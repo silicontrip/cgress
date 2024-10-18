@@ -5,9 +5,9 @@ S2FLAGS=-ls2
 ABSLFLAGS=-labsl_log_internal_message -labsl_log_internal_check_op
 LDFLAGS=-L/usr/local/lib $(S2FLAGS) $(ABSLFLAGS)
 
-OBJ=run_timer.o point.o
+OBJ=run_timer.o point.o line.o
 
-all: test_run_timer test_point
+all: test_run_timer test_point test_line
 	
 
 test_run_timer: $(OBJ) test_run_timer.o
@@ -15,6 +15,9 @@ test_run_timer: $(OBJ) test_run_timer.o
 
 test_point: $(OBJ) test_point.o
 	$(CC)  $(LDFLAGS) $(OBJ) -o test_point test_point.o
+
+test_line: $(OBJ) test_line.o
+	$(CC)  $(LDFLAGS) $(OBJ) -o test_line test_line.o
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
