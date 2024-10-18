@@ -26,14 +26,14 @@ int main ()
 
 	cout << "p2: " << p2 <<". " << rt.split() << endl;
 
-	cout << "dist: " << p1.geo_distance_to(p2) << endl;
+	cout << "dist: " << p1.distance_to(p2) << endl;
 
 
-	point p3 = point("-37.818408","144.949842");
-	cout << "p3: " << p3 <<". " << rt.split() << endl;
+	point p3 = point("-37.814997","144.947705");
+	cout << "p3: " << p3 <<". dist: " << p3.geo_distance_to(p1) << "km. " << rt.split() << endl;
 
-	point p4 = point(-37.818408,144.949842);
-	cout << "p4: " << p4 <<". " << rt.split() << endl;
+	point p4 = point(-37.811022,145.342732);
+	cout << "p4: " << p4 <<". dist:" << p4.geo_distance_to(p1)<<"km. " << rt.split() << endl;
 
 
 	cout << "stop: " << rt.stop() << endl;
