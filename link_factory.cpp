@@ -157,7 +157,7 @@ vector<line>* link_factory::make_lines_from_double_cluster(vector<portal>* porta
 
 bool geo_comparison(const pair<double,line>& a, const pair<double,line>& b)
 {
-    a.first < b.first;
+    return a.first > b.first;
 }
 
 vector<line>* link_factory::percentile_lines(std::vector<line>* lines, double percentile) const
@@ -168,6 +168,7 @@ vector<line>* link_factory::percentile_lines(std::vector<line>* lines, double pe
     {
         pair<double,line> pa (li.geo_distance(),li);
         v.push_back(pa);
+
     }
     sort(v.begin(),v.end(),geo_comparison);
 
