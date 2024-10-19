@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include "run_timer.hpp"
 #include "portal_factory.hpp"
+#include "link_factory.hpp"
 
 using namespace std;
 
@@ -34,11 +35,20 @@ int main ()
 	cout << "list " << rt.split() << endl;
 
 	unordered_map<string,portal>* li2 = pf->cluster_from_description("The Peoples Garden:1");
-
+	vector<portal>* poli = new vector<portal>();
 	for (auto it: *li2) {
 		cout << it.second << endl;
+		poli->push_back(it.second);
 	}
-	cout << "list2 " << rt.split() << endl;
+	cout << "read " << to_string(li2->size())<<" portals in " << rt.split() << " seconds." << endl;
+
+	link_factory* lf = link_factory::get_instance();
+
+	unordered_map<string,silicontrip::link>* li3 = lf->get_all_links();
+	cout << "read: " + to_string(li3->size()) + " links in " << rt.split() <<" seconds." << endl;
+
+	vector<silicontrip::link>*li4 = lf->purge_links(poli,li3);
+	cout << "purged: " + to_string(li4->size()) + " links in " << rt.split() <<" seconds." << endl;
 
 	cout << "stop: " << rt.stop() << endl;
 

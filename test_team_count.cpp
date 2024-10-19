@@ -26,9 +26,9 @@ int main (int argc, char* argv[])
 	team_count have3 = team_count("","","1");
 	cout << "have3: " << have3 << endl;
 
-	cout << have1.more_than(want) << " ";
-	cout << have2.more_than(want) << " ";
-	cout << have3.more_than(want) << " ";
+	cout << (have1 > want) << " ";
+	cout << (have2 > want) << " ";
+	cout << (have3 > want) << " ";
 
 	cout << "Stop. " << rt.stop() << endl;
 

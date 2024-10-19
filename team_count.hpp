@@ -43,7 +43,7 @@ class team_count {
         bool no_enlightened() const;
         bool no_neutral() const;
 
-        bool more_than (team_count tc) const;
+        bool operator>(team_count tc) const;
 
         bool any_resistance_blockers() const;
         bool any_enlightened_blockers() const;

@@ -47,6 +47,7 @@ class portal_factory {
   		portal_factory& operator=(const portal_factory&) = delete;
   		portal_factory& operator=(portal_factory&&) = delete;
 
+		std::vector<portal>* vector_from_map(std::unordered_map<std::string,portal>* portals) const;
 		std::unordered_map<std::string,portal>* cluster_from_description(const std::string desc) const;
 		std::unordered_map<std::string,portal>* cluster_from_file(const std::string desc) const;
 		std::unordered_map<std::string,portal>* cluster_from_region(S2Region* reg) const;

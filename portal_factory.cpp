@@ -68,8 +68,6 @@ Json::Value* portal_factory::read_json_from_file(const string url) const
     int pathsep = url.find_first_of('/');
     string path = url.substr(pathsep);
 
-
-
     Json::Value* result = new Json::Value;
 
     ifstream file(path);
@@ -185,12 +183,7 @@ unordered_map<string,portal>* portal_factory::cluster_from_description(const str
         vector<portal>* ploc = get_array(pt);
         S2LatLngRect s2ll;
 
-        if (ploc->at(0).s2latlng().lat() < ploc->at(1).s2latlng().lat())
-        {
-            s2ll = S2LatLngRect(ploc->at(0).s2latlng(),ploc->at(1).s2latlng());
-        } else {
-            s2ll = S2LatLngRect(ploc->at(1).s2latlng(),ploc->at(0).s2latlng());
-        }
+        s2ll = S2LatLngRect::FromPointPair(ploc->at(0).s2latlng(),ploc->at(1).s2latlng());
         search_region = &s2ll;
 
         delete pt;
@@ -251,6 +244,13 @@ portal portal_factory::portal_from_json(Json::Value jv) const
     return p;
 }
 
+vector<portal>* portal_factory::vector_from_map(unordered_map<string,portal>* portals) const
+{
+    vector<portal>* poli = new vector<portal>();
+	for (auto it: *portals) 
+		poli->push_back(it.second);
+	return poli;
+}
 
 unordered_map<string,portal>* portal_factory::cluster_from_region(S2Region* reg) const
 {

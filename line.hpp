@@ -38,8 +38,8 @@ namespace silicontrip {
 			double o_lat_double() const;
 			double o_lng_double() const;
 
-			//S2Point d_s2point() const;
-			//S2Point o_s2point() const;
+			S2Point d_s2point() const;
+			S2Point o_s2point() const;
 
 			S2LatLng d_s2latlng() const;
 			S2LatLng o_s2latlng() const;

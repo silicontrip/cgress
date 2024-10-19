@@ -92,7 +92,7 @@ namespace silicontrip {
     bool team_count::no_enlightened() const { return enlightened == -1; }
     bool team_count::no_neutral() const { return neutral == -1; }
 
-    bool team_count::more_than (team_count tc) const
+    bool team_count::operator> (team_count tc) const
     {
         bool res = false;
         bool enl = false;
