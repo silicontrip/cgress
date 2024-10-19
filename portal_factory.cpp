@@ -6,24 +6,6 @@ namespace silicontrip {
 
 portal_factory* portal_factory::ptr = 0;
 
-vector<string>* portal_factory::split_str(const string str, char del) const
-{
-    // https://www.geeksforgeeks.org/how-to-split-string-by-delimiter-in-cpp/
-    // Create a stringstream object to str
-    stringstream ss(str);
-	
-  	// Temporary object to store the splitted
-  	// string
-    string t;
-
-    vector<string>* v = new vector<string>();
-   	// Splitting the str string by delimiter
-    while (getline(ss, t, del))
-        v->push_back(t);
-
-    return v;
-}
-
 portal_factory::portal_factory() 
 {
     ifstream file_properties("portal_factory_properties.json");
@@ -40,6 +22,24 @@ portal_factory* portal_factory::get_instance()
     if (!ptr)
     ptr = new portal_factory();
     return ptr;
+}
+
+vector<string>* portal_factory::split_str(const string str, char del) const
+{
+    // https://www.geeksforgeeks.org/how-to-split-string-by-delimiter-in-cpp/
+    // Create a stringstream object to str
+    stringstream ss(str);
+	
+  	// Temporary object to store the splitted
+  	// string
+    string t;
+
+    vector<string>* v = new vector<string>();
+   	// Splitting the str string by delimiter
+    while (getline(ss, t, del))
+        v->push_back(t);
+
+    return v;
 }
 
 S2Loop* portal_factory::s2loop_from_json(const string desc) const

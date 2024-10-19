@@ -2,10 +2,12 @@
 #define SILICONTRIP_PORTAL_FACTORY_HPP
 
 #include "portal.hpp"
+
 #include <string>
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 #include <json/json.h>
 #include <curlpp/cURLpp.hpp>
@@ -50,7 +52,6 @@ class portal_factory {
 		std::unordered_map<std::string,portal>* cluster_from_region(S2Region* reg) const;
 		std::unordered_map<std::string,portal>* cluster_from_array(const std::vector<std::string>* desc) const;
 		portal get_single(std::string desc) const;
-
 
 };
 
