@@ -1,2 +1,8 @@
+.vscode
 a.out
 *.o
+test_factory
+test_line
+test_point
+test_run_timer
+test_team_count
