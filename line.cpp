@@ -82,7 +82,7 @@ double line::geo_distance(const point& p) const
 
 std::string line::to_string() const
 {
-	return "" + o_point.to_string() + "-" + d_point.to_string();
+	return "" + o_point.to_string() + "-" + d_point.to_string() + " " + std::to_string(geo_distance()) +"km.";
 }
 
 bool line::has_point(const point& p) const { return p==d_point || p==o_point; }

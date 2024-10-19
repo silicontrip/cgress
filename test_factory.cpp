@@ -40,7 +40,9 @@ int main ()
 		cout << it.second << endl;
 		poli->push_back(it.second);
 	}
+
 	cout << "read " << to_string(li2->size())<<" portals in " << rt.split() << " seconds." << endl;
+	cout << endl;
 
 	link_factory* lf = link_factory::get_instance();
 
@@ -49,6 +51,25 @@ int main ()
 
 	vector<silicontrip::link>*li4 = lf->purge_links(poli,li3);
 	cout << "purged: " + to_string(li4->size()) + " links in " << rt.split() <<" seconds." << endl;
+
+	vector<line>* li5 = lf->make_lines_from_single_cluster(poli);
+
+	cout << "generated: " << li5->size() << " links in " << rt.split() << " seconds." << endl;
+
+	vector<line>* li6 = lf->percentile_lines(li5,1);
+
+	for (line line6: *li6)
+	{
+		cout << line6 << endl;
+	}
+	cout << "percentiled: " << li6->size() << " links in " << rt.split() << " seconds." << endl;
+
+	team_count tc = team_count(0,0,0);
+
+	vector<line>* li7 = lf->filter_links(li5,li4,tc);
+
+	cout << "blocked: " << li7->size() << " links in " << rt.split() << " seconds." << endl;
+
 
 	cout << "stop: " << rt.stop() << endl;
 
