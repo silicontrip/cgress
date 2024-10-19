@@ -1,10 +1,6 @@
 #include "link.hpp"
 
-using std::string;
-using std::vector;
-using std::unordered_map;
-using std::any;
-using std::any_cast;
+using namespace std;
 
 namespace silicontrip {
 
@@ -28,7 +24,7 @@ namespace silicontrip {
             team_enum = RESISTANCE;
         if (s[0] == 'E')
             team_enum = ENLIGHTENED;
-        if (s[0 == 'N'])
+        if (s[0] == 'N' || s[0] =='M')
             team_enum = NEUTRAL;
     }
 
@@ -40,7 +36,7 @@ namespace silicontrip {
         guid = li.guid;
         d_guid = li.d_guid;
         o_guid = li.o_guid;
-        team = li.team;
+        set_team(li.team);
 
         d_point = point(li.d_point);
         o_point = point(li.o_point);
@@ -54,7 +50,7 @@ namespace silicontrip {
         guid = any_cast<string>(pt["guid"]);
         d_guid = any_cast<string>(pt["dguid"]);
         o_guid = any_cast<string>(pt["oguid"]);
-        team = any_cast<string>(pt["team"]);
+        set_team(any_cast<string>(pt["team"]));
 
         long dlat = any_cast<long>(pt["dlat"]);
         long dlng = any_cast<long>(pt["dlng"]);
@@ -73,7 +69,7 @@ namespace silicontrip {
         guid = g;
         d_guid = dg;
         o_guid = og;
-        team = tt;
+        set_team(tt);
 
         d_point = point(dla,dlo);
         o_point = point(ola,olo);
@@ -84,7 +80,7 @@ namespace silicontrip {
 
     string link::to_string() const
     {
-        return team + " " + line::to_string() ;
+        return team + " " + line::to_string();
     }
 
 
