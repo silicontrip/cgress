@@ -1,0 +1,9 @@
+{
+"portalurl": "http://127.0.0.1:8080/portalApi/getPortals",
+"linkurl": "http://127.0.0.1:8080/portalApi/getLinks",
+"cellurl": "http://127.0.0.1:8080/portalApi/getMU",
+"maxlevel": 13,
+"minlevel": 1,
+"maxcells": 20,
+"levelmod": 4
+}

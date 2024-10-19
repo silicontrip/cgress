@@ -22,12 +22,14 @@ namespace silicontrip {
 			point(std::string ld);
 			point(std::string la, std::string ln);
 			point(double la, double ln);
-			point(point& p);
+			point(const point& p);
 			point();
 			//~point();
 			
 			std::string to_string() const;
 			S2LatLng s2latlng() const;
+			void set_s2latlng(S2LatLng ll);
+
 			point inverse() const;
 			double geo_distance_to(point& p) const;
 			//S1Angle getAngle(point p1, point p2);
