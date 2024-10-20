@@ -31,7 +31,7 @@ namespace silicontrip {
 			void set_s2latlng(S2LatLng ll);
 
 			point inverse() const;
-			double geo_distance_to(point& p) const;
+			double geo_distance_to(const point& p) const;
 			//S1Angle getAngle(point p1, point p2);
 			//S1Angle getBearing(point p);
 
