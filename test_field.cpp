@@ -6,6 +6,7 @@
 #include "field.hpp"
 #include "point.hpp"
 #include "field_factory.hpp"
+#include "draw_tools.hpp"
 
 using namespace std;
 
@@ -64,7 +65,18 @@ int main (int argc, char* argv[])
 		cout << f << endl;
 	}
 
-	cout << "[" << f1.drawtool() << "," << f2.drawtool() << "," << f3.drawtool() << "]" << endl;
+	// cout << "[" << f1.drawtool() << "," << f2.drawtool() << "," << f3.drawtool() << "]" << endl;
+
+	draw_tools dt;
+
+	dt.add(f1);
+	dt.add(f2);
+	dt.add(f3);
+	dt.add(f4);
+	dt.add(f5);
+	dt.add(f6);
+
+	cout << endl << dt << endl << endl;
 
 	cout << "stop: " << rt.stop() << endl;
 
