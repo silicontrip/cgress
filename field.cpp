@@ -37,6 +37,7 @@ field::field(point p1, point p2, point p3)
     field_loop->Normalize();
 
 }
+
 field::field(const field& f)
 {
     point p1 = f.point_at(0);
@@ -72,6 +73,7 @@ field::field(const field& f)
     field_loop->Normalize();
 
 }
+
 field::~field() { ; }
 
 double field::sign(point p1, point p2, point p3) const 
@@ -298,9 +300,9 @@ team_count field::count_intersections(std::vector<link>* l) const
 bool field::inside(point p) const { 
     return field_poly.GetDistance(p.s2latlng().ToPoint()).radians() == 0; }
 
-bool field::inside(std::vector<point> p) const
+bool field::inside(std::vector<point>* p) const
 {
-    for (point po: p)
+    for (point po: *p)
         if (!inside(po))
             return false;
     return true;
@@ -394,7 +396,7 @@ bool field::operator==(field f) const
 
 }
 
-std::string field::drawtool()
+std::string field::drawtool() const
 {
     return "{\"type\":\"polygon\",\"latLngs\":[{\"lat\":" + std::to_string(point_at(0).s2latlng().lat().degrees()) + 
                 ",\"lng\":" + std::to_string(point_at(0).s2latlng().lng().degrees()) +
@@ -405,6 +407,44 @@ std::string field::drawtool()
                 "}],\"color\":\"#a05000\"}";
 }
 
+string field::to_string() const
+{
+    return "" + field_points[0].to_string() + "-" + field_points[1].to_string() + "-" + field_points[2].to_string() + " " + std::to_string(geo_area()) +"km^2.";
+}
+
+field& field::operator= (const field& f)
+{
+
+    this->field_points[0] = f.field_points[0];
+    this->field_points[1] = f.field_points[1];
+    this->field_points[2] = f.field_points[2];
+
+    field_lines[0] = f.field_lines[0];
+    field_lines[1] = f.field_lines[1];
+    field_lines[2] = f.field_lines[2];
+
+    vector<S2Point> loop_points;
+    loop_points.push_back(field_points[0].s2latlng().ToPoint());
+    loop_points.push_back(field_points[1].s2latlng().ToPoint());
+    loop_points.push_back(field_points[2].s2latlng().ToPoint());
+
+    field_loop = new S2Loop(loop_points);
+    field_loop->Normalize();
+
+    field_poly = S2Polygon(unique_ptr<S2Loop>(field_loop));
+    field_poly_ptr = &field_poly; 
+    
+    field_loop = new S2Loop(loop_points);
+    field_loop->Normalize();
+
+    return *this;
+}
 
 
+}
+
+std::ostream& operator<<(std::ostream& os, const silicontrip::field& l)
+{
+    os << l.to_string();
+    return os;
 }

@@ -5,6 +5,7 @@
 
 #include "field.hpp"
 #include "point.hpp"
+#include "field_factory.hpp"
 
 using namespace std;
 
@@ -42,6 +43,26 @@ int main (int argc, char* argv[])
 	cout << "difference: " << f1.difference(f2) << " " << f1.difference(f3) << " " << f2.difference(f3)  << endl;
 
 	cout << "split: " << rt.split() << endl;
+
+	field_factory* ff = field_factory::get_instance();
+	field f4 = field(p2,p3,p4);
+	field f5 = field(p3,p5,p6);
+	field f6 = field(p3,p4,p5);
+
+	vector<field> v;
+	v.push_back(f1);
+	v.push_back(f2);
+	v.push_back(f3);
+	v.push_back(f4);
+	v.push_back(f5);
+	v.push_back(f6);
+
+	vector<field>* s =  ff->percentile(&v,100);
+
+	for (field f: *s)
+	{
+		cout << f << endl;
+	}
 
 	cout << "[" << f1.drawtool() << "," << f2.drawtool() << "," << f3.drawtool() << "]" << endl;
 

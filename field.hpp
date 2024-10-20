@@ -30,9 +30,11 @@ namespace silicontrip {
 
         public:
 
+            field& operator= (const field& f);
+
             field();
             field(point p1, point p2, point p3);
-            field (const field& f);
+            field(const field& f);
             ~field();
 
             int get_est_mu();
@@ -63,7 +65,7 @@ namespace silicontrip {
             team_count count_intersections(std::vector<link>* l) const;
             std::vector<link>* get_intersections(std::vector<link>* l) const;
             bool inside(point p) const;
-            bool inside(std::vector<point> p) const;
+            bool inside(std::vector<point>* p) const;
             bool inside(field f) const;
             bool layers(field f) const;
             bool layers(std::vector<field>* f) const;
@@ -72,9 +74,14 @@ namespace silicontrip {
             double difference(const field f) const;
             bool operator==(field f) const;
             bool found_in(std::vector<field>* f) const;
-            std::string drawtool();
+            std::string drawtool() const;
+            std::string to_string() const;
+
     };
 }
+
+std::ostream& operator<<(std::ostream& os, const silicontrip::field& l);
+
 
 #endif
 

@@ -18,6 +18,9 @@ double line::o_lng_double() const { return (double)o_point.s2latlng().lng().e6()
 S2LatLng line::d_s2latlng() const { return d_point.s2latlng(); }
 S2LatLng line::o_s2latlng() const { return o_point.s2latlng(); }
 
+point line::get_o_point() const { return o_point; }
+point line::get_d_point() const { return d_point; }
+
 S2Point line::d_s2point() const { return d_s2Point; }
 S2Point line::o_s2point() const { return o_s2Point; }
 
