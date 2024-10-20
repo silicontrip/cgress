@@ -3,11 +3,9 @@
 #include <thread>
 #include "run_timer.hpp"
 
-using std::cout;
-using std::endl;
+using namespace std;
 
-int main ()
-
+int main (int argc, char* argv[])
 {
 	using namespace silicontrip;
 	run_timer rt;
