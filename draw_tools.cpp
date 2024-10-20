@@ -203,8 +203,7 @@ string draw_tools::to_string() const
     return Json::writeString(builder, entities);
 }
 
-/*
-// All broken because Json::Value isn't hashable
+
 Json::Value draw_tools::as_polygon() const
 {
     Json::Value out;
@@ -309,7 +308,8 @@ std::string draw_tools::as_intel() const
             if (!first)
                 intel_link = intel_link + "_";
 
-            intel_link = intel_link + po["latLngs"][0]["lat"].asString() + "," + po["latLngs"][0]["lng"].asString() + po["latLngs"][1]["lat"].asString() + "," + po["latLngs"][1]["lng"].asString();
+            intel_link = intel_link + po["latLngs"][0]["lat"].asString() + "," + po["latLngs"][0]["lng"].asString() + "," + po["latLngs"][1]["lat"].asString() + "," + po["latLngs"][1]["lng"].asString();
+            first = false;
         }
     }
     //check for maximum links.
@@ -324,7 +324,7 @@ std::string draw_tools::as_intel() const
     return intel_link;
 
 }
-*/
+
 
 }
 

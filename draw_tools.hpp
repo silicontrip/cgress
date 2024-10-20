@@ -41,9 +41,9 @@ class draw_tools {
         void add(point p);
         void add(point p, double r);
 
-        //Json::Value as_polygon() const;
-        //Json::Value as_polyline() const;
-        //std::string as_intel() const;
+        Json::Value as_polygon() const;
+        Json::Value as_polyline() const;
+        std::string as_intel() const;
 
         std::string to_string() const;
         int size() const;
@@ -52,5 +52,15 @@ class draw_tools {
 
 }
 std::ostream& operator<<(std::ostream& os, const silicontrip::draw_tools& l);
+
+template<> struct std::hash<Json::Value> {
+    std::size_t operator()(Json::Value const& s) const noexcept {
+        Json::StreamWriterBuilder builder;
+        builder["indentation"] = "";
+        std::string vv = Json::writeString(builder, s);
+        std::size_t h1 = std::hash<std::string>{}(vv);
+        return h1; 
+    }
+};
 
 #endif

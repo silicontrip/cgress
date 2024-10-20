@@ -78,6 +78,8 @@ int main (int argc, char* argv[])
 
 	cout << endl << dt << endl << endl;
 
+	cout << dt.as_intel() << endl;
+
 	cout << "stop: " << rt.stop() << endl;
 
 	return 0;
