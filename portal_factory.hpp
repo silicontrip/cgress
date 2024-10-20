@@ -53,7 +53,7 @@ class portal_factory {
 		std::unordered_map<std::string,portal>* cluster_from_region(S2Region* reg) const;
 		std::unordered_map<std::string,portal>* cluster_from_array(const std::vector<std::string>* desc) const;
 		portal get_single(std::string desc) const;
-
+		std::vector<point>* points_from_string(std::string p) const;
 };
 
 }

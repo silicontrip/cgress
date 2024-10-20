@@ -371,4 +371,20 @@ Json::Value* portal_factory::read_json_from_array(const vector<string>* desc) co
     return res;
 }
 
+vector<point>* portal_factory::points_from_string(string p) const
+{
+    vector<string>* point_desc = split_str(p,',');
+    vector<point>* pa = new vector<point>();
+
+    if (point_desc->size() % 2 == 1)
+        return pa; // probably should throw an exception
+                                
+    for (int i =0; i < point_desc->size(); i += 2)
+        pa->push_back(point(point_desc->at(i),point_desc->at(i+1)));
+
+
+    return pa;
+
+}
+
 }
