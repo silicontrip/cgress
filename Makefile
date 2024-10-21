@@ -7,7 +7,8 @@ JSONCPP=-ljsoncpp
 LIBCURLFLAGS=-lcurl -lcurlpp
 LDFLAGS=-L/usr/local/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
 
-OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o link_factory.o field.o field_factory.o draw_tools.o
+OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
+	link_factory.o field.o field_factory.o draw_tools.o arguments.o
 
 all: test_run_timer test_point test_line test_factory test_team_count test_field
 	
@@ -29,6 +30,9 @@ test_team_count: $(OBJ) test_team_count.o team_count.o
 
 test_field: $(OBJ) test_field.o field.o
 	$(CC)  $(LDFLAGS) $(OBJ) -o test_field test_field.o
+
+test_arguments: $(OBJ) test_arguments.o arguments.o
+	$(CC)  $(LDFLAGS) $(OBJ) -o test_arguments test_arguments.o
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
