@@ -27,12 +27,8 @@ S2Point line::o_s2point() const { return o_s2Point; }
 line::line() { ; }
 line::line(point d, point o): d_point(d), o_point(o)
 { 
-	//d_point.FromE6(d.lat().e6(),d.lng().e6());
-	//o_point.FromE6(o.lat().e6(),o.lng().e6());
-
 	o_s2Point = o_point.s2latlng().ToPoint();
 	d_s2Point = d_point.s2latlng().ToPoint();
-	// crosser.S2CopyingEdgeCrosser(d_point.ToPoint(),o_point.ToPoint());
 }
 line::line(long dla, long dlo, long ola, long olo): d_point(dla,dlo), o_point(ola,olo)
 { 
@@ -56,7 +52,7 @@ bool line::intersects(const line& l) const
 {
 	return S2::CrossingSign(o_s2Point,d_s2Point,l.o_s2Point,l.d_s2Point) == 1;
 }
-bool line::intersects(vector<line> l) const
+bool line::intersects(const vector<line>& l) const
 {
 	for (line li : l)
 	{
@@ -76,6 +72,7 @@ bool line::intersect_or_equal(vector<line> l) const
 	return false;
 }
 
+double line::ang_distance() const { return o_point.s2latlng().GetDistance(d_point.s2latlng()).radians(); }
 double line::geo_distance() const { return S2Earth::ToKm(o_point.s2latlng().GetDistance(d_point.s2latlng())); }
 double line::geo_distance(const point& p) const 
 {

@@ -24,10 +24,10 @@ namespace silicontrip {
 			//S2EdgeCrosser crosser;
 			double eps = 1e-8;
 
-			S2Point normal() const;
 			int point_on(S2Point D, line l) const;
 
 		public:
+			S2Point normal() const;
 			long d_lat_e6() const;
 			long d_lng_e6() const;
 			long o_lat_e6() const;
@@ -54,10 +54,11 @@ namespace silicontrip {
 			bool operator==(const line& l) const;
 			bool found(std::vector<line> l) const;
 			bool intersects(const line& l) const;	
-			bool intersects(std::vector<line> l) const;	
+			bool intersects(const std::vector<line>& l) const;	
 			bool intersect_or_equal(line l) const;
 			bool intersect_or_equal(std::vector<line> l) const;
 
+			double ang_distance() const;
 			double geo_distance() const;
 			double geo_distance(const point& p) const;
 

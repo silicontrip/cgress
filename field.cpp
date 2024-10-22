@@ -7,7 +7,7 @@ namespace silicontrip{
 field::field() { ; }
 field::field(point p1, point p2, point p3)
 {
-    if (sign(p1,p2,p3) > 0) { 
+    if (s2pred::Sign(p1.s2latlng().ToPoint(),p2.s2latlng().ToPoint(),p3.s2latlng().ToPoint()) > 0) { 
         field_points[0] = p1;
         field_points[1] = p2;
         field_points[2] = p3;
@@ -21,61 +21,28 @@ field::field(point p1, point p2, point p3)
     field_lines[1] = line(field_points[1],field_points[2]);
     field_lines[2] = line(field_points[2],field_points[0]);
 
-
-    vector<S2Point> loop_points;
-    loop_points.push_back(p1.s2latlng().ToPoint());
-    loop_points.push_back(p2.s2latlng().ToPoint());
-    loop_points.push_back(p3.s2latlng().ToPoint());
-
-    field_loop = new S2Loop(loop_points);
-    field_loop->Normalize();
-
-    field_poly = S2Polygon(unique_ptr<S2Loop>(field_loop));
-    field_poly_ptr = &field_poly; 
-    
-    field_loop = new S2Loop(loop_points);
-    field_loop->Normalize();
+    // field_loop = new S2Loop(loop_points);
+    // field_loop->Normalize();
 
 }
 
 field::field(const field& f)
 {
-    point p1 = f.point_at(0);
-    point p2 = f.point_at(1);
-    point p3 = f.point_at(2);
-
-    if (sign(p1,p2,p3) > 0) { 
-        field_points[0] = p1;
-        field_points[1] = p2;
-        field_points[2] = p3;
-    } else {
-        field_points[0] = p1;
-        field_points[1] = p3;
-        field_points[2] = p2;
-    }
+    // going to assume these are already normalized if they come from another field
+    field_points[0] = f.point_at(0);
+    field_points[1] = f.point_at(1);
+    field_points[2] = f.point_at(2);
     
-    field_lines[0] = line(field_points[0],field_points[1]);
-    field_lines[1] = line(field_points[1],field_points[2]);
-    field_lines[2] = line(field_points[2],field_points[0]);
-
-    vector<S2Point> loop_points;
-    loop_points.push_back(p1.s2latlng().ToPoint());
-    loop_points.push_back(p2.s2latlng().ToPoint());
-    loop_points.push_back(p3.s2latlng().ToPoint());
-
-    field_loop = new S2Loop(loop_points);
-    field_loop->Normalize();
-
-    field_poly = S2Polygon(unique_ptr<S2Loop>(field_loop));
-    field_poly_ptr = &field_poly; 
+    field_lines[0] = f.field_lines[0];
+    field_lines[1] = f.field_lines[1];
+    field_lines[2] = f.field_lines[2];
     
-    field_loop = new S2Loop(loop_points);
-    field_loop->Normalize();
-
+    //field_poly_ = f.field_poly_;
+    //field_poly_ptr_ = &field_poly_;
 }
 
-field::~field() { ; }
-
+// field::~field() { ; }
+/*
 double field::sign(point p1, point p2, point p3) const 
 { 
     return sign (
@@ -89,52 +56,30 @@ double field::sign (double p1a, double p1o, double p2a, double p2o, double p3a, 
 {
     return (p1o - p3o) * (p2a - p3a) - (p2o - p3o) * (p1a - p3a);
 }
-
-
+*/
 //S2Loop* field::s2loop() const { return field_loop; }
-S2Polygon* field::s2polygon() const { return field_poly_ptr; }
 
-S2CellUnion field::cells() const
-{
-    S2RegionCoverer::Options opt;
-    opt.set_max_level(13);
-    opt.set_min_level(0);
-    opt.set_max_cells(20);
-    S2RegionCoverer rc(opt);
-
-    return rc.GetCovering(field_poly);
-}
-
-std::unordered_map<uint64,double>* field::cell_intersection() const
-{
-    unordered_map<uint64,double>* area = new unordered_map<uint64,double>();
-    S2CellUnion cell_union = cells();
-
-    for (S2CellId cellid: cell_union)
+S2Polygon* field::get_field_poly() 
+{ 
+    if (!field_poly_ptr_)
     {
-        S2Cell cell = S2Cell(cellid);
-        vector<S2Point> cell_points;
-        cell_points.push_back(cell.GetVertex(0));
-        cell_points.push_back(cell.GetVertex(1));
-        cell_points.push_back(cell.GetVertex(2));
-        cell_points.push_back(cell.GetVertex(3));
-        S2Loop cell_loop = S2Loop(cell_points);
-        cell_loop.Normalize();
-        S2Polygon cell_poly = S2Polygon(unique_ptr<S2Loop>(&cell_loop));
+        vector<S2Point> loop_points;
+        loop_points.push_back(point_at(0).s2latlng().ToPoint());
+        loop_points.push_back(point_at(1).s2latlng().ToPoint());
+        loop_points.push_back(point_at(2).s2latlng().ToPoint());
 
+        S2Loop* field_loop = new S2Loop(loop_points);
+        field_loop->Normalize();
 
-        S2Polygon int_poly;
-        int_poly.InitToIntersection(field_poly, cell_poly);
-
-        //polyArea.put(cellid,new Double(intPoly.getArea() *  earthRadius * earthRadius));
-        double sqkm = S2Earth::SteradiansToSquareKm(int_poly.GetArea());
-        uint64 id = cellid.id();
-        pair<uint64,double> area_pair (id,sqkm);
-        area->insert(area_pair);
-
+        field_poly_ = S2Polygon(unique_ptr<S2Loop>(field_loop));
+        field_poly_ptr_ = & field_poly_;
     }
-    return area;
+    return field_poly_ptr_;
 }
+
+
+
+
 
 point field::point_at(int i) const { return field_points[i]; }
 bool field::has_point(point p) const { return p == field_points[0] || p == field_points[1] || p == field_points[2]; }
@@ -159,16 +104,33 @@ std::vector<point>* field::get_points() const
 }
 long field::lat_at(int i) const { return field_points[i].s2latlng().lat().e6(); }
 long field::lng_at(int i) const { return field_points[i].s2latlng().lng().e6(); }
-double field::geo_area() const { return S2Earth::SteradiansToSquareKm(field_poly.GetArea()); }
-double field::geo_perimeter() const { return S2Earth::ToKm(S2::GetPerimeter(field_loop->vertices_span())); }
+double field::geo_area() const { 
+    //S2Polygon* s2p = s2polygon();
+    //return S2Earth::SteradiansToSquareKm(field_poly.GetArea()); 
+
+    double a = field_lines[0].ang_distance();
+    double b = field_lines[1].ang_distance();
+    double c = field_lines[2].ang_distance();
+    
+    double s = (a + b + c) / 2;
+    //L'Huilier's Formula
+    double t = 4 * atan(sqrt(tan(s/2) * tan((s-a)/2) * tan ((s-b)/2) * tan((s-c)/2)));
+
+    return S2Earth::SteradiansToSquareKm(t);
+
+
+}
+double field::geo_perimeter() const { 
+
+    // S2Loops and S2Poly's are expensive want to avoid using them
+    //return S2Earth::ToKm(S2::GetPerimeter(field_loop->vertices_span())); 
+
+    return field_lines[0].geo_distance() + field_lines[1].geo_distance() + field_lines[2].geo_distance();
+
+}
 std::vector<line>* field::get_lines() const 
 {
     std::vector<line>* res = new std::vector<line>(field_lines,field_lines+3);
-/*
-    res->push_back(line(field_points[0],field_points[1]));
-    res->push_back(line(field_points[1],field_points[2]));
-    res->push_back(line(field_points[2],field_points[0]));
-*/
     return res;
 }
 
@@ -187,7 +149,7 @@ line field::line_at(int i) const
     */
 }
 
-bool field::touches(field f) const
+bool field::touches(const field& f) const
 {
     return (f.point_at(0) == point_at(0)  ||
         f.point_at(0) == point_at(1)  ||
@@ -197,7 +159,7 @@ bool field::touches(field f) const
         f.point_at(2) == point_at(2)) ;
 }
 
-bool field::intersects(field f) const
+bool field::intersects(const field& f) const
 {
     // this returns true if the areas intersect we only want to know if the edges intersect
     // return field_poly.Intersects(*f.s2polygon());
@@ -213,7 +175,7 @@ bool field::intersects(field f) const
     return false;
 }
 
-bool field::intersects(std::vector<field>* f) const
+bool field::intersects(const std::vector<field>* f) const
 {
     for (field fi: *f)
         if (intersects(fi))
@@ -221,7 +183,7 @@ bool field::intersects(std::vector<field>* f) const
     return false;
 }
 
-bool field::shares_line(field f) const
+bool field::shares_line(const field& f) const
 {
     return 
         line_at(0) == f.line_at(0) || 
@@ -235,7 +197,7 @@ bool field::shares_line(field f) const
         line_at(2) == f.line_at(2) ;
 }
 
-line field::shared_line(field f) const
+line field::shared_line(const field& f) const
 {
     if ( line_at(0) == f.line_at(0) || line_at(0) == f.line_at(1) || line_at(0) == f.line_at(2)) return line_at(0);
     if ( line_at(1) == f.line_at(0) || line_at(1) == f.line_at(1) || line_at(1) == f.line_at(2)) return line_at(1);
@@ -294,11 +256,16 @@ team_count field::count_intersections(std::vector<link>* l) const
         block.inc_team_enum(li.get_team_enum());
 
     return block;
-
 }
 
 bool field::inside(point p) const { 
-    return field_poly.GetDistance(p.s2latlng().ToPoint()).radians() == 0; }
+    //return get_field_poly()->GetDistance(p.s2latlng().ToPoint()).radians() == 0; 
+    int a = s2pred::SignDotProd(field_lines[0].normal(), p.s2latlng().ToPoint());
+    int b = s2pred::SignDotProd(field_lines[1].normal(), p.s2latlng().ToPoint());
+    int c = s2pred::SignDotProd(field_lines[2].normal(), p.s2latlng().ToPoint());
+
+    return a < 0 && b < 0 && c < 0;
+}
 
 bool field::inside(std::vector<point>* p) const
 {
@@ -308,14 +275,14 @@ bool field::inside(std::vector<point>* p) const
     return true;
 }
 
-bool field::inside(field f) const
+bool field::inside(const field& f) const
 {
     if (inside(f.point_at(0)) && inside(f.point_at(1)) && inside(f.point_at(2))) 
         return true;
     return false;
 }
 
-bool field::layers(field f) const { return inside(f) || f.inside(*this); }
+bool field::layers(const field& f) const { return inside(f) || f.inside(*this); }
 
 bool field::layers(std::vector<field>* f) const
 {
@@ -353,7 +320,7 @@ field field::inverse_corner_field(int corner) const
 
 }
 
-double field::difference(const field fi) const
+double field::difference(const field& fi) const
 {
     double total = 0.0;
     double least;
@@ -385,8 +352,7 @@ bool field::found_in(std::vector<field>* f) const
 
 }
 
-
-bool field::operator==(field f) const
+bool field::operator==(const field& f) const
 {
     // assumes same rotation (which is handled by constructor)
     return
@@ -422,20 +388,6 @@ field& field::operator= (const field& f)
     field_lines[0] = f.field_lines[0];
     field_lines[1] = f.field_lines[1];
     field_lines[2] = f.field_lines[2];
-
-    vector<S2Point> loop_points;
-    loop_points.push_back(field_points[0].s2latlng().ToPoint());
-    loop_points.push_back(field_points[1].s2latlng().ToPoint());
-    loop_points.push_back(field_points[2].s2latlng().ToPoint());
-
-    field_loop = new S2Loop(loop_points);
-    field_loop->Normalize();
-
-    field_poly = S2Polygon(unique_ptr<S2Loop>(field_loop));
-    field_poly_ptr = &field_poly; 
-    
-    field_loop = new S2Loop(loop_points);
-    field_loop->Normalize();
 
     return *this;
 }
