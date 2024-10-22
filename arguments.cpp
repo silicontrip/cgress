@@ -23,7 +23,7 @@ void arguments::add_req(std::string sa,std::string la,bool v)
 
 bool arguments::parse()
 {
-	for (int i=0; i<args.size(); i++)
+	for (int i=1; i<args.size(); i++)
 	{
 		string thisArg = args.at(i);
 		if (thisArg.substr(0,2) == "--")
@@ -34,10 +34,15 @@ bool arguments::parse()
 				struct argsreq sReq = required_args.at(j);
 				if (thisArg.substr(2) == sReq.long_arg)
 				{
-					i++;
-					string t = args.at(i);
-					parsed_args[sReq.long_arg]=t;
-					parsed_args[sReq.short_arg]=t;
+					if (sReq.val_req) {
+						i++;
+						string t = args.at(i);
+						parsed_args[sReq.long_arg]=t;
+						parsed_args[sReq.short_arg]=t;
+					} else {
+						parsed_args[sReq.long_arg]="";
+						parsed_args[sReq.short_arg]="";						
+					}
 					found = true;
 					break;
 				}
@@ -53,10 +58,15 @@ bool arguments::parse()
 				struct argsreq sReq = required_args.at(j);
 				if (thisArg.substr(1) == sReq.short_arg)
 				{
-					i++;
-					string t = args.at(i);
-					parsed_args[sReq.long_arg]=t;
-					parsed_args[sReq.short_arg]=t;
+					if (sReq.val_req) {
+						i++;
+						string t = args.at(i);
+						parsed_args[sReq.long_arg]=t;
+						parsed_args[sReq.short_arg]=t;
+					} else {
+						parsed_args[sReq.long_arg]="";
+						parsed_args[sReq.short_arg]="";	
+					}
 					found = true;
 					break;
 				}
