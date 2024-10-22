@@ -185,9 +185,9 @@ std::unordered_map<S2CellId,double>* field_factory::cell_intersection(const S2Po
         cell_points.push_back(cell.GetVertex(1));
         cell_points.push_back(cell.GetVertex(2));
         cell_points.push_back(cell.GetVertex(3));
-        S2Loop cell_loop = S2Loop(cell_points);
-        cell_loop.Normalize();
-        S2Polygon cell_poly = S2Polygon(unique_ptr<S2Loop>(&cell_loop));
+        S2Loop* cell_loop = new S2Loop(cell_points);
+        cell_loop->Normalize();
+        S2Polygon cell_poly = S2Polygon(unique_ptr<S2Loop>(cell_loop));
 
         S2Polygon int_poly;
         int_poly.InitToIntersection(p, cell_poly);
@@ -199,6 +199,7 @@ std::unordered_map<S2CellId,double>* field_factory::cell_intersection(const S2Po
         area->insert(area_pair);
 
     }
+
     return area;
 }
 
@@ -221,6 +222,7 @@ Json::Value* field_factory::json_from_array(const vector<string>& desc) const
         string url = cell_api+"?mu="+curlpp::escape(jplist.str());
         res = read_json_from_http(url);
     }
+
     return res;
 }
 
@@ -236,6 +238,7 @@ unordered_map<string, uniform_distribution>field_factory::query_mu_from_servlet(
         uniform_distribution ud = uniform_distribution(lower,upper);
         result[key]=ud;
     }
+
     return result;
 }
 unordered_map<string, uniform_distribution>field_factory::query_mu(const vector<string>& cell_tokens)
@@ -271,7 +274,8 @@ unordered_map<string, uniform_distribution>field_factory::query_mu(const vector<
             }
         }
 
-}
+        return result;
+    }
 
 
 int field_factory::calculate_mu(const S2Polygon& p)
