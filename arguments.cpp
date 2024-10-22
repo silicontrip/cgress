@@ -23,62 +23,66 @@ void arguments::add_req(std::string sa,std::string la,bool v)
 
 bool arguments::parse()
 {
-	for (int i=1; i<args.size(); i++)
-	{
-		string thisArg = args.at(i);
-		if (thisArg.substr(0,2) == "--")
+	try {
+		for (int i=1; i<args.size(); i++)
 		{
-			bool found = false;
-			for (int j=0; j<required_args.size(); j++)
+			string thisArg = args.at(i);
+			if (thisArg.substr(0,2) == "--")
 			{
-				struct argsreq sReq = required_args.at(j);
-				if (thisArg.substr(2) == sReq.long_arg)
+				bool found = false;
+				for (int j=0; j<required_args.size(); j++)
 				{
-					if (sReq.val_req) {
-						i++;
-						string t = args.at(i);
-						parsed_args[sReq.long_arg]=t;
-						parsed_args[sReq.short_arg]=t;
-					} else {
-						parsed_args[sReq.long_arg]="";
-						parsed_args[sReq.short_arg]="";						
+					struct argsreq sReq = required_args.at(j);
+					if (thisArg.substr(2) == sReq.long_arg)
+					{
+						if (sReq.val_req) {
+							i++;
+							string t = args.at(i);
+							parsed_args[sReq.long_arg]=t;
+							parsed_args[sReq.short_arg]=t;
+						} else {
+							parsed_args[sReq.long_arg]="";
+							parsed_args[sReq.short_arg]="";						
+						}
+						found = true;
+						break;
 					}
-					found = true;
-					break;
 				}
-			}
-			if (!found)
-				return false;
-		} 
-		else if (thisArg[0] == '-')
-		{
-			bool found = false;
-			for (int j=0; j<required_args.size(); j++)
+				if (!found)
+					return false;
+			} 
+			else if (thisArg[0] == '-')
 			{
-				struct argsreq sReq = required_args.at(j);
-				if (thisArg.substr(1) == sReq.short_arg)
+				bool found = false;
+				for (int j=0; j<required_args.size(); j++)
 				{
-					if (sReq.val_req) {
-						i++;
-						string t = args.at(i);
-						parsed_args[sReq.long_arg]=t;
-						parsed_args[sReq.short_arg]=t;
-					} else {
-						parsed_args[sReq.long_arg]="";
-						parsed_args[sReq.short_arg]="";	
+					struct argsreq sReq = required_args.at(j);
+					if (thisArg.substr(1) == sReq.short_arg)
+					{
+						if (sReq.val_req) {
+							i++;
+							string t = args.at(i);
+							parsed_args[sReq.long_arg]=t;
+							parsed_args[sReq.short_arg]=t;
+						} else {
+							parsed_args[sReq.long_arg]="";
+							parsed_args[sReq.short_arg]="";	
+						}
+						found = true;
+						break;
 					}
-					found = true;
-					break;
 				}
+				if (!found)
+					return false;
+			} else {
+				remain_args.push_back(thisArg);
 			}
-			if (!found)
-				return false;
-		} else {
-			remain_args.push_back(thisArg);
-		}
 
+		}
+		return true;
+	} catch (exception &e) {
+		return false;
 	}
-	return true;
 }
 
 int arguments::argument_size() const { return remain_args.size(); }

@@ -302,7 +302,6 @@ std::string draw_tools::as_intel() const
 
     stringstream ss;
 
-    string intel_link = "https://www.ingress.com/intel?pls=";
     bool first = true;
     double maxLength = 0;
     double centreLat =0;
@@ -323,7 +322,6 @@ std::string draw_tools::as_intel() const
             pointCount += 2;
 
             if (!first) {
-                intel_link = intel_link + "_";
                 ss << "_";
             }
 
@@ -335,9 +333,6 @@ std::string draw_tools::as_intel() const
             ss << ","; 
             ss << po["latLngs"][1]["lng"].asDouble();
 
-
-
-            intel_link = intel_link + po["latLngs"][0]["lat"].asString() + "," + po["latLngs"][0]["lng"].asString() + "," + po["latLngs"][1]["lat"].asString() + "," + po["latLngs"][1]["lng"].asString();
             first = false;
         }
     }
@@ -353,11 +348,7 @@ std::string draw_tools::as_intel() const
     ss << ",";
     ss << centreLng;
 
-    intel_link = intel_link + "&ll=" + std::to_string(centreLat) + "," + std::to_string(centreLng);
-
-   // return intel_link;
-
-   return ss.str();
+    return ss.str();
 
 }
 
