@@ -16,8 +16,14 @@ using namespace silicontrip;
 
 void print_usage()
 {
+		cerr << "Usage:" << endl;
+		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
+		cerr << "    if two clusters are specified, 2 links are made from the first cluster." << endl;
 		cerr << "Options:" << endl;
+		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
+		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
+
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
 		cerr << " -O                Output as Intel Link" << endl;
@@ -136,8 +142,6 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("T"))
 		target = pf->points_from_string(ag.get_option_for_key("T"));
-
-	cerr << "Argument size: " << ag.argument_size()  << endl;
 
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
