@@ -95,13 +95,13 @@ void draw_tools::add(line l)
     Json::Value latLngs;
     Json::Value ll;
 
-    ll["lat"] = l.o_lat_double();
-    ll["lng"] = l.o_lng_double();
+    ll["lat"] = l.o_s2latlng().lat().e6() / 1000000.0;
+    ll["lng"] = l.o_s2latlng().lng().e6() / 1000000.0;
 
     latLngs.append(ll);
 
-    ll["lat"] = l.d_lat_double();
-    ll["lng"] = l.d_lng_double();
+    ll["lat"] = l.d_s2latlng().lat().e6() / 1000000.0;
+    ll["lng"] = l.d_s2latlng().lng().e6() / 1000000.0;
 
     latLngs.append(ll);
 
@@ -121,8 +121,8 @@ void draw_tools::add(field f)
 
     for (int i=0; i<3; i++)
     {
-        ll["lat"] = f.point_at(i).s2latlng().lat().degrees();
-        ll["lng"] = f.point_at(i).s2latlng().lng().degrees();
+        ll["lat"] = f.point_at(i).s2latlng().lat().e6() / 1000000.0;
+        ll["lng"] = f.point_at(i).s2latlng().lng().e6() / 1000000.0;
 
         latLngs.append(ll);
     }
@@ -137,8 +137,8 @@ void draw_tools::add(field f)
 void draw_tools::add(point p)
 {
     Json::Value ll;
-    ll["lat"] = p.s2latlng().lat().degrees();
-    ll["lng"] = p.s2latlng().lng().degrees();
+    ll["lat"] = p.s2latlng().lat().e6() / 1000000.0;
+    ll["lng"] = p.s2latlng().lng().e6() / 1000000.0;
         
     Json::Value obj;
 
@@ -152,8 +152,8 @@ void draw_tools::add(point p)
 void draw_tools::add(point p,double r)
 {
     Json::Value ll;
-    ll["lat"] = p.s2latlng().lat().degrees();
-    ll["lng"] = p.s2latlng().lng().degrees();
+    ll["lat"] = p.s2latlng().lat().e6() / 1000000.0;
+    ll["lng"] = p.s2latlng().lng().e6() / 1000000.0;
         
     Json::Value obj;
 
@@ -198,6 +198,16 @@ Json::Value draw_tools::make_polyline (Json::Value ll1, Json::Value ll2) const
 
 string draw_tools::to_string() const
 {
+
+    if (output_type == 3)
+        return as_intel();
+
+    Json::Value out = entities;
+    if (output_type == 1 )
+        out = as_polyline();
+    if (output_type == 2)
+        out = as_polygon();
+        
     Json::StreamWriterBuilder builder;
     builder["indentation"] = "";
     return Json::writeString(builder, entities);
