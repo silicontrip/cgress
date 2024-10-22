@@ -60,6 +60,13 @@ int main (int argc, char* argv[])
 	if (ag.has_option("l"))
 		cout << "max layers: " << ag.get_option_for_key_as_int("l") << endl;
 
+	cout << "args size: " << ag.argument_size() << endl;
+
+	for (string s: ag.get_arguments())
+	{
+		cout << "argument: " << s << endl;
+	}
+
 	cout << "stop: " << rt.stop() << endl;
 
 	return 0;
