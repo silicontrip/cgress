@@ -1,17 +1,18 @@
-OPTFLAGS=-g
+OPTFLAGS=-O2
 CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
 CC=clang++
 S2FLAGS=-ls2
 ABSLFLAGS=-labsl_log_internal_message -labsl_log_internal_check_op
 JSONCPP=-ljsoncpp
 LIBCURLFLAGS=-lcurl -lcurlpp
-LDFLAGS=-L/usr/local/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
+LDFLAGS=-std=c++17 -L/usr/local/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
 
 OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
-	link_factory.o field.o field_factory.o draw_tools.o arguments.o
+	link_factory.o field.o field_factory.o draw_tools.o arguments.o uniform_distribution.o
 
-all: test_run_timer test_point test_line test_factory test_team_count test_field
-	
+all: layerlinker
+
+tests: test_run_timer test_point test_line test_factory test_team_count test_field
 
 test_run_timer: $(OBJ) test_run_timer.o run_timer.o
 	$(CC)  $(LDFLAGS) $(OBJ) -o test_run_timer test_run_timer.o
@@ -33,6 +34,9 @@ test_field: $(OBJ) test_field.o field.o
 
 test_arguments: $(OBJ) test_arguments.o arguments.o
 	$(CC)  $(LDFLAGS) $(OBJ) -o test_arguments test_arguments.o
+
+layerlinker: $(OBJ) layerlinker.o arguments.o
+	$(CC)  $(LDFLAGS) $(OBJ) -o layerlinker layerlinker.o
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
