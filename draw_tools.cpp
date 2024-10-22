@@ -210,6 +210,7 @@ string draw_tools::to_string() const
         
     Json::StreamWriterBuilder builder;
     builder["indentation"] = "";
+    builder.settings_["precision"] = 9;
     return Json::writeString(builder, entities);
 }
 
@@ -299,12 +300,18 @@ std::string draw_tools::as_intel() const
 {
     Json::Value pos = as_polyline();
 
+    stringstream ss;
+
     string intel_link = "https://www.ingress.com/intel?pls=";
     bool first = true;
     double maxLength = 0;
     double centreLat =0;
     double centreLng =0;
     double pointCount = 0;
+
+    ss.precision(9);
+    ss << "https://www.ingress.com/intel?pls="; 
+
     for (Json::Value po: pos)
     {
         if (po["type"] == "polyline")
@@ -315,8 +322,20 @@ std::string draw_tools::as_intel() const
             centreLng += po["latLngs"][1]["lng"].asDouble();
             pointCount += 2;
 
-            if (!first)
+            if (!first) {
                 intel_link = intel_link + "_";
+                ss << "_";
+            }
+
+            ss << po["latLngs"][0]["lat"].asDouble(); 
+            ss << ","; 
+            ss << po["latLngs"][0]["lng"].asDouble();
+            ss << ",";
+            ss << po["latLngs"][1]["lat"].asDouble(); 
+            ss << ","; 
+            ss << po["latLngs"][1]["lng"].asDouble();
+
+
 
             intel_link = intel_link + po["latLngs"][0]["lat"].asString() + "," + po["latLngs"][0]["lng"].asString() + "," + po["latLngs"][1]["lat"].asString() + "," + po["latLngs"][1]["lng"].asString();
             first = false;
@@ -329,9 +348,16 @@ std::string draw_tools::as_intel() const
     centreLat = round(centreLat*1000000)/1000000.0;
     centreLng = round(centreLng*1000000)/1000000.0;
 
+    ss << "&ll=";
+    ss << centreLat;
+    ss << ",";
+    ss << centreLng;
+
     intel_link = intel_link + "&ll=" + std::to_string(centreLat) + "," + std::to_string(centreLng);
 
-    return intel_link;
+   // return intel_link;
+
+   return ss.str();
 
 }
 
