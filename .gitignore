@@ -1,8 +1,11 @@
 .vscode
 a.out
 *.o
+test_arguments
 test_factory
+test_field
 test_line
 test_point
 test_run_timer
 test_team_count
+layerlinker
