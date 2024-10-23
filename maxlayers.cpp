@@ -58,7 +58,7 @@ string draw_fields(const vector<field>& f,draw_tools dt)
 	return dt.to_string();
 }
 
-double search_fields(draw_tools dt, const vector<field>& current, const vector<field>& all, int start, double max, int calc)
+double search_fields(draw_tools dt, const vector<field>& current, const vector<field>& all, int start, double max, int calc, run_timer rt)
 {
 	if (current.size() > 0)
 	{
@@ -71,6 +71,7 @@ double search_fields(draw_tools dt, const vector<field>& current, const vector<f
 
 		if (newSize > max) {
 			cout << newSize << " : " << current.size() << " : " << draw_fields(current,dt) << endl; 
+			cerr << rt.split() << " seconds." << endl;
 			max = newSize;
 		}
 	}
@@ -84,7 +85,7 @@ double search_fields(draw_tools dt, const vector<field>& current, const vector<f
 			newList.insert(newList.end(), current.begin(), current.end());
 			newList.push_back(thisField);
 
-			max = search_fields(dt, newList, all, i+1, max, calc);	
+			max = search_fields(dt, newList, all, i+1, max, calc,rt);	
 		}
 	}
 		
@@ -117,7 +118,6 @@ bool add_matching(const list<field>& all, const field& current, vector<field>& e
 
 	}
 	return added;
-
 }
 
 
@@ -188,7 +188,7 @@ int main (int argc, char* argv[])
 	if (ag.has_option("t"))
 		threshold = ag.get_option_for_key_as_double("t");
 	else 
-		threshold = 0.3;
+		threshold = 0.2;
 	
 	if (ag.has_option("p"))
 		percentile = ag.get_option_for_key_as_double("p");
@@ -232,20 +232,18 @@ int main (int argc, char* argv[])
 		cerr << "== generating potential links ==" << endl;
 
 		vector<line> li = lf->make_lines_from_single_cluster(portals);
-			cerr << "all links: " << li.size() << endl;
-			li = lf->filter_links(li,links,tc);
-			if (percentile < 100)
-				li = lf->percentile_lines(li,percentile);
+		cerr << "all links: " << li.size() << endl;
+		li = lf->filter_links(li,links,tc);
+		if (percentile < 100)
+			li = lf->percentile_lines(li,percentile);
 					
-			cerr << "purged links: " << li.size() << endl;
+		cerr << "purged links: " << li.size() << endl;
+		cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
+		cerr << "== Generating fields ==" << endl;
 
-			cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
-
-			cerr << "== Generating fields ==" << endl;
-
-			af = ff->make_fields_from_single_links(li);
-			all_fields = ff->filter_fields(af,links,tc);
-			cerr << "fields: " << all_fields.size() << endl;
+		af = ff->make_fields_from_single_links(li);
+		all_fields = ff->filter_fields(af,links,tc);
+		cerr << "fields: " << all_fields.size() << endl;
 
 	} else if (ag.argument_size() == 2) {
 		// 2 portals from first cluster, 1 portal from second cluster
@@ -266,7 +264,6 @@ int main (int argc, char* argv[])
 		links = lf->get_purged_links(all_portals);
                                 
         cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
-
 		cerr << "== generating potential links ==" << endl;
 
 		vector<line> li1 = lf->make_lines_from_single_cluster(portals1);
@@ -304,7 +301,6 @@ int main (int argc, char* argv[])
 		links = lf->get_purged_links(all_portals);
                                 
         cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
-
 		cerr << "== generating potential links ==" << endl;
 
 		vector<line> li1 = lf->make_lines_from_double_cluster(portals1,portals2);
@@ -331,102 +327,100 @@ int main (int argc, char* argv[])
 	}
 	cerr << "==  fields generated " << rt.split() << " seconds ==" << endl;
 
-		if (target.size()>0)
+	if (target.size()>0)
+	{
+		all_fields = ff->over_target(all_fields,target);
+	}
+	if (fpercentile < 100)
+	{
+		all_fields = ff->percentile(all_fields,fpercentile);
+	}
+
+	cerr << "==  fields filtered " << rt.split() << " seconds ==" << endl;
+	cerr << "== sorting fields ==" << endl;
+
+	sort(all_fields.begin(),all_fields.end(),geo_comparison);
+
+	cerr << "==  fields sortered " << rt.split() << " ==" << endl;
+	cerr << "== show matches ==" << endl;
+
+	vector<pair<double,string>> plan;
+	double bestbest = 0.0;
+
+	list<field> field_list;
+
+	for (field f: all_fields)
+		field_list.push_back(f);
+
+	list<field>::iterator i=field_list.begin();
+	while (i !=field_list.end()) 
+	{
+		field tfi = *i;
+		vector<field> fc;
+
+		//cerr << "== searching for similar fields ==" << endl; 
+		bool added = add_matching(field_list,tfi,fc,threshold);
+		while (added) 
 		{
-			all_fields = ff->over_target(all_fields,target);
-		}
-		if (fpercentile < 100)
-		{
-			all_fields = ff->percentile(all_fields,fpercentile);
-		}
-
-		cerr << "==  fields filtered " << rt.split() << " seconds ==" << endl;
-		cerr << "== sorting fields ==" << endl;
-
-		sort(all_fields.begin(),all_fields.end(),geo_comparison);
-
-		cerr << "==  fields sortered " << rt.split() << " ==" << endl;
-		cerr << "== show matches ==" << endl;
-
-		vector<pair<double,string>> plan;
-		double bestbest = 0.0;
-
-		list<field> field_list;
-
-		for (field f: all_fields)
-			field_list.push_back(f);
-
-		list<field>::iterator i=field_list.begin();
-		while (i !=field_list.end()) 
-		{
-			field tfi = *i;
-			vector<field> fc;
-
-			cerr << "== searching for similar fields ==" << endl; 
-			bool added = add_matching(field_list,tfi,fc,threshold);
-			while (added) 
-			{
-				added = false;
-				for (field sfi: fc)
-				{
-					if(add_matching(field_list,sfi,fc,threshold))
-						added = true;
-				}	
-
-			}
-			cerr << "== deleting. ==" << endl; 
-
+			added = false;
 			for (field sfi: fc)
 			{
-				list<field>::iterator j=field_list.begin();
-				while (j != field_list.end())
-				{
-					field ffi = *j;
-					if (sfi == ffi)
-					{
-						j = field_list.erase(j);
-						break;
-					}
-					++j;
-				}
-			}
-			cerr << "== found " << fc.size() << " fields in " << rt.split() << " seconds. ==" << endl; 
+				if(add_matching(field_list,sfi,fc,threshold))
+					added = true;
+			}	
 
-
-
-			vector<field> search;
-			//search.push_back(tfi);
-			bestbest = search_fields(dt,search,fc,0,bestbest,calc);
-
-			if (search.size() > 0)
-			{
-				pair<double,string> ps;
-
-				ps.first = bestbest;
-				ps.second = " ("+ std::to_string(search.size())+") / " + draw_fields(search,dt);
-				plan.push_back(ps);
-				cout << bestbest << " (" << search.size() << ") / " << draw_fields(search,dt) << endl;
-				cerr << "split: " << rt.split() << endl;
-			}
-			if (fc.size() > 0)
-				i=field_list.begin();
-			else
-				i++;
 		}
-		cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
-		cerr <<  "== show all plans ==" << endl;
+		//cerr << "== deleting. ==" << endl; 
 
-		sort (plan.begin(), plan.end(), pair_sort);
-		for (pair<double,string> entry: plan) 
+		for (field sfi: fc)
 		{
-			cout <<  entry.first << " " << entry.second << endl <<endl;
+			list<field>::iterator j=field_list.begin();
+			while (j != field_list.end())
+			{
+				field ffi = *j;
+				if (sfi == ffi)
+				{
+					j = field_list.erase(j);
+					break;
+				}
+				++j;
+			}
 		}
+		cerr << "== found " << fc.size() << " fields in " << rt.split() << " seconds. ==" << endl; 
 
-		cerr <<  "== Finished. " << rt.split() << " elapsed time. " << rt.stop() << " total time." << endl;
+		vector<field> search;
+		//search.push_back(tfi);
+		bestbest = search_fields(dt,search,fc,0,bestbest,calc,rt);
 
-		} catch (exception &e) {
-			cerr << "An Error occured: " << e.what() << endl;
+		if (search.size() > 0)
+		{
+			pair<double,string> ps;
+
+			ps.first = bestbest;
+			ps.second = " ("+ std::to_string(search.size())+") / " + draw_fields(search,dt);
+			plan.push_back(ps);
+			cout << bestbest << " (" << search.size() << ") / " << draw_fields(search,dt) << endl;
+			cerr << "split: " << rt.split() << endl;
 		}
-
-		return 0;
+		if (fc.size() > 0)
+			i=field_list.begin();
+		else
+			i++;
 	}
+	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
+	cerr <<  "== show all plans ==" << endl;
+
+	sort (plan.begin(), plan.end(), pair_sort);
+	for (pair<double,string> entry: plan) 
+	{
+		cout <<  entry.first << " " << entry.second << endl <<endl;
+	}
+
+	cerr <<  "== Finished. " << rt.split() << " elapsed time. " << rt.stop() << " total time." << endl;
+
+	} catch (exception &e) {
+		cerr << "An Error occured: " << e.what() << endl;
+	}
+
+	return 0;	
+}
