@@ -19,8 +19,8 @@ namespace silicontrip {
     class field {
         private:
             //S2Loop *field_loop;
-            S2Polygon field_poly_;
-            S2Polygon *field_poly_ptr_ = 0;
+            //S2Polygon field_poly_;
+            //S2Polygon *field_poly_ptr_ = 0;
             point field_points[3];
             line field_lines[3];
 
@@ -44,41 +44,39 @@ namespace silicontrip {
             // S2CellId doesn't have a working hash function
             // std::unordered_map<uint64,double>* cell_intersection();
 
-            S2Polygon* get_field_poly(); 
+            //S2Polygon* get_field_poly(); 
 
             point point_at(int i) const;
             bool has_point(point p) const;
             int point_index(point p) const;
-            std::vector<point>* get_points() const;
+            std::vector<point> get_points() const;
             long lat_at(int i) const;
             long lng_at(int i) const;
             double geo_area() const;
             double geo_perimeter() const;
-            std::vector<line>* get_lines() const;
+            std::vector<line> get_lines() const;
             line line_at(int i) const;
 
             bool touches(const field& f) const;
             bool intersects(const field& f) const;
-            bool intersects(const std::vector<field>* f) const;
+            bool intersects(const std::vector<field>& f) const;
             bool shares_line(const field& f) const;
             line shared_line(const field& f) const;
             bool has_line(line l) const;
             bool intersects(line l) const;
-            bool intersects(std::vector<line>* l) const;
-            team_count count_intersections(std::vector<link>* l) const;
-            std::vector<link>* get_intersections(std::vector<link>* l) const;
-            // stupid expensive S2Polygon means these can't be const, 
-            // using lazy initialisation of S2Polygon
+            bool intersects(const std::vector<line>& l) const;
+            team_count count_intersections(const std::vector<link>& l) const;
+            std::vector<link> get_intersections(const std::vector<link>& l) const;
             bool inside(point p) const;
-            bool inside(std::vector<point>* p) const;
+            bool inside(const std::vector<point>& p) const;
             bool inside(const field& f) const;
             bool layers(const field& f) const;
-            bool layers(std::vector<field>* f) const;
+            bool layers(const std::vector<field>& f) const;
             point other_point(line l) const;
             field inverse_corner_field(int corner) const;
             double difference(const field& f) const;
             bool operator==(const field& f) const;
-            bool found_in(std::vector<field>* f) const;
+            bool found_in(const std::vector<field>& f) const;
             std::string drawtool() const;
             std::string to_string() const;
 

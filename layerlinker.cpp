@@ -35,14 +35,14 @@ void print_usage()
 		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
 }
 
-int find_field(const vector<field>* fields,int start,const field& current,const vector<field>&exist, double threshold)
+int find_field(const vector<field>& fields,int start,const field& current,const vector<field>&exist, double threshold)
 {
 	int best=-1;
 	double closest = 9999.0;
-	for (int n =start; n < fields->size(); n++)
+	for (int n =start; n < fields.size(); n++)
 	{
-		field fi =fields->at(n);
-		if (!fi.intersects(&exist))
+		field fi =fields.at(n);
+		if (!fi.intersects(exist))
 		{
 			double diff = current.difference(fi);
 			// want to make a field selection strategy, for different fielding plans.
@@ -75,7 +75,7 @@ int main (int argc, char* argv[])
 	double threshold;
 	double percentile = 100;
 	double fpercentile = 100;
-	vector<point>*target = 0;
+	vector<point>target;
 	int calc = 0;  // area or mu
 
 	arguments ag(argc,argv);
@@ -147,127 +147,125 @@ int main (int argc, char* argv[])
 	rt.start();
 
 // of course I had to pick a colliding name for my class
-	vector<silicontrip::link>* links;
-	vector<field>* all_fields;
-	vector<field>* af;
+	vector<silicontrip::link> links;
+	vector<field> all_fields;
+	vector<field> af;
 
 	if (ag.argument_size() == 1)
 	{
-		vector<portal>* portals;
+		vector<portal> portals;
 		
 		portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
-		cerr << "== " << portals->size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
+		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 
 		cerr << "== getting links ==" << endl;
                                 
 		links = lf->get_purged_links(portals);
                                 
-        cerr <<  "== " << links->size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 
 		cerr << "== generating potential links ==" << endl;
 
-		vector<line>* li = lf->make_lines_from_single_cluster(portals);
-        cerr << "all links: " << li->size() << endl;
-        li = lf->filter_links(li,links,tc);
-        if (percentile < 100)
-            li = lf->percentile_lines(li,percentile);
-                                
-		cerr << "purged links: " << li->size() << endl;
+		vector<line> li = lf->make_lines_from_single_cluster(portals);
+			cerr << "all links: " << li.size() << endl;
+			li = lf->filter_links(li,links,tc);
+			if (percentile < 100)
+				li = lf->percentile_lines(li,percentile);
+					
+			cerr << "purged links: " << li.size() << endl;
 
-		cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
+			cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
 
-		cerr << "== Generating fields ==" << endl;
+			cerr << "== Generating fields ==" << endl;
 
-		af = ff->make_fields_from_single_links(li);
-		all_fields = ff->filter_fields(af,links,tc);
-		delete af;
-		cerr << "fields: " << all_fields->size() << endl;
+			af = ff->make_fields_from_single_links(li);
+			all_fields = ff->filter_fields(af,links,tc);
+			cerr << "fields: " << all_fields.size() << endl;
 
-	}
-	// double and triple clusters
-	cerr << "==  fields generated " << rt.split() << " seconds ==" << endl;
-
-	if (target)
-	{
-		af = ff->over_target(all_fields,target);
-		delete all_fields;
-		all_fields = af;
-	}
-    if (fpercentile < 100)
-	{
-		af = ff->percentile(all_fields,fpercentile);
-		delete all_fields;
-		all_fields = af;
-	}
-
-    cerr << "==  fields filtered " << rt.split() << " seconds ==" << endl;
-    cerr << "== sorting fields ==" << endl;
-
-	sort(all_fields->begin(),all_fields->end(),geo_comparison);
-
-	cerr << "==  fields sortered " << rt.split() << " ==" << endl;
-	cerr << "== show matches ==" << endl;
-
-	vector<pair<double,string>> plan;
-	double bestbest = 0.0;
-	for (int i =0; i< all_fields->size();i++ ) {
-		field tfi = all_fields->at(i);
-		double at = 0.0;
-		if (calc==0)
-			at += tfi.geo_area();
-        else
-		{
-			at += ff->get_est_mu(tfi);
 		}
-		vector<field> fc;
-		dt.erase();
-		fc.push_back(tfi);
-		dt.add(tfi);
+		// double and triple clusters
+		cerr << "==  fields generated " << rt.split() << " seconds ==" << endl;
 
-		int best = find_field(all_fields,i+1,tfi,fc,threshold);
-
-		while (best != -1 && (maxlayers==0 || fc.size() < maxlayers)) 
+		if (target.size()>0)
 		{
-			tfi = all_fields->at(best);
+			all_fields = ff->over_target(all_fields,target);
+		}
+		if (fpercentile < 100)
+		{
+			all_fields = ff->percentile(all_fields,fpercentile);
+		}
+
+		cerr << "==  fields filtered " << rt.split() << " seconds ==" << endl;
+		cerr << "== sorting fields ==" << endl;
+
+		sort(all_fields.begin(),all_fields.end(),geo_comparison);
+
+		cerr << "==  fields sortered " << rt.split() << " ==" << endl;
+		cerr << "== show matches ==" << endl;
+
+		vector<pair<double,string>> plan;
+		double bestbest = 0.0;
+		for (int i =0; i< all_fields.size();i++ ) {
+			field tfi = all_fields.at(i);
+			double at = 0.0;
 			if (calc==0)
-            {
-				at += tfi.geo_area();
-                dt.add(tfi);
-				fc.push_back(tfi);
-			}
-            else
 			{
-				//System.out.println ("at: " + at  + " est: " + tfi.getEstMu());
-				// if (at + tfi.get_est_mu() < notOver)
-				// {
-						at += ff->get_est_mu(tfi);
-						dt.add(tfi);
-						fc.push_back(tfi);
-				//	}
-            }
-			best = find_field(all_fields,best+1,tfi,fc,threshold); 
+				at += tfi.geo_area();
+			}
+			else
+			{
+				at += ff->get_est_mu(tfi);
+			}
+			vector<field> fc;
+			dt.erase();
+			fc.push_back(tfi);
+			dt.add(tfi);
+
+			int best = find_field(all_fields,i+1,tfi,fc,threshold);
+
+			while (best != -1 && (maxlayers==0 || fc.size() < maxlayers)) 
+			{
+				tfi = all_fields.at(best);
+				if (calc==0)
+				{
+					at += tfi.geo_area();
+					dt.add(tfi);
+					fc.push_back(tfi);
+				}
+				else
+				{
+					//System.out.println ("at: " + at  + " est: " + tfi.getEstMu());
+					// if (at + tfi.get_est_mu() < notOver)
+					// {
+							at += ff->get_est_mu(tfi);
+							dt.add(tfi);
+							fc.push_back(tfi);
+					//	}
+				}
+				best = find_field(all_fields,best+1,tfi,fc,threshold); 
+			}
+
+			pair<double,string> ps;
+
+			ps.first = at;
+			ps.second = " ("+ std::to_string(fc.size())+") / " + dt.to_string();
+			plan.push_back(ps);
+			if (at>bestbest) {
+				bestbest = at;
+				cout << at << " (" << fc.size() << ") / " << dt.to_string() << endl;
+				cerr << "split: " << rt.split() << endl;
+			}
+		}
+		cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
+		cerr <<  "== show all plans ==" << endl;
+
+		sort (plan.begin(), plan.end(), pair_sort);
+		for (pair<double,string> entry: plan) 
+		{
+			cout <<  entry.first << " " << entry.second << endl <<endl;
 		}
 
-		pair<double,string> ps;
+		cerr <<  "== Finished. " << rt.split() << " elapsed time. " << rt.stop() << " total time." << endl;
 
-		ps.first = at;
-		ps.second = " ("+ std::to_string(fc.size())+") / " + dt.to_string();
-		plan.push_back(ps);
-		if (at>bestbest) {
-			bestbest = at;
-			cout << at << " (" << fc.size() << ") / " << dt.to_string() << endl;
-		}
+		return 0;
 	}
-	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
-    cerr <<  "== show all plans ==" << endl;
-
-	sort (plan.begin(), plan.end(), pair_sort);
-	for (pair<double,string> entry: plan) 
-	{
-		cout <<  entry.first << " " << entry.second << endl <<endl;
-	}
-
-	cerr <<  "== Finished. " << rt.split() << " elapsed time. " << rt.stop() << " total time." << endl;
-
-	return 0;
-}

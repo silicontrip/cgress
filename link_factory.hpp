@@ -25,27 +25,27 @@ class link_factory {
 
   		static link_factory* ptr;
 
-		Json::Value* read_json_from_file(const std::string url) const;
-		Json::Value* read_json_from_http(const std::string url) const;
+	Json::Value read_json_from_file(const std::string url) const;
+	Json::Value read_json_from_http(const std::string url) const;
 
     public:
-		static link_factory* get_instance();
+	static link_factory* get_instance();
 
-  		link_factory(const link_factory&) = delete;
-  		link_factory(link_factory&&) = delete;
-  		link_factory& operator=(const link_factory&) = delete;
-  		link_factory& operator=(link_factory&&) = delete;
+	link_factory(const link_factory&) = delete;
+	link_factory(link_factory&&) = delete;
+	link_factory& operator=(const link_factory&) = delete;
+	link_factory& operator=(link_factory&&) = delete;
 
         
-        std::vector<link>* purge_links(std::vector<portal>* portals, std::unordered_map<std::string,link>* links) const;
-        std::vector<link>* get_purged_links (std::vector<portal>* portals) const;
-        std::unordered_map<std::string,link>* get_all_links() const;
+        std::vector<link> purge_links(const std::vector<portal>& portals, const std::unordered_map<std::string,link>& links) const;
+        std::vector<link> get_purged_links (const std::vector<portal>& portals) const;
+        std::unordered_map<std::string,link> get_all_links() const;
 
-        std::vector<line>* make_lines_from_single_cluster(std::vector<portal>* portals) const;
-        std::vector<line>* make_lines_from_double_cluster(std::vector<portal>* portals1, std::vector<portal>* portals2) const;
+        std::vector<line> make_lines_from_single_cluster(const std::vector<portal>& portals) const;
+        std::vector<line> make_lines_from_double_cluster(const std::vector<portal>& portals1, const std::vector<portal>& portals2) const;
 
-        std::vector<line>* percentile_lines(std::vector<line>* lines, double percentile) const;
-        std::vector<line>* filter_links(std::vector<line>* lines, std::vector<link>* links, team_count max) const;
+        std::vector<line> percentile_lines(const std::vector<line>& lines, double percentile) const;
+        std::vector<line> filter_links(const std::vector<line>& lines, const std::vector<link>& links, team_count max) const;
 
 };
 
