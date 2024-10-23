@@ -2,6 +2,7 @@
 #define SILICONTRIP_PORTAL_FACTORY_HPP
 
 #include "portal.hpp"
+#include "json_reader.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -10,9 +11,7 @@
 #include <vector>
 
 #include <json/json.h>
-#include <curlpp/cURLpp.hpp>
-#include <curlpp/Easy.hpp>
-#include <curlpp/Options.hpp>
+
 #include <s2/s2region.h>
 #include <s2/s2cell_id.h>
 #include <s2/s2cell.h>
@@ -32,8 +31,6 @@ class portal_factory {
   		static portal_factory* ptr;
 
 		std::vector<std::string> split_str(const std::string str, char del) const;
-		Json::Value read_json_from_file(const std::string url) const;
-		Json::Value read_json_from_http(const std::string url) const;
 		S2Loop* s2loop_from_json(std::string desc) const;
 		std::vector<portal> get_array(const std::vector<std::string>& desc) const;
 		Json::Value read_json_from_array(const std::vector<std::string>& desc) const;

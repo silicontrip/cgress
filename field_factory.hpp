@@ -17,24 +17,23 @@
 #include "team_count.hpp"
 #include "link.hpp"
 #include "uniform_distribution.hpp"
+#include "json_reader.hpp"
 
 namespace silicontrip {
 
 class field_factory {
     private:
-		  std::string cell_api;
-      std::unordered_map<std::string, uniform_distribution> mu_cache;
-		  field_factory();  // no one else can create one
+        std::string cell_api;
+        std::unordered_map<std::string, uniform_distribution> mu_cache;
+        field_factory();  // no one else can create one
   		~field_factory(); // prevent accidental deletion
 
   		static field_factory* ptr;
 
-		  Json::Value read_json_from_file(const std::string url) const;
-		  Json::Value read_json_from_http(const std::string url) const;
-      Json::Value json_from_array(const std::vector<std::string>& desc) const;
-      std::unordered_map<std::string, uniform_distribution>query_mu_from_servlet(const std::vector<std::string>& cell_tokens) const;
-      std::unordered_map<std::string, uniform_distribution>query_mu(const std::vector<std::string>& cells);
-      bool link_exists(const std::vector<line>&l, int j, point p1, point p2) const;
+        Json::Value json_from_array(const std::vector<std::string>& desc) const;
+        std::unordered_map<std::string, uniform_distribution>query_mu_from_servlet(const std::vector<std::string>& cell_tokens) const;
+        std::unordered_map<std::string, uniform_distribution>query_mu(const std::vector<std::string>& cells);
+        bool link_exists(const std::vector<line>&l, int j, point p1, point p2) const;
 
     public:
 		  static field_factory* get_instance();

@@ -23,33 +23,6 @@ link_factory* link_factory::get_instance()
     return ptr;
 }
 
-// Hmm, identical to the portal_factory versions.
-Json::Value link_factory::read_json_from_file(const string url) const
-{
-    int pathsep = url.find_first_of('/');
-    string path = url.substr(pathsep);
-
-    Json::Value result;
-
-    ifstream file(path);
-
-    file >> result;
-
-    return result;
-}
-
-Json::Value link_factory::read_json_from_http(const string url) const
-{
-
-    Json::Value result;
-
-    stringstream str_res;
-    str_res << curlpp::options::Url(url);
-    str_res >> result;
-
-    return result;
-}
-
 vector<link> link_factory::purge_links(const vector<portal>& portals, const unordered_map<string,link>& links) const
 {
 
@@ -89,9 +62,9 @@ unordered_map<string,link> link_factory::get_all_links() const
     Json::Value res;
     if (link_api.substr(0,4) == "file")
     {
-        res = read_json_from_file(link_api);
+        res = json_reader::read_json_from_file(link_api);
     } else {
-        res = read_json_from_http(link_api);
+        res = json_reader::read_json_from_http(link_api);
     }
 
     unordered_map<string,link> result;

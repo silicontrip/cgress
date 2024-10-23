@@ -22,33 +22,6 @@ field_factory* field_factory::get_instance()
     return ptr;
 }
 
-// Hmm, identical to the portal_factory versions.
-Json::Value field_factory::read_json_from_file(const string url) const
-{
-    int pathsep = url.find_first_of('/');
-    string path = url.substr(pathsep);
-
-    Json::Value result;
-
-    ifstream file(path);
-
-    file >> result;
-
-    return result;
-}
-
-Json::Value field_factory::read_json_from_http(const string url) const
-{
-
-    Json::Value result;
-
-    stringstream str_res;
-    str_res << curlpp::options::Url(url);
-    str_res >> result;
-
-    return result;
-}
-
 vector<field> field_factory::over_target(const vector<field>&f, const std::vector<point>&t) const
 {
     vector<field> fa;
@@ -209,7 +182,7 @@ Json::Value field_factory::json_from_array(const vector<string>& desc) const
     Json::Value res;
     if (cell_api.substr(0,4) == "file")
     {
-        res = read_json_from_file(cell_api);
+        res = json_reader::read_json_from_file(cell_api);
     } else {
         Json::Value query;
 
@@ -221,7 +194,7 @@ Json::Value field_factory::json_from_array(const vector<string>& desc) const
         ostringstream jplist;
         jplist << query;
         string url = cell_api+"?mu="+curlpp::escape(jplist.str());
-        res = read_json_from_http(url);
+        res = json_reader::read_json_from_http(url);
     }
 
     return res;

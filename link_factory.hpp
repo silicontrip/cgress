@@ -14,6 +14,7 @@
 #include "portal.hpp"
 #include "link.hpp"
 #include "team_count.hpp"
+#include "json_reader.hpp"
 
 namespace silicontrip {
 
@@ -25,17 +26,13 @@ class link_factory {
 
   		static link_factory* ptr;
 
-	Json::Value read_json_from_file(const std::string url) const;
-	Json::Value read_json_from_http(const std::string url) const;
-
     public:
-	static link_factory* get_instance();
+		static link_factory* get_instance();
 
-	link_factory(const link_factory&) = delete;
-	link_factory(link_factory&&) = delete;
-	link_factory& operator=(const link_factory&) = delete;
-	link_factory& operator=(link_factory&&) = delete;
-
+		link_factory(const link_factory&) = delete;
+		link_factory(link_factory&&) = delete;
+		link_factory& operator=(const link_factory&) = delete;
+		link_factory& operator=(link_factory&&) = delete;
         
         std::vector<link> purge_links(const std::vector<portal>& portals, const std::unordered_map<std::string,link>& links) const;
         std::vector<link> get_purged_links (const std::vector<portal>& portals) const;

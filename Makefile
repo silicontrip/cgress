@@ -8,7 +8,8 @@ LIBCURLFLAGS=-lcurl -lcurlpp
 LDFLAGS=-std=c++17 -L/usr/local/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
 
 OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
-	link_factory.o field.o field_factory.o draw_tools.o arguments.o uniform_distribution.o
+	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
+	uniform_distribution.o json_reader.o
 
 all: layerlinker
 

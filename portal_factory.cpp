@@ -63,41 +63,15 @@ S2Loop* portal_factory::s2loop_from_json(const string desc) const
     return result;
 }
 
-Json::Value portal_factory::read_json_from_file(const string url) const
-{
-    int pathsep = url.find_first_of('/');
-    string path = url.substr(pathsep);
-
-    Json::Value result;
-
-    ifstream file(path);
-
-    file >> result;
-
-    return result;
-}
-
-Json::Value portal_factory::read_json_from_http(const string url) const
-{
-
-    Json::Value result;
-
-    stringstream str_res;
-    str_res << curlpp::options::Url(url);
-    str_res >> result;
-
-    return result;
-}
-
 portal portal_factory::get_single(const string desc) const
 {
     Json::Value res;
     if (portal_api.substr(0,4) == "file")
     {
-        res = read_json_from_file(portal_api);
+        res = json_reader::read_json_from_file(portal_api);
     } else {
         string url = portal_api+"?ll="+curlpp::escape(desc);
-        res = read_json_from_http(url);
+        res = json_reader::read_json_from_http(url);
     }
     // filter
     portal p;
@@ -250,7 +224,7 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
     Json::Value res;
     if (portal_api.substr(0,4) == "file")
     {
-        res = read_json_from_file(portal_api);
+        res = json_reader::read_json_from_file(portal_api);
     } else {
        
         S2LatLngRect bound = reg->GetRectBound();
@@ -259,7 +233,7 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
         string l2 = bound.hi().ToStringInDegrees();
 
         string url = portal_api+"?ll="+curlpp::escape(ll) + "&l2=" + l2;
-        res = read_json_from_http(url);
+        res = json_reader::read_json_from_http(url);
     }
 
     // filter
@@ -347,7 +321,7 @@ Json::Value portal_factory::read_json_from_array(const vector<string>& desc) con
     Json::Value res;
     if (portal_api.substr(0,4) == "file")
     {
-        res = read_json_from_file(portal_api);
+        res = json_reader::read_json_from_file(portal_api);
     } else {
         Json::Value query;
 
@@ -359,7 +333,7 @@ Json::Value portal_factory::read_json_from_array(const vector<string>& desc) con
         ostringstream jplist;
         jplist << query;
         string url = portal_api+"?portals="+curlpp::escape(jplist.str());
-        res = read_json_from_http(url);
+        res = json_reader::read_json_from_http(url);
     }
     return res;
 }
