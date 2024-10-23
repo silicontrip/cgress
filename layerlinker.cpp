@@ -18,7 +18,7 @@ void print_usage()
 {
 		cerr << "Usage:" << endl;
 		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
-		cerr << "    if two clusters are specified, 2 links are made from the first cluster." << endl;
+		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
 		cerr << "Options:" << endl;
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
@@ -151,6 +151,7 @@ int main (int argc, char* argv[])
 	vector<field> all_fields;
 	vector<field> af;
 
+	try {
 	if (ag.argument_size() == 1)
 	{
 		vector<portal> portals;
@@ -185,28 +186,81 @@ int main (int argc, char* argv[])
 	// TODO: double and triple clusters
 	} else if (ag.argument_size() == 2) {
 		// 2 portals from first cluster, 1 portal from second cluster
-		vector<portal>* portals1;
-		vector<portal>* portals2;
+		vector<portal> portals1;
+		vector<portal> portals2;
 
 		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
 		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
 
 		vector<portal> all_portals;
 
-		all_portals.insert( all_portals.end(), portals1->begin(), portals1->end() );
-		all_portals.insert( all_portals.end(), portals2->begin(), portals2->end() );
+		all_portals.insert( all_portals.end(), portals1.begin(), portals1.end() );
+		all_portals.insert( all_portals.end(), portals2.begin(), portals2.end() );
 
 		cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 		cerr << "== getting links ==" << endl;
                                 
-		links = lf->get_purged_links(&all_portals);
+		links = lf->get_purged_links(all_portals);
                                 
-        cerr <<  "== " << links->size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+        cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 
 		cerr << "== generating potential links ==" << endl;
 
-		vector<line>* li1 = lf->make_lines_from_double_cluster(portals1,portals2);
+		vector<line> li1 = lf->make_lines_from_single_cluster(portals1);
+		li1 = lf->filter_links(li1,links,tc);
 
+		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
+
+		vector<line> li2 = lf->make_lines_from_double_cluster(portals1,portals2);
+		li2 = lf->filter_links(li2,links,tc);	
+
+		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
+
+		all_fields = ff->make_fields_from_double_links(li2,li1);
+		all_fields = ff->filter_fields(all_fields,links,tc);
+
+		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
+	
+	} else if (ag.argument_size() == 3) {
+		vector<portal> portals1;
+		vector<portal> portals2;
+		vector<portal> portals3;
+
+		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
+		portals3 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(2)));
+
+		vector<portal> all_portals;
+		all_portals.insert(all_portals.end(), portals1.begin(), portals1.end());
+		all_portals.insert(all_portals.end(), portals2.begin(), portals2.end());
+		all_portals.insert(all_portals.end(), portals3.begin(), portals3.end());
+
+		cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
+		cerr << "== getting links ==" << endl;
+                                
+		links = lf->get_purged_links(all_portals);
+                                
+        cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+
+		cerr << "== generating potential links ==" << endl;
+
+		vector<line> li1 = lf->make_lines_from_double_cluster(portals1,portals2);
+		li1 = lf->filter_links(li1,links,tc);
+
+		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
+
+		vector<line> li2 = lf->make_lines_from_double_cluster(portals2,portals3);
+		li2 = lf->filter_links(li2,links,tc);
+
+		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
+
+		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
+		li3 = lf->filter_links(li3,links,tc);
+
+		cerr << "== cluster 3 links:  " << li1.size() << " ==" << endl;
+
+		all_fields = ff->make_fields_from_triple_links(li1,li2,li3);
+		all_fields = ff->filter_fields(all_fields,links,tc);
 
 	} else {
 		print_usage();
@@ -294,6 +348,10 @@ int main (int argc, char* argv[])
 		}
 
 		cerr <<  "== Finished. " << rt.split() << " elapsed time. " << rt.stop() << " total time." << endl;
+
+		} catch (exception &e) {
+			cerr << "An Error occured: " << e.what() << endl;
+		}
 
 		return 0;
 	}
