@@ -85,6 +85,14 @@ namespace silicontrip {
 
 std::ostream& operator<<(std::ostream& os, const silicontrip::field& l);
 
+template<> struct std::hash<silicontrip::field> {
+    std::size_t operator()(silicontrip::field const& s) const noexcept {
+        std::size_t h1 = std::hash<silicontrip::point>{}(s.point_at(0));
+        std::size_t h2 = std::hash<silicontrip::point>{}(s.point_at(1));
+        std::size_t h3 = std::hash<silicontrip::point>{}(s.point_at(2));
+        return h1 ^ h2 ^ h3;  // order isn't really important 
+    }
+};
 
 #endif
 
