@@ -58,7 +58,7 @@ double field::sign (double p1a, double p1o, double p2a, double p2o, double p3a, 
 }
 */
 //S2Loop* field::s2loop() const { return field_loop; }
-
+/*
 S2Polygon* field::get_field_poly() 
 { 
     if (!field_poly_ptr_)
@@ -76,10 +76,7 @@ S2Polygon* field::get_field_poly()
     }
     return field_poly_ptr_;
 }
-
-
-
-
+*/
 
 point field::point_at(int i) const { return field_points[i]; }
 bool field::has_point(point p) const { return p == field_points[0] || p == field_points[1] || p == field_points[2]; }
@@ -93,12 +90,12 @@ int field::point_index(point p) const
         return 2;
     return -1;
 }
-std::vector<point>* field::get_points() const
+std::vector<point> field::get_points() const
 {
-    std::vector<point>* ret = new std::vector<point>();
-    ret->push_back(field_points[0]);
-    ret->push_back(field_points[1]);
-    ret->push_back(field_points[2]);
+    std::vector<point> ret;
+    ret.push_back(field_points[0]);
+    ret.push_back(field_points[1]);
+    ret.push_back(field_points[2]);
 
     return ret;
 }
@@ -128,9 +125,9 @@ double field::geo_perimeter() const {
     return field_lines[0].geo_distance() + field_lines[1].geo_distance() + field_lines[2].geo_distance();
 
 }
-std::vector<line>* field::get_lines() const 
+std::vector<line> field::get_lines() const 
 {
-    std::vector<line>* res = new std::vector<line>(field_lines,field_lines+3);
+    std::vector<line> res = std::vector<line>(field_lines,field_lines+3);
     return res;
 }
 
@@ -175,9 +172,9 @@ bool field::intersects(const field& f) const
     return false;
 }
 
-bool field::intersects(const std::vector<field>* f) const
+bool field::intersects(const std::vector<field>& f) const
 {
-    for (field fi: *f)
+    for (field fi: f)
         if (intersects(fi))
             return true;
     return false;
@@ -215,44 +212,44 @@ bool field::intersects(line l) const
     return l.intersects(line_at(0)) || l.intersects(line_at(1)) || l.intersects(line_at(2));
 }
 
-bool field::intersects(std::vector<line>* l) const
+bool field::intersects(const std::vector<line>& l) const
 {
-    for (line li: *l)
+    for (line li: l)
         if (intersects(l))
             return true;
     return false;
 }
 
-std::vector<link>* field::get_intersections(std::vector<link>* l) const
+std::vector<link> field::get_intersections(const std::vector<link>& l) const
 {
-    vector<link>* all = new vector<link>();
+    vector<link> all;
 
     line l1 = line_at(0);
     line l2 = line_at(1);
     line l3 = line_at(2);
 
-    for (link li: *l)
+    for (link li: l)
     {
         // Line ll = li.getLine();
 
         if (l1.intersects(li)) {
-            all->push_back(li); 
+            all.push_back(li); 
         } else if (l2.intersects(li)) {
-            all->push_back(li); 
+            all.push_back(li); 
         } else if (l3.intersects(li)) {
-            all->push_back(li); 
+            all.push_back(li); 
         }
     }
     return all;        
 }
 
 
-team_count field::count_intersections(std::vector<link>* l) const
+team_count field::count_intersections(const std::vector<link>& l) const
 {
-    vector<link>* blocks = get_intersections(l);
+    vector<link> blocks;
     team_count block;
 
-    for (link li: *blocks)
+    for (link li: blocks)
         block.inc_team_enum(li.get_team_enum());
 
     return block;
@@ -267,9 +264,9 @@ bool field::inside(point p) const {
     return a < 0 && b < 0 && c < 0;
 }
 
-bool field::inside(std::vector<point>* p) const
+bool field::inside(const std::vector<point>& p) const
 {
-    for (point po: *p)
+    for (point po: p)
         if (!inside(po))
             return false;
     return true;
@@ -284,14 +281,14 @@ bool field::inside(const field& f) const
 
 bool field::layers(const field& f) const { return inside(f) || f.inside(*this); }
 
-bool field::layers(std::vector<field>* f) const
+bool field::layers(const std::vector<field>& f) const
 {
-    if (f->size() == 0 )
+    if (f.size() == 0 )
         return true;
     // this logic seems incorrect.
     // this is saying that layers is true if any one of the fields layer this field
     // rather than all fields must layer this field
-    for (field fi: *f)
+    for (field fi: f)
         if (layers(fi))
             return true;
     
@@ -343,9 +340,9 @@ double field::difference(const field& fi) const
 
 }
 
-bool field::found_in(std::vector<field>* f) const
+bool field::found_in(const std::vector<field>& f) const
 {
-    for (field fi: *f)
+    for (field fi: f)
         if ( *this == fi)
             return true;
     return false;

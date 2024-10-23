@@ -23,39 +23,39 @@ field_factory* field_factory::get_instance()
 }
 
 // Hmm, identical to the portal_factory versions.
-Json::Value* field_factory::read_json_from_file(const string url) const
+Json::Value field_factory::read_json_from_file(const string url) const
 {
     int pathsep = url.find_first_of('/');
     string path = url.substr(pathsep);
 
-    Json::Value* result = new Json::Value;
+    Json::Value result;
 
     ifstream file(path);
 
-    file >> *result;
+    file >> result;
 
     return result;
 }
 
-Json::Value* field_factory::read_json_from_http(const string url) const
+Json::Value field_factory::read_json_from_http(const string url) const
 {
 
-    Json::Value* result = new Json::Value();
+    Json::Value result;
 
     stringstream str_res;
     str_res << curlpp::options::Url(url);
-    str_res >> *result;
+    str_res >> result;
 
     return result;
 }
 
-vector<field>* field_factory::over_target(vector<field>*f, std::vector<point>*t) const
+vector<field> field_factory::over_target(const vector<field>&f, const std::vector<point>&t) const
 {
-    vector<field>* fa = new vector<field>();
+    vector<field> fa;
 
-    for (field fi: *f)
+    for (field fi: f)
         if (fi.inside(t))
-            fa->push_back(fi);
+            fa.push_back(fi);
 
     return fa;
 
@@ -66,33 +66,33 @@ bool geo_comparison(const field& a, const field& b)
     return a.geo_area() > b.geo_area();
 }
 
-vector<field>* field_factory::percentile(vector<field>*f, double percent) const
+vector<field> field_factory::percentile(const vector<field>&f, double percent) const
 {
 
-    vector<field>* v = new vector<field>();
+    vector<field> v;
 
-    for (field fi: *f)
+    for (field fi: f)
     {
-        v->push_back(fi);
+        v.push_back(fi);
     }
 
-    sort(v->begin(),v->end(),geo_comparison);
+    sort(v.begin(),v.end(),geo_comparison);
 
-    int end = round((f->size() * percent / 100.0));
+    int end = round((f.size() * percent / 100.0));
 
-    v->resize(end);
+    v.resize(end);
 
     return v;
 
 }
 
-vector<field>* field_factory::filter_fields(vector<field>*f, vector<link>*l, team_count tc) const
+vector<field> field_factory::filter_fields(const vector<field>&f, const vector<link>&l, team_count tc) const
 {
-    vector<field>* fa = new vector<field>();
+    vector<field> fa;
 
-    for (field fi: *f) {
+    for (field fi: f) {
         team_count bb;
-        for (link li: *l) {
+        for (link li: l) {
             if (fi.intersects(li)) {
                 bb.inc_team_enum(li.get_team_enum());
             }
@@ -100,23 +100,23 @@ vector<field>* field_factory::filter_fields(vector<field>*f, vector<link>*l, tea
                 break;
         }
         if (!(bb > tc))
-            fa->push_back(fi);
+            fa.push_back(fi);
                         
                 
     }
     return fa;
 }
 
-vector<field>* field_factory::filter_existing_fields(vector<field>*f, vector<link>*l) const
+vector<field> field_factory::filter_existing_fields(const vector<field>&f, const vector<link>&l) const
 {
-    vector<field>* ff = new vector<field>();
+    vector<field> ff;
 
     // Iterate through each field in the fieldArray
-    for (field fi : *f) {
+    for (field fi : f) {
         int matching = 0;
 
     // Check if the field contains any of the lines in lineArray
-        for (link li : *l) {
+        for (link li : l) {
             if (fi.has_line(li)) {
                 matching++;
             }
@@ -124,7 +124,7 @@ vector<field>* field_factory::filter_existing_fields(vector<field>*f, vector<lin
 
     // If no lines are found in the field, add it to the filteredFields
         if (matching<3) {
-            ff->push_back(fi);
+            ff.push_back(fi);
         }
     }
 
@@ -132,11 +132,11 @@ vector<field>* field_factory::filter_existing_fields(vector<field>*f, vector<lin
 
 }
 
-bool field_factory::link_exists(vector<line>*l, int j, point p1, point p2) const
+bool field_factory::link_exists(const vector<line>&l, int j, point p1, point p2) const
 {
-    for (int k=j+1; k<l->size(); k++)
+    for (int k=j+1; k<l.size(); k++)
     {
-        line l3 = l->at(k);
+        line l3 = l.at(k);
         if (
                 (p1 == l3.get_o_point() && p2 == l3.get_d_point()) ||
                 (p1 == l3.get_d_point() && p2 == l3.get_o_point())
@@ -172,9 +172,9 @@ S2CellUnion field_factory::cells(const S2Polygon& p) const
     return rc.GetCovering(p);
 }
 
-std::unordered_map<S2CellId,double>* field_factory::cell_intersection(const S2Polygon& p) const 
+std::unordered_map<S2CellId,double> field_factory::cell_intersection(const S2Polygon& p) const 
 {
-    unordered_map<S2CellId,double>* area = new unordered_map<S2CellId,double>();
+    unordered_map<S2CellId,double> area;
     S2CellUnion cell_union = cells(p);
 
     for (S2CellId cellid: cell_union)
@@ -195,17 +195,18 @@ std::unordered_map<S2CellId,double>* field_factory::cell_intersection(const S2Po
         //polyArea.put(cellid,new Double(intPoly.getArea() *  earthRadius * earthRadius));
         double sqkm = S2Earth::SteradiansToSquareKm(int_poly.GetArea());
         //uint64 id = cellid.id();
-        pair<S2CellId,double> area_pair (cellid,sqkm);
-        area->insert(area_pair);
+        //pair<S2CellId,double> area_pair (cellid,sqkm);
+        //area->insert(area_pair);
+	area[cellid] = sqkm;
 
     }
 
     return area;
 }
 
-Json::Value* field_factory::json_from_array(const vector<string>& desc) const
+Json::Value field_factory::json_from_array(const vector<string>& desc) const
 {
-    Json::Value* res;
+    Json::Value res;
     if (cell_api.substr(0,4) == "file")
     {
         res = read_json_from_file(cell_api);
@@ -229,12 +230,12 @@ Json::Value* field_factory::json_from_array(const vector<string>& desc) const
 unordered_map<string, uniform_distribution>field_factory::query_mu_from_servlet(const vector<string>& cell_tokens) const
 {
     unordered_map<string, uniform_distribution> result;
-    Json::Value* rv = json_from_array(cell_tokens);
+    Json::Value rv = json_from_array(cell_tokens);
     Json::Value def = 0;
-    for (string key: rv->getMemberNames())
+    for (string key: rv.getMemberNames())
     {
-        double lower = rv->get(key,def)[0].asDouble();
-        double upper = rv->get(key,def)[1].asDouble();
+        double lower = rv.get(key,def)[0].asDouble();
+        double upper = rv.get(key,def)[1].asDouble();
         uniform_distribution ud = uniform_distribution(lower,upper);
         result[key]=ud;
     }
@@ -280,7 +281,7 @@ unordered_map<string, uniform_distribution>field_factory::query_mu(const vector<
 
 int field_factory::calculate_mu(const S2Polygon& p)
 {
-    unordered_map<S2CellId, double>* cell_intersections = cell_intersection(p);
+    unordered_map<S2CellId, double> cell_intersections = cell_intersection(p);
     double total_mu = 0.0;
 
         // Create a map to store the mu/km2 values for each S2CellId
@@ -288,7 +289,7 @@ int field_factory::calculate_mu(const S2Polygon& p)
 
         // Prepare a list of S2CellIds to query
     vector<string> cell_ids_to_query;
-    for (pair<S2CellId,double>cell_pair : *cell_intersections) {
+    for (pair<S2CellId,double>cell_pair : cell_intersections) {
         cell_ids_to_query.push_back(cell_pair.first.ToToken());
     }
 
@@ -302,7 +303,7 @@ int field_factory::calculate_mu(const S2Polygon& p)
     }
 
         // Calculate total MU
-    for (pair<S2CellId, double> entry : *cell_intersections) {
+    for (pair<S2CellId, double> entry : cell_intersections) {
         S2CellId cell_id = entry.first;
             double intersection_area = entry.second;
             if (mu_map.count(cell_id)) {
@@ -323,29 +324,29 @@ int field_factory::get_est_mu(const field& f)
 }
 
 
-vector<field>* field_factory::make_fields_from_single_links(vector<line>*l) const
+vector<field> field_factory::make_fields_from_single_links(const vector<line>&l) const
 {
-    vector<field>* fa = new vector<field>();
-    for (int i =0; i<l->size(); i++)
+    vector<field> fa;
+    for (int i =0; i<l.size(); i++)
     {
-        line l1 = l->at(i);
-        for (int j=i+1; j<l->size(); j++)
+        line l1 = l.at(i);
+        for (int j=i+1; j<l.size(); j++)
         {
-            line l2 = l->at(j);
+            line l2 = l.at(j);
             
             // point l1.o == point l2.o
             if (l1.get_o_point() == l2.get_o_point()) {
                 if (link_exists(l,j,l1.get_d_point(),l2.get_d_point()))
-                    fa->emplace_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
+                    fa.emplace_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
             } else if (l1.o_s2latlng() == l2.d_s2latlng()) {
                 if (link_exists(l,j,l1.get_d_point(),l2.get_o_point()))
-                    fa->emplace_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
+                    fa.emplace_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
             } else if (l1.get_d_point() == l2.get_o_point()) {
                 if (link_exists(l,j,l1.get_o_point(),l2.get_d_point()))
-                    fa->emplace_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
+                    fa.emplace_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
             } else if (l1.get_d_point() == l2.get_d_point()) {
                 if (link_exists(l,j,l1.get_o_point(),l2.get_o_point()))
-                    fa->emplace_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
+                    fa.emplace_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
             }
         }
     }
@@ -355,59 +356,59 @@ vector<field>* field_factory::make_fields_from_single_links(vector<line>*l) cons
 
 // the argument order is important.
 // two from lines1 and 1 from lines2
-vector<field>* field_factory::make_fields_from_double_links(vector<line>*lk1,vector<line>*lk2) const
+vector<field> field_factory::make_fields_from_double_links(const vector<line>&lk1, const vector<line>&lk2) const
 {
-    vector<field>* fa = new vector<field>();
+    vector<field> fa;
 
-    for (int i =0; i<lk1->size(); i++)
+    for (int i =0; i<lk1.size(); i++)
     {
-        line l1 = lk1->at(i);
-        for (int j=i+1; j<lk1->size(); j++)
+        line l1 = lk1.at(i);
+        for (int j=i+1; j<lk1.size(); j++)
         {
-            line l2 = lk1->at(j);
+            line l2 = lk1.at(j);
             
             // point l1.o == point l2.o
             if (l1.get_o_point() == l2.get_o_point()) {
                 if (link_exists(lk2,-1,l1.get_d_point(),l2.get_d_point()))
-                    fa->push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
+                    fa.push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
             } else if (l1.get_o_point() == l2.get_d_point()) {
                 if (link_exists(lk2,-1,l1.get_d_point(),l2.get_o_point()))
-                    fa->push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
+                    fa.push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
             } else if (l1.get_d_point() == l2.get_o_point()) {
                 if (link_exists(lk2,-1,l1.get_o_point(),l2.get_d_point()))
-                    fa->push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
+                    fa.push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
             } else if (l1.get_d_point() == l2.get_d_point()) {
                 if (link_exists(lk2,-1,l1.get_o_point(),l2.get_o_point()))
-                    fa->push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
+                    fa.push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
             }
         }
     }   
     return fa;
 }
 
-std::vector<field>* field_factory::make_fields_from_triple_links(vector<line>*lk1,vector<line>*lk2,vector<line>*lk3) const
+std::vector<field> field_factory::make_fields_from_triple_links(const vector<line>&lk1, const vector<line>&lk2, const vector<line>&lk3) const
 {
-    vector<field>* fa = new vector<field>();
-    for (int i =0; i<lk1->size(); i++)
+    vector<field> fa;
+    for (int i =0; i<lk1.size(); i++)
     {
-        line l1 = lk1->at(i);
-        for (int j=0; j<lk2->size(); j++)
+        line l1 = lk1.at(i);
+        for (int j=0; j<lk2.size(); j++)
         {
-            line l2 = lk2->at(j);
+            line l2 = lk2.at(j);
             
             // point l1.o == point l2.o
             if (l1.get_o_point() == l2.get_o_point()) {
                 if (link_exists(lk3,-1,l1.get_d_point(),l2.get_d_point()))
-                    fa->push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
+                    fa.push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
             } else if (l1.get_o_point() == l2.get_d_point()) {
                 if (link_exists(lk3,-1,l1.get_d_point(),l2.get_o_point()))
-                    fa->push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
+                    fa.push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
             } else if (l1.get_d_point() == l2.get_o_point()) {
                 if (link_exists(lk3,-1,l1.get_o_point(),l2.get_d_point()))
-                    fa->push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
+                    fa.push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_d_point()));
             } else if (l1.get_d_point() == l2.get_d_point()) {
                 if (link_exists(lk3,-1,l1.get_o_point(),l2.get_o_point()))
-                    fa->push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
+                    fa.push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
             }
         }
     }

@@ -31,12 +31,12 @@ class portal_factory {
 
   		static portal_factory* ptr;
 
-		std::vector<std::string>* split_str(const std::string str, char del) const;
-		Json::Value* read_json_from_file(const std::string url) const;
-		Json::Value* read_json_from_http(const std::string url) const;
+		std::vector<std::string> split_str(const std::string str, char del) const;
+		Json::Value read_json_from_file(const std::string url) const;
+		Json::Value read_json_from_http(const std::string url) const;
 		S2Loop* s2loop_from_json(std::string desc) const;
-		std::vector<portal>* get_array(const std::vector<std::string>* desc) const;
-		Json::Value* read_json_from_array(const std::vector<std::string>* desc) const;
+		std::vector<portal> get_array(const std::vector<std::string>& desc) const;
+		Json::Value read_json_from_array(const std::vector<std::string>& desc) const;
 		portal portal_from_json(Json::Value jp) const;
 
 	public:
@@ -47,13 +47,13 @@ class portal_factory {
   		portal_factory& operator=(const portal_factory&) = delete;
   		portal_factory& operator=(portal_factory&&) = delete;
 
-		std::vector<portal>* vector_from_map(std::unordered_map<std::string,portal>* portals) const;
-		std::unordered_map<std::string,portal>* cluster_from_description(const std::string desc) const;
-		std::unordered_map<std::string,portal>* cluster_from_file(const std::string desc) const;
-		std::unordered_map<std::string,portal>* cluster_from_region(S2Region* reg) const;
-		std::unordered_map<std::string,portal>* cluster_from_array(const std::vector<std::string>* desc) const;
+		std::vector<portal> vector_from_map(const std::unordered_map<std::string,portal>& portals) const;
+		std::unordered_map<std::string,portal> cluster_from_description(const std::string desc) const;
+		std::unordered_map<std::string,portal> cluster_from_file(const std::string desc) const;
+		std::unordered_map<std::string,portal> cluster_from_region(S2Region* reg) const;
+		std::unordered_map<std::string,portal> cluster_from_array(const std::vector<std::string>& desc) const;
 		portal get_single(std::string desc) const;
-		std::vector<point>* points_from_string(std::string p) const;
+		std::vector<point> points_from_string(std::string p) const;
 };
 
 }
