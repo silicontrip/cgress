@@ -113,8 +113,8 @@ double field::geo_area() const {
     //L'Huilier's Formula
     double t = 4 * atan(sqrt(tan(s/2) * tan((s-a)/2) * tan ((s-b)/2) * tan((s-c)/2)));
 
-    return S2Earth::SteradiansToSquareKm(t);
-
+    // S2 Library changed its definition of Earth radius
+    return t * point::earth_radius_2;
 
 }
 double field::geo_perimeter() const { 

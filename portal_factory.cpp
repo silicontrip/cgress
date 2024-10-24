@@ -142,7 +142,10 @@ unordered_map<string,portal> portal_factory::cluster_from_description(const stri
             char* end;
 
             double rangek = strtod(pd.at(1).c_str(),&end);
-            S1Angle range = S2Earth::KmToAngle(rangek);
+            //S1Angle range = S2Earth::KmToAngle(rangek);
+            // The S2 Library changed it's value of earth radius
+            S1Angle range = S1Angle::Radians(rangek / point::earth_radius);
+
             S2Cap s2c = S2Cap(loc,range);
             search_region = &s2c;
 

@@ -166,11 +166,13 @@ std::unordered_map<S2CellId,double> field_factory::cell_intersection(const S2Pol
         int_poly.InitToIntersection(p, cell_poly);
 
         //polyArea.put(cellid,new Double(intPoly.getArea() *  earthRadius * earthRadius));
-        double sqkm = S2Earth::SteradiansToSquareKm(int_poly.GetArea());
+//        double sqkm = S2Earth::SteradiansToSquareKm(int_poly.GetArea());
+        double sqkm = int_poly.GetArea() * point::earth_radius_2;
+
         //uint64 id = cellid.id();
         //pair<S2CellId,double> area_pair (cellid,sqkm);
         //area->insert(area_pair);
-	area[cellid] = sqkm;
+	    area[cellid] = sqkm;
 
     }
 
