@@ -74,5 +74,13 @@ namespace silicontrip {
 
 std::ostream& operator<<(std::ostream& os, const silicontrip::line& l);
 
+template<> struct std::hash<silicontrip::line> {
+    std::size_t operator()(silicontrip::line const& s) const noexcept {
+        std::size_t h1 = std::hash<silicontrip::point>{}(s.get_o_point());
+        std::size_t h2 = std::hash<silicontrip::point>{}(s.get_d_point());
+        return h1 ^ h2;  // the equals operator isn't concerned with direction, neither should we.
+    }
+};
+
 
 #endif
