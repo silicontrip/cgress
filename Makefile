@@ -11,7 +11,7 @@ OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
 	uniform_distribution.o json_reader.o
 
-all: layerlinker maxlayers
+all: layerlinker maxlayers maxfields
 
 tests: test_run_timer test_point test_line test_factory test_team_count test_field
 
@@ -36,11 +36,14 @@ test_field: $(OBJ) test_field.o field.o
 test_arguments: $(OBJ) test_arguments.o arguments.o
 	$(CC)  $(LDFLAGS) $(OBJ) -o test_arguments test_arguments.o
 
-layerlinker: $(OBJ) layerlinker.o arguments.o
+layerlinker: $(OBJ) layerlinker.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o layerlinker layerlinker.o
 
-maxlayers: $(OBJ) maxlayers.o arguments.o
+maxlayers: $(OBJ) maxlayers.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o maxlayers maxlayers.o
+
+maxfields: $(OBJ) maxfields.o 
+	$(CC)  $(LDFLAGS) $(OBJ) -o maxfields maxfields.o
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
