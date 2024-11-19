@@ -73,11 +73,13 @@ bool line::intersect_or_equal(vector<line> l) const
 }
 
 double line::ang_distance() const { return o_point.s2latlng().GetDistance(d_point.s2latlng()).radians(); }
-double line::geo_distance() const { return S2Earth::ToKm(o_point.s2latlng().GetDistance(d_point.s2latlng())); }
+// S2 Library changed its definition of Earth radius
+double line::geo_distance() const { return o_point.s2latlng().GetDistance(d_point.s2latlng()).radians() * point::earth_radius; }
 double line::geo_distance(const point& p) const 
 {
 	S2LatLng on_line = S2LatLng(S2::Project(p.s2latlng().ToPoint(),o_point.s2latlng().ToPoint(),d_point.s2latlng().ToPoint()));
-	return S2Earth::ToKm(on_line.GetDistance(p.s2latlng()));
+	// S2 library changed its definition of Earth radius
+	return on_line.GetDistance(p.s2latlng()).radians() * point::earth_radius;
 }
 
 std::string line::to_string() const

@@ -166,11 +166,13 @@ std::unordered_map<S2CellId,double> field_factory::cell_intersection(const S2Pol
         int_poly.InitToIntersection(p, cell_poly);
 
         //polyArea.put(cellid,new Double(intPoly.getArea() *  earthRadius * earthRadius));
-        double sqkm = S2Earth::SteradiansToSquareKm(int_poly.GetArea());
+//        double sqkm = S2Earth::SteradiansToSquareKm(int_poly.GetArea());
+        double sqkm = int_poly.GetArea() * point::earth_radius_2;
+
         //uint64 id = cellid.id();
         //pair<S2CellId,double> area_pair (cellid,sqkm);
         //area->insert(area_pair);
-	area[cellid] = sqkm;
+	    area[cellid] = sqkm;
 
     }
 
@@ -324,8 +326,68 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>&l)
         }
     }
     return fa;
-
 }
+
+/*
+vector<field> field_factory::make_fields_from_single_links(const vector<line>& l) const 
+{
+    unordered_set<line> link_exists_map;
+    unordered_map<point,vector<line>> point_exists;
+
+    // Populate the map with existing links
+    for (int i = 0; i < l.size(); ++i) {
+        line li = l.at(i);
+        link_exists_map.insert(li);
+        //auto it = point_exists.find(li.get_o_point());
+        //if (it == point_exists.end())
+        //    point_exists[li.get_o_point()] = vector<line>();
+        
+        point_exists[li.get_o_point()].push_back(li);
+        
+        //it = point_exists.find(li.get_d_point());
+        //if (it == point_exists.end())
+        //    point_exists[li.get_d_point()] = vector<line>();
+        
+        point_exists[li.get_d_point()].push_back(li);
+    }
+
+    vector<field> fa;
+
+    for (size_t i = 0; i < l.size(); ++i) {
+        line l1 = l[i];
+
+        for (line l2: point_exists[l1.get_o_point()]) {       
+            // point l1.o == point l2.o
+            if (l1.get_o_point() == l2.get_o_point()) {
+                auto it = link_exists_map.find(line(l1.get_d_point(), l2.get_d_point()));
+                if (it != link_exists_map.end()) {
+                    fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_d_point()));
+                }
+            } else if (l1.o_s2latlng() == l2.d_s2latlng()) {
+                auto it = link_exists_map.find(line(l1.get_d_point(), l2.get_o_point()));
+                if (it != link_exists_map.end()) {
+                    fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_o_point()));
+                }
+            }
+        }
+        for (line l2: point_exists[l1.get_d_point()]) {
+            if (l1.get_d_point() == l2.get_o_point()) {
+                auto it = link_exists_map.find(line(l1.get_o_point(), l2.get_d_point()));
+                if (it != link_exists_map.end() ) {
+                    fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_d_point()));
+                }
+            } else if (l1.get_d_point() == l2.get_d_point()) {
+                auto it = link_exists_map.find(line(l1.get_o_point(), l2.get_o_point()));
+                if (it != link_exists_map.end()) {
+                    fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_o_point()));
+                }
+            }
+        }
+    }
+
+    return fa;
+}
+*/
 
 // the argument order is important.
 // two from lines1 and 1 from lines2

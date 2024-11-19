@@ -386,7 +386,7 @@ int main (int argc, char* argv[])
 				++j;
 			}
 		}
-		cerr << "== found " << fc.size() << " fields in " << rt.split() << " seconds. ==" << endl; 
+		//cerr << "== found " << fc.size() << " fields in " << rt.split() << " seconds. ==" << endl; 
 
 		vector<field> search;
 		//search.push_back(tfi);

@@ -16,24 +16,26 @@ using namespace silicontrip;
 
 void print_usage()
 {
-	cerr << "Usage:" << endl;
-	cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
-	cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
-	cerr << "Options:" << endl;
-	cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
-	cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
-	cerr << " -N <number>       Limit number of Machina Blockers" << endl;
+		cerr << "Usage:" << endl;
+		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
+		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
+		cerr << "Options:" << endl;
+		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
+		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
+		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
 
-	cerr << " -C <#colour>      Set Drawtools output colour" << endl;
-	cerr << " -L                Set Drawtools to output as polylines" << endl;
-	cerr << " -O                Output as Intel Link" << endl;
-	cerr << " -M                Use MU calculation" << endl;
-	cerr << " -t <number>       Threshold for similar fields (larger less similar)" << endl;
-	cerr << " -l <number>       Maximum number of layers in plan" << endl;
-	cerr << " -p <percentile>   Use longest percentile links" << endl;
-	cerr << " -f <percentile>   Use largest percentile fields" << endl;
-	cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
+		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
+		cerr << " -L                Set Drawtools to output as polylines" << endl;
+		cerr << " -O                Output as Intel Link" << endl;
+		cerr << " -s				Display plans that have the same size as the best found with decreasing variance" << endl;
+		cerr << " -S				Same as -s but with increasing variance (can't use with -s)" << endl;
+		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
 }
+
+struct score {
+	int count;
+	double balance;
+};
 
 unordered_map<field,int> mucache;
 
@@ -46,7 +48,6 @@ int cached_mu (field f)
 	return mucache[f];
 }
 
-
 string draw_fields(const vector<field>& f,draw_tools dt)
 {
 
@@ -58,21 +59,59 @@ string draw_fields(const vector<field>& f,draw_tools dt)
 	return dt.to_string();
 }
 
-double search_fields(draw_tools dt, const vector<field>& current, const vector<field>& all, int start, double max, int calc, run_timer rt)
+double calculate_balance_score(const vector<field>&  fields) 
+{
+	unordered_map<point, int> link_counts;
+
+	for (field field : fields) {
+		vector<point> portals = field.get_points();
+		for (point portal : portals) {
+			if (link_counts.find(portal) == link_counts.end())
+				link_counts[portal]= 1;
+			else
+				link_counts[portal]= link_counts[portal] + 1;
+		}
+	}
+
+	int totalLinks = 0;
+	int totalPortals = link_counts.size();
+	for (pair<point,int> count : link_counts) {
+		totalLinks += count.second;
+	}
+
+	double mean = (double) totalLinks / totalPortals;
+	double variance = 0.0;
+
+	for (pair<point,int> count : link_counts) {
+		variance += pow(count.second - mean, 2);
+	}
+
+	variance /= totalPortals;
+	return sqrt(variance); // return the standard deviation as the balance score
+}
+
+struct score search_fields(draw_tools dt, const vector<field>& current, const vector<field>& all, int start, int max, int calc, int ss, double balance, run_timer rt)
 {
 	if (current.size() > 0)
 	{
-		double newSize = 0.0;
+		int newSize = current.size();
+		double dispSize = 0.0;
 		for (field f: current)
 			if (calc == 0)
-				newSize += f.geo_area();
+				dispSize += f.geo_area();
 			else 
-				newSize += cached_mu(f);
+				dispSize += cached_mu(f);
 
-		if (newSize > max) {
-			cout << newSize << " : " << current.size() << " : " << draw_fields(current,dt) << endl; 
-			cerr << rt.split() << " seconds." << endl;
-			max = newSize;
+		if (newSize > max || (ss != 0 && newSize == max)) {
+
+			double bal = calculate_balance_score (current);
+			if (newSize > max || (ss == -1 && bal > balance) || ( ss == 1 && bal < balance) )
+			{
+				cout << bal << " : " << newSize << " : " << dispSize << " : " << draw_fields(current,dt) << endl; 
+				cerr << rt.split() << " seconds." << endl;
+				max = newSize;
+				balance = bal;
+			}
 		}
 	}
 
@@ -85,14 +124,18 @@ double search_fields(draw_tools dt, const vector<field>& current, const vector<f
 			newList.insert(newList.end(), current.begin(), current.end());
 			newList.push_back(thisField);
 
-			max = search_fields(dt, newList, all, i+1, max, calc,rt);	
+			struct score res = search_fields(dt, newList, all, i+1, max, calc,ss,balance,rt);
+
+			max = res.count;
+			balance = res.balance;
 		}
 	}
-		
-	return max;
+	struct score response;
+	response.count = max;
+	response.balance = balance;
+	return response;
 
 }
-
 
 bool geo_comparison(const field& a, const field& b)
 {
@@ -108,12 +151,9 @@ int main (int argc, char* argv[])
 {
 	run_timer rt;
 
-	int maxlayers = 0;
-	double threshold;
-	double percentile = 100;
-	double fpercentile = 100;
 	vector<point>target;
 	int calc = 0;  // area or mu
+	int same_size = 0; // same calc
 
 	arguments ag(argc,argv);
 
@@ -125,11 +165,8 @@ int main (int argc, char* argv[])
 	ag.add_req("O","polylines",false); // output as polylines
 	ag.add_req("L","intel",false); // output as intel
 	ag.add_req("M","MU",false); // calculate as MU
-	ag.add_req("m","",true); // maximum size
-	ag.add_req("t","threshold",true); // field similar threshold
-	ag.add_req("p","",true); // use percentile longest links
-	ag.add_req("f","",true); // use percentile biggest fields
-	ag.add_req("l","maxlayers",true); // maximum layers
+	ag.add_req("S","same",false); // display same size plans
+	ag.add_req("s","samesmall",false); // display same size plans
 	ag.add_req("T","target",true); // target fields over location
 	ag.add_req("h","help",false);
 
@@ -158,24 +195,29 @@ int main (int argc, char* argv[])
 	if (ag.has_option("O"))
 		dt.set_output_as_intel();
 
-	if (ag.has_option("t"))
-		threshold = ag.get_option_for_key_as_double("t");
-	else 
-		threshold = 0.2;
-	
-	if (ag.has_option("p"))
-		percentile = ag.get_option_for_key_as_double("p");
-
-	if (ag.has_option("l")) {
-		cerr << "max layers: " << ag.get_option_for_key_as_int("l") << endl;
-		maxlayers = ag.get_option_for_key_as_int("l");
-	}
 	if (ag.has_option("M"))
 		calc = 1;
 
 	portal_factory* pf = portal_factory::get_instance();
 	link_factory* lf = link_factory::get_instance();
 	field_factory* ff = field_factory::get_instance();
+
+	if (ag.has_option("s"))
+		same_size = 1;
+
+	if (ag.has_option("S"))
+	{
+		if (same_size == 0)
+		{
+			same_size = -1;
+		}
+		else
+		{
+				cerr << "Cannot have -s and -S" << endl << endl;
+				print_usage();
+				exit(1);
+		}
+	}
 
 	if (ag.has_option("T"))
 		target = pf->points_from_string(ag.get_option_for_key("T"));
@@ -207,8 +249,6 @@ int main (int argc, char* argv[])
 		vector<line> li = lf->make_lines_from_single_cluster(portals);
 		cerr << "all links: " << li.size() << endl;
 		li = lf->filter_links(li,links,tc);
-		if (percentile < 100)
-			li = lf->percentile_lines(li,percentile);
 					
 		cerr << "purged links: " << li.size() << endl;
 		cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
@@ -304,10 +344,6 @@ int main (int argc, char* argv[])
 	{
 		all_fields = ff->over_target(all_fields,target);
 	}
-	if (fpercentile < 100)
-	{
-		all_fields = ff->percentile(all_fields,fpercentile);
-	}
 
 	cerr << "==  fields filtered " << rt.split() << " seconds ==" << endl;
 	cerr << "== sorting fields ==" << endl;
@@ -318,10 +354,17 @@ int main (int argc, char* argv[])
 	cerr << "== show matches ==" << endl;
 
 	vector<pair<double,string>> plan;
-	double bestbest = 0.0;
+	int bestbest = 0;
 
-	vector<field>search;
-	bestbest = search_fields(dt,search,all_fields,0,bestbest,calc,rt);
+	list<field> field_list;
+
+	for (field f: all_fields)
+		field_list.push_back(f);
+
+
+	vector<field> search;
+		//search.push_back(tfi);
+	struct score result = search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 
 	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
 	cerr <<  "== show all plans ==" << endl;

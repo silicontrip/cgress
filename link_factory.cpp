@@ -33,6 +33,7 @@ vector<link> link_factory::purge_links(const vector<portal>& portals, const unor
         bound.AddPoint(po.s2latlng());
     }
 
+
     S2Point p1 = bound.GetVertex(0).ToPoint();
     S2Point p2 = bound.GetVertex(1).ToPoint();
     S2Point p3 = bound.GetVertex(2).ToPoint();
@@ -41,10 +42,14 @@ vector<link> link_factory::purge_links(const vector<portal>& portals, const unor
     vector<link> new_links;
 
     for ( pair<string,link> li: links) {
+
         link link = li.second;
+
         if (bound.GetDistance(link.d_s2latlng()).radians()==0 || bound.GetDistance(link.o_s2latlng()).radians()==0)
         {
+
             new_links.push_back(link);
+
 // this might be expensive, but hopefully the above case catches most
         } else if (S2::CrossingSign(link.o_s2point(),link.d_s2point(),p1,p2)==1 ||
                    S2::CrossingSign(link.o_s2point(),link.d_s2point(),p2,p3)==1 ||
@@ -54,11 +59,13 @@ vector<link> link_factory::purge_links(const vector<portal>& portals, const unor
             new_links.push_back(link);
         }
     }
+
     return new_links;
 }
 
 unordered_map<string,link> link_factory::get_all_links() const
 {
+
     Json::Value res;
     if (link_api.substr(0,4) == "file")
     {
@@ -87,6 +94,7 @@ unordered_map<string,link> link_factory::get_all_links() const
         //result->insert(glink);
 
     }
+
     return result;
 }
 
