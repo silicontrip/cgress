@@ -276,7 +276,7 @@ int main (int argc, char* argv[])
                                 
 		links = lf->get_purged_links(all_portals);
                                 
-        cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 		cerr << "== generating potential links ==" << endl;
 
 		vector<line> li1 = lf->make_lines_from_single_cluster(portals1);
@@ -313,7 +313,7 @@ int main (int argc, char* argv[])
                                 
 		links = lf->get_purged_links(all_portals);
                                 
-        cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 		cerr << "== generating potential links ==" << endl;
 
 		vector<line> li1 = lf->make_lines_from_double_cluster(portals1,portals2);

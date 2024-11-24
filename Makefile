@@ -36,13 +36,13 @@ test_field: $(OBJ) test_field.o field.o
 test_arguments: $(OBJ) test_arguments.o arguments.o
 	$(CC)  $(LDFLAGS) $(OBJ) -o test_arguments test_arguments.o
 
-layerlinker: $(OBJ) layerlinker.o arguments.o
+layerlinker: $(OBJ) layerlinker.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o layerlinker layerlinker.o
 
-maxlayers: $(OBJ) maxlayers.o arguments.o
+maxlayers: $(OBJ) maxlayers.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o maxlayers maxlayers.o
 
-maxfields: $(OBJ) maxfields.o arguments.o
+maxfields: $(OBJ) maxfields.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o maxfields maxfields.o
 
 %.o: %.cpp
