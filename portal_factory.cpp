@@ -78,8 +78,9 @@ portal portal_factory::get_single(const string desc) const
 
     for (Json::Value jv: res)
     {
-        if (jv["title"] == desc)
-        {
+        // why is this here?
+        //if (jv["title"] == desc)
+        //{
             p.set_guid(jv["guid"].asString());
             p.set_health(jv["health"].asInt());
             p.set_level(jv["level"].asInt());
@@ -93,7 +94,7 @@ portal portal_factory::get_single(const string desc) const
             S2LatLng ll = S2LatLng::FromE6(la,ln);
 
             p.set_s2latlng(ll);
-        }
+        //}
     }
 
     return p;
@@ -138,6 +139,7 @@ unordered_map<string,portal> portal_factory::cluster_from_description(const stri
 
         } else if (pd.size() == 2) {
             portal ploc = get_single(pd.at(0));
+            cerr << "portal location: " << ploc << endl;
             S2Point loc = ploc.s2latlng().ToPoint();
             char* end;
 
