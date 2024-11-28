@@ -79,6 +79,7 @@ portal portal_factory::get_single(const string desc) const
     for (Json::Value jv: res)
     {
         // why is this here?
+        // if this is needed it has to handle title, guid and location
         //if (jv["title"] == desc)
         //{
             p.set_guid(jv["guid"].asString());
