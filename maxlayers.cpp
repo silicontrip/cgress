@@ -58,8 +58,10 @@ string draw_fields(const vector<field>& f,draw_tools dt)
 	return dt.to_string();
 }
 
-double search_fields(draw_tools dt, const vector<field>& current, const vector<field>& all, int start, double max, int calc, run_timer rt)
+double search_fields(draw_tools dt, const vector<field>& current, const vector<field>& all, int start, double max, int calc, int layerLimit, run_timer rt)
 {
+	if (current.size() > layerLimit)
+		return max;
 	if (current.size() > 0)
 	{
 		double newSize = 0.0;
@@ -85,7 +87,7 @@ double search_fields(draw_tools dt, const vector<field>& current, const vector<f
 			newList.insert(newList.end(), current.begin(), current.end());
 			newList.push_back(thisField);
 
-			max = search_fields(dt, newList, all, i+1, max, calc,rt);	
+			max = search_fields(dt, newList, all, i+1, max, calc,layerLimit,rt);	
 		}
 	}
 		
@@ -390,7 +392,7 @@ int main (int argc, char* argv[])
 
 		vector<field> search;
 		//search.push_back(tfi);
-		bestbest = search_fields(dt,search,fc,0,bestbest,calc,rt);
+		bestbest = search_fields(dt,search,fc,0,bestbest,calc,maxlayers,rt);
 
 		if (search.size() > 0)
 		{
