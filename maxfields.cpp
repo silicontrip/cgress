@@ -14,32 +14,42 @@
 using namespace std;
 using namespace silicontrip;
 
-void print_usage()
-{
-		cerr << "Usage:" << endl;
-		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
-		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
-		cerr << "Options:" << endl;
-		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
-		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
-		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
-
-		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
-		cerr << " -L                Set Drawtools to output as polylines" << endl;
-		cerr << " -O                Output as Intel Link" << endl;
-		cerr << " -s				Display plans that have the same size as the best found with decreasing variance" << endl;
-		cerr << " -S				Same as -s but with increasing variance (can't use with -s)" << endl;
-		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
-}
-
 struct score {
 	int count;
 	double balance;
 };
 
-unordered_map<field,int> mucache;
+class maxfields {
 
-int cached_mu (field f)
+private:
+	unordered_map<field,int> mucache;
+	draw_tools dt;
+	run_timer rt;
+	int calculation_type;
+	vector<field> all;
+	int sameSize;
+
+	int cached_mu (field f);
+	string draw_fields(const vector<field>& f);
+	double calculate_balance_score(const vector<field>&  fields);
+
+public:
+	maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss);
+	struct score search_fields(const vector<field>& current, int start, int max, double balance);
+
+};
+
+maxfields::maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss)
+{
+	dt = dts;
+	rt = rtm;
+	calculation_type = calc;
+	// this can be a shallow copy.  is this right?
+	all = a;
+	sameSize = ss;
+}
+
+int maxfields::cached_mu (field f)
 {
 	if (mucache.count(f))
 		return mucache[f];
@@ -48,7 +58,7 @@ int cached_mu (field f)
 	return mucache[f];
 }
 
-string draw_fields(const vector<field>& f,draw_tools dt)
+string maxfields::draw_fields(const vector<field>& f)
 {
 
 	dt.erase();
@@ -59,7 +69,7 @@ string draw_fields(const vector<field>& f,draw_tools dt)
 	return dt.to_string();
 }
 
-double calculate_balance_score(const vector<field>&  fields) 
+double maxfields::calculate_balance_score(const vector<field>& fields) 
 {
 	unordered_map<point, int> link_counts;
 
@@ -90,24 +100,24 @@ double calculate_balance_score(const vector<field>&  fields)
 	return sqrt(variance); // return the standard deviation as the balance score
 }
 
-struct score search_fields(draw_tools dt, const vector<field>& current, const vector<field>& all, int start, int max, int calc, int ss, double balance, run_timer rt)
+struct score maxfields::search_fields(const vector<field>& current, int start, int max, double balance)
 {
 	if (current.size() > 0)
 	{
 		int newSize = current.size();
 		double dispSize = 0.0;
 		for (field f: current)
-			if (calc == 0)
+			if (calculation_type == 0)
 				dispSize += f.geo_area();
 			else 
 				dispSize += cached_mu(f);
 
-		if (newSize > max || (ss != 0 && newSize == max)) {
+		if (newSize > max || (sameSize != 0 && newSize == max)) {
 
 			double bal = calculate_balance_score (current);
-			if (newSize > max || (ss == -1 && bal > balance) || ( ss == 1 && bal < balance) )
+			if (newSize > max || (sameSize == -1 && bal > balance) || ( sameSize == 1 && bal < balance) )
 			{
-				cout << bal << " : " << newSize << " : " << dispSize << " : " << draw_fields(current,dt) << endl; 
+				cout << bal << " : " << newSize << " : " << dispSize << " : " << draw_fields(current) << endl; 
 				cerr << rt.split() << " seconds." << endl;
 				max = newSize;
 				balance = bal;
@@ -124,7 +134,7 @@ struct score search_fields(draw_tools dt, const vector<field>& current, const ve
 			newList.insert(newList.end(), current.begin(), current.end());
 			newList.push_back(thisField);
 
-			struct score res = search_fields(dt, newList, all, i+1, max, calc,ss,balance,rt);
+			struct score res = search_fields(newList, i+1, max, balance);
 
 			max = res.count;
 			balance = res.balance;
@@ -145,6 +155,24 @@ bool geo_comparison(const field& a, const field& b)
 bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 {
 	return a.first < b.first;
+}
+
+void print_usage()
+{
+		cerr << "Usage:" << endl;
+		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
+		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
+		cerr << "Options:" << endl;
+		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
+		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
+		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
+
+		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
+		cerr << " -L                Set Drawtools to output as polylines" << endl;
+		cerr << " -O                Output as Intel Link" << endl;
+		cerr << " -s				Display plans that have the same size as the best found with decreasing variance" << endl;
+		cerr << " -S				Same as -s but with increasing variance (can't use with -s)" << endl;
+		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
 }
 
 int main (int argc, char* argv[])
@@ -356,15 +384,16 @@ int main (int argc, char* argv[])
 	vector<pair<double,string>> plan;
 	int bestbest = 0;
 
-	list<field> field_list;
+//	list<field> field_list;
 
-	for (field f: all_fields)
-		field_list.push_back(f);
-
+//	for (field f: all_fields)
+//		field_list.push_back(f);
 
 	vector<field> search;
 		//search.push_back(tfi);
-	struct score result = search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
+	maxfields mf = maxfields(dt,rt,calc,all_fields,same_size);
+	struct score result = mf.search_fields(search, 0, 0, 0.0);
+	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 
 	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
 	cerr <<  "== show all plans ==" << endl;
