@@ -50,16 +50,19 @@ S2Loop* portal_factory::s2loop_from_json(const string desc) const
     istringstream(desc) >> dt;
     for (Json::Value jv: dt)
     {
-        for (Json::Value pp: dt["latLngs"])
+        for (Json::Value pp: jv["latLngs"])
         {
             double lat = pp["lat"].asDouble();
             double lng = pp["lng"].asDouble();
+
             S2LatLng ll = S2LatLng::FromDegrees(lat,lng);
             loop_points->push_back(ll.ToPoint());
         }
     }
     S2Loop* result = new S2Loop(*loop_points);
+
     delete loop_points;
+    result->Normalize();  // in case the loop is CW (it's meant to be CCW)
     return result;
 }
 
@@ -264,9 +267,16 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
             if (ang.e6() == 0 )
             {
                 portal p = portal_from_json(jv);
-		results[p.get_guid()] = p;
-                //pair<string,portal> gloc (p.get_guid(),p);
-                //results->insert(gloc);
+		        results[p.get_guid()] = p;
+            }
+        } else if (dynamic_cast<S2Loop*>(reg)) {
+            S2Loop* preg = dynamic_cast<S2Loop*>(reg);
+            S1Angle ang = preg->GetDistance(ll.ToPoint());
+            if (ang.e6() == 0 )
+            {
+                portal p = portal_from_json(jv);
+		        results[p.get_guid()] = p;
+
             }
         }
 
