@@ -14,30 +14,44 @@
 using namespace std;
 using namespace silicontrip;
 
-void print_usage()
-{
-		cerr << "Usage:" << endl;
-		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
-		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
-		cerr << "Options:" << endl;
-		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
-		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
-		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
+class maxlayers {
 
-		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
-		cerr << " -L                Set Drawtools to output as polylines" << endl;
-		cerr << " -O                Output as Intel Link" << endl;
-		cerr << " -M                Use MU calculation" << endl;
-		cerr << " -t <number>       Threshold for similar fields (larger less similar)" << endl;
-		cerr << " -l <number>       Maximum number of layers in plan" << endl;
-		cerr << " -p <percentile>   Use longest percentile links" << endl;
-		cerr << " -f <percentile>   Use largest percentile fields" << endl;
-		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
+
+private:
+
+	unordered_map<field,int> mucache;
+	draw_tools dt;
+	vector<field> all;
+	int calculation_type;
+	int layer_limit;
+	run_timer rt;
+	double threshold;
+	int link_limit;
+
+	int cached_mu (field f);
+	string draw_fields(const vector<field>& f);
+	double search_fields(const vector<field>& current, const vector<field>& field_list, int start, double max);
+	bool add_matching(const field& current, vector<field>& existing);
+	int count_links(const vector<field>& fields);
+
+public:
+	maxlayers(const draw_tools& d, const vector<field>& a, int c, int ll, const run_timer& r, double t, int link);
+	vector<pair<double,string>> start_search();
+};
+
+maxlayers::maxlayers(const draw_tools& d, const vector<field>& a, int c, int layer, const run_timer& r, double t, int link)
+{
+	dt = d;
+	all = a;
+	calculation_type = c;
+	layer_limit = layer;
+	rt = r;
+	threshold = t;
+	link_limit = link;
 }
 
-unordered_map<field,int> mucache;
 
-int cached_mu (field f)
+int maxlayers::cached_mu (field f)
 {
 	if (mucache.count(f))
 		return mucache[f];
@@ -47,7 +61,7 @@ int cached_mu (field f)
 }
 
 
-string draw_fields(const vector<field>& f,draw_tools dt)
+string maxlayers::draw_fields(const vector<field>& f)
 {
 
 	dt.erase();
@@ -58,36 +72,65 @@ string draw_fields(const vector<field>& f,draw_tools dt)
 	return dt.to_string();
 }
 
-double search_fields(draw_tools dt, const vector<field>& current, const vector<field>& all, int start, double max, int calc, int layerLimit, run_timer rt)
+int maxlayers::count_links(const vector<field>& fields) 
 {
-	if (current.size() > layerLimit)
+	unordered_map<point, int> link_counts;
+
+	for (field field : fields) {
+		vector<point> portals = field.get_points();
+		for (point portal : portals) {
+			if (link_counts.find(portal) == link_counts.end())
+				link_counts[portal]= 1;
+			else
+				link_counts[portal]= link_counts[portal] + 1;
+		}
+	}
+
+	int maxLinks = 0;
+	for (pair<point,int> count : link_counts) {
+		if (count.second> maxLinks)
+			maxLinks = count.second;
+	}
+
+	return maxLinks;
+}
+
+double maxlayers::search_fields(const vector<field>& current, const vector<field>& field_list, int start, double max)
+{
+	if (layer_limit > 0 && current.size() > layer_limit)
 		return max;
+	if (link_limit > 0)
+	{
+		int mx = count_links(current);
+		if (mx > link_limit)
+			return max;
+	}
 	if (current.size() > 0)
 	{
 		double newSize = 0.0;
 		for (field f: current)
-			if (calc == 0)
+			if (calculation_type == 0)
 				newSize += f.geo_area();
 			else 
 				newSize += cached_mu(f);
 
 		if (newSize > max) {
-			cout << newSize << " : " << current.size() << " : " << draw_fields(current,dt) << endl; 
+			cout << newSize << " : " << current.size() << " : " << draw_fields(current) << endl; 
 			cerr << rt.split() << " seconds." << endl;
 			max = newSize;
 		}
 	}
 
-	for (int i=start; i<all.size(); i++)
+	for (int i=start; i<field_list.size(); i++)
 	{
-		field thisField = all.at(i);
+		field thisField = field_list.at(i);
 		if (!thisField.intersects(current))
 		{
 			vector<field> newList;
 			newList.insert(newList.end(), current.begin(), current.end());
 			newList.push_back(thisField);
 
-			max = search_fields(dt, newList, all, i+1, max, calc,layerLimit,rt);	
+			max = search_fields(newList, field_list, i+1, max);	
 		}
 	}
 		
@@ -95,7 +138,7 @@ double search_fields(draw_tools dt, const vector<field>& current, const vector<f
 
 }
 
-bool add_matching(const list<field>& all, const field& current, vector<field>& existing, double threshold)
+bool maxlayers::add_matching(const field& current, vector<field>& existing)
 {
 	bool added = false;
 	for (field sfi: all)
@@ -122,6 +165,77 @@ bool add_matching(const list<field>& all, const field& current, vector<field>& e
 	return added;
 }
 
+vector<pair<double,string>> maxlayers::start_search ()
+{
+	vector<pair<double,string>> plan;
+	double bestbest = 0.0;
+
+	list<field> field_list;
+
+	for (field f: all)
+		field_list.push_back(f);
+
+	//cerr << "==  fields linked " << rt.split() << " seconds ==" << endl;
+
+
+	list<field>::iterator i=field_list.begin();
+	while (i !=field_list.end()) 
+	{
+		field tfi = *i;
+		vector<field> fc;
+
+		//cerr << "== searching for similar fields ==" << endl; 
+		bool added = add_matching(tfi,fc);
+		while (added) 
+		{
+			added = false;
+			for (field sfi: fc)
+			{
+				if(add_matching(sfi,fc))
+					added = true;
+			}	
+
+		}
+		//cerr << "== found " << fc.size() << " fields " << rt.split() << " seconds ==" << endl;
+
+		for (field sfi: fc)
+		{
+			list<field>::iterator j=field_list.begin();
+			while (j != field_list.end())
+			{
+				field ffi = *j;
+				if (sfi == ffi)
+				{
+					j = field_list.erase(j);
+					break;
+				}
+				++j;
+			}
+		}
+		//cerr << "== found " << fc.size() << " fields in " << rt.split() << " seconds. ==" << endl; 
+
+		vector<field> search;
+		//search.push_back(tfi);
+		bestbest = search_fields(search,fc,0,bestbest);
+
+		if (search.size() > 0)
+		{
+			pair<double,string> ps;
+
+			ps.first = bestbest;
+			ps.second = " ("+ std::to_string(search.size())+") / " + draw_fields(search);
+			plan.push_back(ps);
+			cout << bestbest << " (" << search.size() << ") / " << draw_fields(search) << endl;
+			cerr << "split: " << rt.split() << endl;
+		}
+		if (fc.size() > 0)
+			i=field_list.begin();
+		else
+			i++;
+	}
+	return plan;
+}
+
 
 bool geo_comparison(const field& a, const field& b)
 {
@@ -133,11 +247,34 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 	return a.first < b.first;
 }
 
+void print_usage()
+{
+		cerr << "Usage:" << endl;
+		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
+		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
+		cerr << "Options:" << endl;
+		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
+		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
+		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
+
+		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
+		cerr << " -L                Set Drawtools to output as polylines" << endl;
+		cerr << " -O                Output as Intel Link" << endl;
+		cerr << " -M                Use MU calculation" << endl;
+		cerr << " -t <number>       Threshold for similar fields (larger less similar)" << endl;
+		cerr << " -l <number>       Maximum number of layers in plan" << endl;
+		cerr << " -P <number>       Maximum number of links from a single portal" << endl;
+		cerr << " -p <percentile>   Use longest percentile links" << endl;
+		cerr << " -f <percentile>   Use largest percentile fields" << endl;
+		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
+}
+
 int main (int argc, char* argv[])
 {
 	run_timer rt;
 
-	int maxlayers = 0;
+	int mlayers = 0;
+	int mlinks = 0;
 	double threshold;
 	double percentile = 100;
 	double fpercentile = 100;
@@ -159,6 +296,7 @@ int main (int argc, char* argv[])
 	ag.add_req("p","",true); // use percentile longest links
 	ag.add_req("f","",true); // use percentile biggest fields
 	ag.add_req("l","maxlayers",true); // maximum layers
+	ag.add_req("P","maxlinks",true); // maximum links
 	ag.add_req("T","target",true); // target fields over location
 	ag.add_req("h","help",false);
 
@@ -197,8 +335,13 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("l")) {
 		cerr << "max layers: " << ag.get_option_for_key_as_int("l") << endl;
-		maxlayers = ag.get_option_for_key_as_int("l");
+		mlayers = ag.get_option_for_key_as_int("l");
 	}
+	if (ag.has_option("P")) {
+		cerr << "max links: " << ag.get_option_for_key_as_int("P") << endl;
+		mlinks = ag.get_option_for_key_as_int("P");
+	}
+
 	if (ag.has_option("M"))
 		calc = 1;
 
@@ -346,69 +489,10 @@ int main (int argc, char* argv[])
 	cerr << "==  fields sortered " << rt.split() << " ==" << endl;
 	cerr << "== show matches ==" << endl;
 
-	vector<pair<double,string>> plan;
-	double bestbest = 0.0;
+	maxlayers ml = maxlayers(dt, all_fields, calc, mlayers, rt, threshold,mlinks);
 
-	list<field> field_list;
+	vector<pair<double,string>> plan = ml.start_search();
 
-	for (field f: all_fields)
-		field_list.push_back(f);
-
-	list<field>::iterator i=field_list.begin();
-	while (i !=field_list.end()) 
-	{
-		field tfi = *i;
-		vector<field> fc;
-
-		//cerr << "== searching for similar fields ==" << endl; 
-		bool added = add_matching(field_list,tfi,fc,threshold);
-		while (added) 
-		{
-			added = false;
-			for (field sfi: fc)
-			{
-				if(add_matching(field_list,sfi,fc,threshold))
-					added = true;
-			}	
-
-		}
-		//cerr << "== deleting. ==" << endl; 
-
-		for (field sfi: fc)
-		{
-			list<field>::iterator j=field_list.begin();
-			while (j != field_list.end())
-			{
-				field ffi = *j;
-				if (sfi == ffi)
-				{
-					j = field_list.erase(j);
-					break;
-				}
-				++j;
-			}
-		}
-		//cerr << "== found " << fc.size() << " fields in " << rt.split() << " seconds. ==" << endl; 
-
-		vector<field> search;
-		//search.push_back(tfi);
-		bestbest = search_fields(dt,search,fc,0,bestbest,calc,maxlayers,rt);
-
-		if (search.size() > 0)
-		{
-			pair<double,string> ps;
-
-			ps.first = bestbest;
-			ps.second = " ("+ std::to_string(search.size())+") / " + draw_fields(search,dt);
-			plan.push_back(ps);
-			cout << bestbest << " (" << search.size() << ") / " << draw_fields(search,dt) << endl;
-			cerr << "split: " << rt.split() << endl;
-		}
-		if (fc.size() > 0)
-			i=field_list.begin();
-		else
-			i++;
-	}
 	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
 	cerr <<  "== show all plans ==" << endl;
 
