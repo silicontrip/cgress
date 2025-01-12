@@ -258,7 +258,7 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
         if (reg->Contains(cell))
         {
             portal p = portal_from_json(jv);
-		results[p.get_guid()]=p;
+		    results[p.get_guid()]=p;
             //pair<string,portal> gloc (p.get_guid(),p);
             //results->insert(gloc);
         } else if (dynamic_cast<S2Polygon*>(reg)) {
@@ -276,7 +276,6 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
             {
                 portal p = portal_from_json(jv);
 		        results[p.get_guid()] = p;
-
             }
         }
 
