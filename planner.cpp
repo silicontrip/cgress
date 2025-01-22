@@ -18,6 +18,7 @@ private:
 	int sbul_limit;
 	bool allow2km;
 	vector<line> poly_lines;
+	run_timer rt;
 
 	random_device ran_dev;
 	default_random_engine rng;
@@ -25,22 +26,21 @@ private:
 
 	unordered_map<field, vector<point>> polygons_map;
 
-	vector<field>complete_field(vector<line> order, line pl);
-	bool check_plan(vector<line> dts);
-	bool check_same(vector<line>dts);
+	vector<field>complete_field(const vector<line>&order, line pl);
+	bool check_plan(const vector<line>&dts);
+	bool check_same(const vector<line>&dts);
 	
-	double geo_cost(vector<point>pp);
-	int count_visited(point pp, vector<point>visited);
-	int count_unvisited(point pp, vector<point>visited);
+	double geo_cost(const vector<point>&pp);
+	int count_visited(point pp, const vector<point>&visited);
+	int count_unvisited(point pp, const vector<point>&visited);
 
-	int key_cost(vector<point>order);
+	int key_cost(const vector<point>&order);
 
-	double total_cost(vector<point>comb);
+	double total_cost(const vector<point>&comb);
 	static int factorial(int n);
 	static bool next_permutation(vector<point>&visited, int step);
 
 	draw_tools plan(draw_tools dts, vector<point>combination);
-	vector<line> link_order(vector<point>combination);
 	vector<point> gen_random(vector<point>points);
 	vector<point> perturb_solution(vector<point>points);
 
@@ -85,7 +85,7 @@ public:
 
 	}
 
-vector<field>planner::complete_field(vector<line> order, line pl)
+vector<field>planner::complete_field(const vector<line>&order, line pl)
 {
 	vector<field> completed_fields;
 
@@ -132,7 +132,7 @@ vector<field>planner::complete_field(vector<line> order, line pl)
 	return completed_fields;
 }
 
-bool planner::check_plan(vector<line> dt_lines)
+bool planner::check_plan(const vector<line>& dt_lines)
 {
 	//vector<line> dt_lines = dts.get_lines();
 	vector<line> order;
@@ -159,7 +159,7 @@ bool planner::check_plan(vector<line> dt_lines)
 	return true;
 }
 
-bool planner::check_same(vector<line>dts)
+bool planner::check_same(const vector<line>&dts)
 {
 	vector<line> order;
 
@@ -189,7 +189,7 @@ bool planner::check_same(vector<line>dts)
 	return true;
 }
 
-double planner::geo_cost(vector<point>pp)
+double planner::geo_cost(const vector<point>&pp)
 {
 	double distance = 0;
 
@@ -202,7 +202,7 @@ double planner::geo_cost(vector<point>pp)
 	return distance;
 }
 
-int planner::count_visited(point pp, vector<point>visited)
+int planner::count_visited(point pp, const vector<point>&visited)
 {
 	int cost = 0;
 	for (line poly : poly_lines)
@@ -228,7 +228,7 @@ int planner::count_visited(point pp, vector<point>visited)
 	return cost;
 }
 
-int planner::count_unvisited(point pp, vector<point>visited)
+int planner::count_unvisited(point pp, const vector<point>&visited)
 {
 	int cost = 0;
 	for (line poly : poly_lines)
@@ -254,7 +254,7 @@ int planner::count_unvisited(point pp, vector<point>visited)
 	return cost;
 }
 
-int planner::key_cost(vector<point>order)
+int planner::key_cost(const vector<point>&order)
 {
 	vector<point>visited;
 	int max_cost = 0;
@@ -274,7 +274,7 @@ int planner::key_cost(vector<point>order)
 	return max_cost;
 }
 
-double planner::total_cost(vector<point>comb)
+double planner::total_cost(const vector<point>&comb)
 {
 	vector<line> dts;
 	int kcost = key_cost (comb);
@@ -282,7 +282,6 @@ double planner::total_cost(vector<point>comb)
 
 	if (kcost < 1000)
 	{
-		dts = link_order(comb);
 		if (!check_plan(dts))
 			kcost = 10000;
 	}
@@ -299,7 +298,6 @@ int planner::factorial(int n) {
 
 bool planner::next_permutation(vector<point>&visited, int step)
 {
-	//cerr << ">>> planner::next_permutation" << endl;
 	const int n = visited.size();
         
 	if (n==1)
@@ -396,8 +394,7 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 
 				valid_plan = check_same(ndt);
 			}
-			if (!valid_plan)
-				cerr << "unable to find valid plan (which shouldn't be the case)" << endl;
+
 			for (line l : new_line)
 				dts.add(l);
 			ldts.assign(ndt.begin(),ndt.end());
@@ -410,57 +407,6 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 
 	return dts;
 }
-
-vector<line> planner::link_order(vector<point>combination)
-{
-	vector<point>visited;
-	visited.push_back(combination.at(0));
-	vector<line> dts;
-
-	for (int i = 1; i < combination.size(); i++) 
-	{
-		point this_point = combination[i];
-		vector<point> out_links;
-
-		for (point visit_point : visited)
-		{
-			for (line po : poly_lines)
-			{
-				if ((this_point == po.get_o_point() && visit_point == po.get_d_point()) ||
-					(this_point == po.get_d_point() && visit_point == po.get_o_point())) 
-				{
-					out_links.push_back(visit_point);
-				}
-			}
-		}
-		if (out_links.size() > 0)
-		{	
-			bool valid_plan = false;
-			int counter = 0;
-
-			int count_limit = factorial(out_links.size());
-
-			vector<line> ndt;
-			while (!valid_plan && counter < count_limit) {
-				ndt.assign(dts.begin(),dts.end());
-
-				next_permutation(out_links, counter++);
-				for (point pp: out_links)
-				{
-					line nline = line(pp,this_point);
-					ndt.push_back(nline);
-				}
-
-				valid_plan = check_same(ndt);
-			}
-			dts.assign(ndt.begin(),ndt.end());
-		} 
-		visited.push_back(this_point);
-	}
-
-	return dts;
-}
-
 
 vector<point> planner::gen_random(vector<point>points)
 {
@@ -490,7 +436,7 @@ vector<point> planner::perturb_solution(vector<point>points)
 void planner::simulated_annealing (vector<point> combination, double initial_temperature, double cooling_rate, int iterations)
 {
 	double best_cost = 1000;
-
+	rt.start();
 	uniform_real_distribution<float> rand(0,1);
 
 	// int n = combination.size();
@@ -506,11 +452,14 @@ void planner::simulated_annealing (vector<point> combination, double initial_tem
 		for (int iter =0; iter < iterations; iter++)
 		{
 			
+			//cerr << endl << "iter: " << iter <<  " " << rt.split() << " seconds" << endl;
 			vector<point> new_combination = perturb_solution(current_combination);
 
 			double new_cost = total_cost(new_combination);
+
 			if (new_cost < current_cost || exp((current_cost - new_cost) / temperature) > rand(gen))
 			{
+
 				current_combination = new_combination;
 				current_cost = new_cost;
 
@@ -521,14 +470,15 @@ void planner::simulated_annealing (vector<point> combination, double initial_tem
 
 					int kcost = key_cost(best_combination);
 					double dist = geo_cost(best_combination);
-					cout <<  kcost << " "  << dist <<  " : (" << temperature << "/" << iter << ")" << endl << endl;;
-					//dt = linkOrder(dt,bestCombination);
-					//System.out.println(dt);
-					//System.out.println("");
+
+					cout <<  kcost << " "  << dist <<  " : (" << temperature << "/" << iter << ") " << rt.split() << " seconds" << endl << endl;
 					if (kcost < 1000)
 					{
 						dt = plan(dt,best_combination);
-						cout << dt << endl << endl;
+
+						cout << dt << endl;
+						cerr << rt.split() << " seconds" << endl << endl;
+
 					}
 				}
 			}
@@ -581,6 +531,21 @@ int main (int argc, char* argv[])
 		cerr << "set colour: " << ag.get_option_for_key("C") << endl;
 		dt.set_colour(ag.get_option_for_key("C"));
 	}
+
+	if (ag.has_option("k"))
+		cost_percentage = ag.get_option_for_key_as_double("k");
+
+	if (ag.has_option("s"))
+		sbul_count = ag.get_option_for_key_as_int("s");
+
+	if (ag.has_option("l"))
+		allow2km = false;
+
+	if (ag.has_option("t"))
+		initial_temperature = ag.get_option_for_key_as_double("t");
+
+	if (ag.has_option("i"))
+		iterations = ag.get_option_for_key_as_int("i");
 
 	if (ag.argument_size() != 1)
 	{
