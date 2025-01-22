@@ -28,6 +28,7 @@ private:
 	int calculation_type;
 	vector<field> all;
 	int sameSize;
+	bool splits;
 
 	int cached_mu (field f);
 	string draw_fields(const vector<field>& f);
@@ -39,7 +40,7 @@ private:
 
 
 public:
-	cyclonefields(draw_tools dts, run_timer rtm, int calc, const vector<field> a);
+	cyclonefields(draw_tools dts, run_timer rtm, int calc, bool s, const vector<field> a);
 	void search_fields();
 
 };
@@ -54,54 +55,6 @@ int cyclonefields::count_links (point p, vector<field> flist)
 				count++;
 				
 		return count;
-	}
-
-int cyclonefields::iterate_search(int start, line medge, vector<field>fields_list, int max, point third_point)
-{
-	if (fields_list.size() > max) {
-		max = fields_list.size();
-		// Draw tools
-		// cout << max << " : " << draw_fields(fields_list) << endl;
-		// cerr << rt.split() << " seconds." << endl;
-	}
-
-	vector<field> cad_fields;
-	for (int j = start; j < all.size(); j++) {
-		field test_field = all[j];
-		if (test_field.has_line(medge)) {
-			bool intersect = false;
-			for (field this_field : fields_list) {
-				if (this_field.intersects(test_field) || this_field == test_field || test_field.inside(this_field)) {
-					intersect = true;
-					break;
-				}
-			}
-			if (!intersect) {
-				cad_fields.push_back(test_field);
-			}
-		}
-	}
-
-	for (field fl : cad_fields) {
-		int point_count[3];
-		for (int i = 0; i < 3; i++) {
-			point_count[i] = count_links(fl.point_at(i), fields_list);
-		}
-		// Pick points with fewest links.
-		int max_count = point_count[0];
-		int p1 = 1;
-		int p2 = 2;
-		int p3 = 0;
-		if (point_count[1] > max_count) { p1 = 0; p2 = 2; p3 = 1;}
-		if (point_count[2] > max_count) { p1 = 0; p2 = 1; p3 = 2;}
-		line sel_edge = line(fl.point_at(p1), fl.point_at(p2));
-		third_point = fl.point_at(p3);
-		vector<field> new_list = fields_list; // this uses a copy constructor?
-		new_list.push_back(fl);
-
-		max = iterate_search(start, sel_edge,  new_list, max, third_point);
-	}
-	return max;
 }
 
 line cyclonefields::get_edge(vector<field>plan, field newfield)
@@ -224,11 +177,12 @@ void cyclonefields::search_fields()
 
 
 
-cyclonefields::cyclonefields(draw_tools dts, run_timer rtm, int calc, const vector<field> a)
+cyclonefields::cyclonefields(draw_tools dts, run_timer rtm, int calc, bool s, const vector<field> a)
 {
 	dt = dts;
 	rt = rtm;
 	calculation_type = calc;
+	splits = s;
 	// this can be a shallow copy.  is this right?
 	all = a;
 }
@@ -247,8 +201,16 @@ string cyclonefields::draw_fields(const vector<field>& f)
 
 	dt.erase();
 
-	for (field fi: f)
+	if (splits)
+	{
+		field_factory* ff = field_factory::get_instance();
+		vector<field> sf = ff->add_splits(f);
+		for (field fi: sf)
+			dt.add(fi);
+	} else {
+		for (field fi: f)
 		dt.add(fi);
+	}
 
 	return dt.to_string();
 }
@@ -273,7 +235,7 @@ void print_usage()
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
 		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
-
+		cerr << " -s                Add split fields" << endl;
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
 		cerr << " -O                Output as Intel Link" << endl;
@@ -300,6 +262,7 @@ int main (int argc, char* argv[])
 	ag.add_req("M","MU",false); // calculate as MU
 	ag.add_req("T","target",true); // target fields over location
 	ag.add_req("h","help",false);
+	ag.add_req("s","splits",false);
 
 	if (!ag.parse())
 	{
@@ -328,6 +291,10 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("M"))
 		calc = 1;
+
+	bool enable_splits = false;
+	if (ag.has_option("s"))
+		enable_splits = true;
 
 	portal_factory* pf = portal_factory::get_instance();
 	link_factory* lf = link_factory::get_instance();
@@ -477,7 +444,7 @@ int main (int argc, char* argv[])
 
 	vector<field> search;
 		//search.push_back(tfi);
-	cyclonefields mf = cyclonefields(dt,rt,calc,all_fields);
+	cyclonefields mf = cyclonefields(dt,rt,calc,enable_splits,all_fields);
 	mf.search_fields();
 	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 

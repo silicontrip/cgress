@@ -36,29 +36,31 @@ class field_factory {
         bool link_exists(const std::vector<line>&l, int j, point p1, point p2) const;
 
     public:
-		  static field_factory* get_instance();
+		static field_factory* get_instance();
 
   		field_factory(const field_factory&) = delete;
   		field_factory(field_factory&&) = delete;
   		field_factory& operator=(const field_factory&) = delete;
   		field_factory& operator=(field_factory&&) = delete;
 
-      std::vector<field> over_target(const std::vector<field>&f, const std::vector<point>& t) const;
-      std::vector<field> percentile(const std::vector<field>&f, double percent) const;
-      std::vector<field> filter_fields(const std::vector<field>&f, const std::vector<link>&l, team_count tc) const;
-      std::vector<field> filter_existing_fields(const std::vector<field>&f, const std::vector<link>&l) const;
+        std::vector<field> over_target(const std::vector<field>&f, const std::vector<point>& t) const;
+        std::vector<field> percentile(const std::vector<field>&f, double percent) const;
+        std::vector<field> filter_fields(const std::vector<field>&f, const std::vector<link>&l, team_count tc) const;
+        std::vector<field> filter_existing_fields(const std::vector<field>&f, const std::vector<link>&l) const;
 
-      S2Polygon s2polygon(const field& f) const;
-      S2CellUnion cells(const S2Polygon& p) const;
-      std::unordered_map<S2CellId,double> cell_intersection(const S2Polygon& p) const;
-      int calculate_mu(const S2Polygon& p);
-      int get_est_mu(const field& f);
+        S2Polygon s2polygon(const field& f) const;
+        S2CellUnion cells(const S2Polygon& p) const;
+        std::unordered_map<S2CellId,double> cell_intersection(const S2Polygon& p) const;
+        int calculate_mu(const S2Polygon& p);
+        int get_est_mu(const field& f);
 
-      std::vector<field> make_fields_from_single_links(const std::vector<line>&l) const;
-      // the argument order is important.
-      // two from lines1 and 1 from lines2
-      std::vector<field> make_fields_from_double_links(const std::vector<line>&lk1, const std::vector<line>&lk2) const;
-      std::vector<field> make_fields_from_triple_links(const std::vector<line>&lk1, const std::vector<line>&lk2, const std::vector<line>&lk3) const;
+        std::vector<field> make_fields_from_single_links(const std::vector<line>&l) const;
+        // the argument order is important.
+        // two from lines1 and 1 from lines2
+        std::vector<field> make_fields_from_double_links(const std::vector<line>&lk1, const std::vector<line>&lk2) const;
+        std::vector<field> make_fields_from_triple_links(const std::vector<line>&lk1, const std::vector<line>&lk2, const std::vector<line>&lk3) const;
+        std::vector<field> get_splits(field f1, field f2) const;
+        std::vector<field> add_splits(std::vector<field>) const;
 
 };
 

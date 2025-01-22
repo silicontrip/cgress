@@ -448,7 +448,56 @@ std::vector<field> field_factory::make_fields_from_triple_links(const vector<lin
         }
     }
     return fa;
-
 }
+
+vector<field> field_factory::get_splits(field f1, field f2) const
+{
+    vector<field> splits;
+    if (f1 == f2)
+        return splits;
+    // find shared line.
+    line shared;
+    bool found = false;
+    for (line l : f1.get_lines())
+    {
+        for (line l2 : f2.get_lines())
+            if (l == l2) 
+            {
+                found = true;
+                shared = l;
+                break;
+            }
+    }
+    if (!found)
+        return splits;
+
+    point o1 = f1.other_point(shared);
+    point o2 = f2.other_point(shared);
+
+    field s1 = field(o1,o2,shared.get_d_point());
+    field s2 = field(o1,o2,shared.get_o_point());
+    
+    splits.push_back(s1);
+    splits.push_back(s2);
+
+    return splits;
+}
+
+vector<field> field_factory::add_splits(std::vector<field>fields) const
+{
+    vector<field> splits_fields;
+    for (int i=0; i < fields.size(); i++)
+        for (int j=i+1; j < fields.size(); j++)
+        {
+            vector<field> s = get_splits(fields[i],fields[j]);
+            if (s.size() > 0)
+                splits_fields.insert(splits_fields.end(),s.begin(),s.end());
+        }
+    for (field f : fields)
+        splits_fields.push_back(f);
+
+    return splits_fields;
+}
+
 
 }
