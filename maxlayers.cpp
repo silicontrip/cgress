@@ -27,6 +27,7 @@ private:
 	run_timer rt;
 	double threshold;
 	int link_limit;
+	bool splits;
 
 	int cached_mu (field f);
 	string draw_fields(const vector<field>& f);
@@ -35,11 +36,11 @@ private:
 	int count_links(const vector<field>& fields);
 
 public:
-	maxlayers(const draw_tools& d, const vector<field>& a, int c, int ll, const run_timer& r, double t, int link);
+	maxlayers(const draw_tools& d, const vector<field>& a, int c, int ll, const run_timer& r, double t, int link, bool s);
 	vector<pair<double,string>> start_search();
 };
 
-maxlayers::maxlayers(const draw_tools& d, const vector<field>& a, int c, int layer, const run_timer& r, double t, int link)
+maxlayers::maxlayers(const draw_tools& d, const vector<field>& a, int c, int layer, const run_timer& r, double t, int link, bool s)
 {
 	dt = d;
 	all = a;
@@ -48,6 +49,7 @@ maxlayers::maxlayers(const draw_tools& d, const vector<field>& a, int c, int lay
 	rt = r;
 	threshold = t;
 	link_limit = link;
+	splits = s;
 }
 
 
@@ -66,9 +68,14 @@ string maxlayers::draw_fields(const vector<field>& f)
 
 	dt.erase();
 
-	for (field fi: f)
-		dt.add(fi);
-
+	if (splits) {
+		vector<field>nf = field_factory::get_instance()->add_splits(f);
+		for (field fi: nf)
+			dt.add(fi);
+	} else {
+		for (field fi: f)
+			dt.add(fi);
+	}
 	return dt.to_string();
 }
 
@@ -264,6 +271,7 @@ void print_usage()
 		cerr << " -t <number>       Threshold for similar fields (larger less similar)" << endl;
 		cerr << " -l <number>       Maximum number of layers in plan" << endl;
 		cerr << " -P <number>       Maximum number of links from a single portal" << endl;
+		cerr << " -s                Add split fields" << endl;
 		cerr << " -p <percentile>   Use longest percentile links" << endl;
 		cerr << " -f <percentile>   Use largest percentile fields" << endl;
 		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
@@ -280,6 +288,7 @@ int main (int argc, char* argv[])
 	double fpercentile = 100;
 	vector<point>target;
 	int calc = 0;  // area or mu
+	bool splits = false;
 
 	arguments ag(argc,argv);
 
@@ -299,6 +308,7 @@ int main (int argc, char* argv[])
 	ag.add_req("P","maxlinks",true); // maximum links
 	ag.add_req("T","target",true); // target fields over location
 	ag.add_req("h","help",false);
+	ag.add_req("s","splits",false);
 
 	if (!ag.parse())
 	{
@@ -344,6 +354,9 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("M"))
 		calc = 1;
+
+	if (ag.has_option("s"))
+		splits = true;
 
 	portal_factory* pf = portal_factory::get_instance();
 	link_factory* lf = link_factory::get_instance();
@@ -489,7 +502,7 @@ int main (int argc, char* argv[])
 	cerr << "==  fields sortered " << rt.split() << " ==" << endl;
 	cerr << "== show matches ==" << endl;
 
-	maxlayers ml = maxlayers(dt, all_fields, calc, mlayers, rt, threshold,mlinks);
+	maxlayers ml = maxlayers(dt, all_fields, calc, mlayers, rt, threshold,mlinks,splits);
 
 	vector<pair<double,string>> plan = ml.start_search();
 

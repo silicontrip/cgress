@@ -485,16 +485,33 @@ vector<field> field_factory::get_splits(field f1, field f2) const
 
 vector<field> field_factory::add_splits(std::vector<field>fields) const
 {
+    unordered_set<field> split_set;
     vector<field> splits_fields;
     for (int i=0; i < fields.size(); i++)
         for (int j=i+1; j < fields.size(); j++)
         {
             vector<field> s = get_splits(fields[i],fields[j]);
             if (s.size() > 0)
-                splits_fields.insert(splits_fields.end(),s.begin(),s.end());
+            {
+                split_set.insert(s[0]);
+                split_set.insert(s[1]);
+            }
         }
     for (field f : fields)
         splits_fields.push_back(f);
+
+    for (field sf : split_set)
+    {
+        bool intersects = false;
+        for (field pf : splits_fields)
+            if (sf.intersects(pf))
+            {
+                intersects = true;
+                break;
+            }
+        if (!intersects)
+            splits_fields.push_back(sf);
+    }
 
     return splits_fields;
 }
