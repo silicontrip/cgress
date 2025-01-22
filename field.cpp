@@ -255,6 +255,7 @@ team_count field::count_intersections(const std::vector<link>& l) const
     return block;
 }
 
+// should've been called contains
 bool field::inside(point p) const { 
     //return get_field_poly()->GetDistance(p.s2latlng().ToPoint()).radians() == 0; 
     int a = s2pred::SignDotProd(field_lines[0].normal(), p.s2latlng().ToPoint());
@@ -264,6 +265,7 @@ bool field::inside(point p) const {
     return a < 0 && b < 0 && c < 0;
 }
 
+// should've been called contains
 bool field::inside(const std::vector<point>& p) const
 {
     for (point po: p)
@@ -272,6 +274,7 @@ bool field::inside(const std::vector<point>& p) const
     return true;
 }
 
+// should've been called contains
 bool field::inside(const field& f) const
 {
     if (inside(f.point_at(0)) && inside(f.point_at(1)) && inside(f.point_at(2))) 
@@ -297,12 +300,12 @@ bool field::layers(const std::vector<field>& f) const
 
 point field::other_point(line l) const
 {
-    if (!l.has_point(point_at(0))) return point_at(0);
-    if (!l.has_point(point_at(1))) return point_at(1);
-    if (!l.has_point(point_at(2))) return point_at(2);
+    if (!l.has_point(point_at(0)) && l.has_point(point_at(1)) && l.has_point(point_at(2))) return point_at(0);
+    if (!l.has_point(point_at(1)) && l.has_point(point_at(2)) && l.has_point(point_at(0))) return point_at(1);
+    if (!l.has_point(point_at(2)) && l.has_point(point_at(0)) && l.has_point(point_at(1))) return point_at(2);
 
-    return point(0L,0L);
-
+    //return point(91.0,181.0); // invalid point
+    return point::Invalid();
 }
 
 field field::inverse_corner_field(int corner) const

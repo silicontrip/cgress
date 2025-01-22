@@ -25,6 +25,7 @@ namespace silicontrip {
 			point(std::string la, std::string ln);
 			point(double la, double ln);
 			point(const point& p);
+			point(S2LatLng ll);
 			point();
 			//~point();
 			
@@ -37,10 +38,12 @@ namespace silicontrip {
 			//S1Angle getAngle(point p1, point p2);
 			//S1Angle getBearing(point p);
 
-			int count_links(std::vector<line> l);
-			int count_dlinks(std::vector<line> l);
-			int count_olinks(std::vector<line> l);
+			int count_links(std::vector<line> l) const;
+			int count_dlinks(std::vector<line> l) const;
+			int count_olinks(std::vector<line> l) const;
 
+			static point Invalid();
+			bool is_valid() const;
 			bool operator==(const point& p) const;
 	};
 
