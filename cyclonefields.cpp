@@ -33,6 +33,9 @@ private:
 	string draw_fields(const vector<field>& f);
 	int iterate_search(int start, line medge, vector<field>fields_list, int max, point third_point);
 	int count_links (point p, vector<field> flist);
+	vector<field> get_cadence(field outer, line edge, int start);
+	line get_edge(vector<field>plan, field newfield);
+	int next_cadence(int i, line newedge, vector<field>fields_list, field newfield, int max);
 
 
 public:
@@ -58,8 +61,8 @@ int cyclonefields::iterate_search(int start, line medge, vector<field>fields_lis
 	if (fields_list.size() > max) {
 		max = fields_list.size();
 		// Draw tools
-		cout << max << " : " << draw_fields(fields_list) << endl;
-		cerr << rt.split() << " seconds." << endl;
+		// cout << max << " : " << draw_fields(fields_list) << endl;
+		// cerr << rt.split() << " seconds." << endl;
 	}
 
 	vector<field> cad_fields;
@@ -68,16 +71,12 @@ int cyclonefields::iterate_search(int start, line medge, vector<field>fields_lis
 		if (test_field.has_line(medge)) {
 			bool intersect = false;
 			for (field this_field : fields_list) {
-				if (this_field.intersects(test_field) || this_field == test_field) {
+				if (this_field.intersects(test_field) || this_field == test_field || test_field.inside(this_field)) {
 					intersect = true;
 					break;
 				}
 			}
 			if (!intersect) {
-				// Ensure the new field covers the third point of the thisField
-				if (!(third_point == point(0L,0L)) && !test_field.inside(third_point)) {
-						continue; // Skip this field if it does not cover the necessary point
-				}
 				cad_fields.push_back(test_field);
 			}
 		}
@@ -105,42 +104,124 @@ int cyclonefields::iterate_search(int start, line medge, vector<field>fields_lis
 	return max;
 }
 
+line cyclonefields::get_edge(vector<field>plan, field newfield)
+{
+	// determine non shared edges
+
+	int count_point = -1;
+	line other;
+	for (line l : newfield.get_lines())
+	{
+		bool shared = false;
+		for (field f : plan)
+			if (f.has_line(l))
+			{
+				shared = true;
+				break;
+			}
+		if (!shared)
+		{
+			// we have 1 of 2 edges, which one is it?
+			int count = 0;
+			count = count_links(l.get_d_point(), plan);
+			count += count_links(l.get_o_point(), plan);
+			if (count_point == -1)
+			{
+				count_point = count;
+				other = l;
+			}
+			// these shouldn't evaluate to true on the first pass
+			if (count < count_point)
+				return l;
+			if (count_point < count)
+				return other;
+		}
+	}
+	// we would only get here if count_point == count
+	// which should not happen with the types of plans we are working with
+	// but need some return value
+	return newfield.get_lines().at(0);
+}
+
+vector<field> cyclonefields::get_cadence (field outer, line edge, int start)
+{
+	vector<field> cad_fields;
+	for (int j = start; j < all.size(); j++) {
+		field test_field = all[j];
+		// as we are limiting the continuing search space, we have to assume that the fields are sorted and decreasing in size.
+		if (test_field.has_line(edge) && !outer.intersects(test_field) && outer.inside(test_field) && !(test_field == outer)) {
+			cad_fields.push_back(test_field);
+		}
+	}
+	return cad_fields;
+}
+
+int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, field newfield, int max)
+{
+	fields_list.push_back(newfield);
+	if (fields_list.size() > max) {
+		max = fields_list.size();
+		// Draw tools
+		cout << max << " : " << draw_fields(fields_list) << endl;
+		cerr << rt.split() << " seconds." << endl;
+	}
+
+	vector<field> inner_cad = get_cadence(newfield, newedge, i);
+	for (field cf2 : inner_cad)
+	{		
+		line newedge = get_edge(fields_list,cf2);
+		max = next_cadence(i, newedge, fields_list, cf2, max);
+	}
+	return max;
+}
+
 void cyclonefields::search_fields()
 {
-	int max = 2;
+	int max = 1;
 	for (int i = 0; i < all.size(); i++) {
 		field this_field = all[i];
 		vector<line> edges = this_field.get_lines();
 		for (line edge : edges) {
-			vector<field> cad_fields;
-			for (int j = i + 1; j < all.size(); j++) {
-				field test_field = all[j];
-				if (test_field.has_line(edge) && !this_field.intersects(test_field) && !(this_field == test_field)) {
-					cad_fields.push_back(test_field);
-				}
-			}
+			vector<field> cad_fields = get_cadence(this_field, edge, i+1);
+
+
+			//if (cad_fields.size() > 0 )
+			//	cerr << draw_fields(cad_fields) << endl << endl;
+				// cerr << rt.split() << " seconds." << endl;
 
 			for (field cfi : cad_fields) {
 				vector<line> medges = cfi.get_lines();
 				for (line medge : medges) {
-					if (!this_field.has_line(medge)) {
-					// Find the third point of thisField that does not share the medge
-						point third_point = this_field.other_point(medge);
+					if (!(medge == edge)) {
 
-						if (!(third_point == point(0L,0L))) {
-							if (cfi.inside(third_point)) {
-								vector<field> fields_list;
-								fields_list.push_back(this_field);
-								fields_list.push_back(cfi);
-								max = iterate_search(i + 1, medge,  fields_list, max, third_point);
-							}
+						vector<field> inner_cad = get_cadence(cfi, medge, i+1);
+
+						for (field cf2 : inner_cad)
+						{
+							vector<field> fields_list;
+							// we need 3 fields to define the cyclone cadence
+							fields_list.push_back(this_field);
+							fields_list.push_back(cfi);
+
+							line newedge = get_edge(fields_list,cf2);
+
+							//fields_list.push_back(cf2);
+
+							max = next_cadence(i+1, newedge, fields_list, cf2, max);
+
+							// we should be able to implicitely determine the cadence 
+							// and therefore the next edge
+							//cerr << draw_fields(fields_list) << endl << endl;
+
+								//max = iterate_search(i + 1, medge,  fields_list, max, third_point);
 						}
 					}
 				}
 			}
 		}
-	}
+	}	
 }
+
 
 
 cyclonefields::cyclonefields(draw_tools dts, run_timer rtm, int calc, const vector<field> a)

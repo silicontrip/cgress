@@ -24,6 +24,7 @@ point::point(std::string la, std::string ln) {
 	latlng = S2LatLng::FromDegrees(lat,lng);
 }
 
+point::point(S2LatLng ll) { latlng = ll; }
 point::point(long la, long ln) { latlng = S2LatLng::FromE6(la,ln); }
 point::point(double la, double ln) { latlng = S2LatLng::FromDegrees(la,ln); }
 point::point(const point& p) { latlng = S2LatLng(p.latlng.lat(),p.latlng.lng()); }
@@ -45,7 +46,7 @@ double point::geo_distance_to(const point& p) const { return latlng.GetDistance(
 //S1Angle point::angle_between(point& p1, point& p2) 
 //S1Angle point::bearing_to(point& p) 
 
-int point::count_links(std::vector<line> l)
+int point::count_links(std::vector<line> l) const
 {
 	int count  = 0;
 	for (line li : l)
@@ -58,7 +59,7 @@ int point::count_links(std::vector<line> l)
 	return count;
 }
 
-int point::count_dlinks(std::vector<line> l)
+int point::count_dlinks(std::vector<line> l) const
 {
 	int count  = 0;
 	for (line li : l)
@@ -71,7 +72,7 @@ int point::count_dlinks(std::vector<line> l)
 	return count;
 }
 
-int point::count_olinks(std::vector<line> l)
+int point::count_olinks(std::vector<line> l) const
 {
 	int count  = 0;
 	for (line li : l)
@@ -82,6 +83,17 @@ int point::count_olinks(std::vector<line> l)
 		}
 	}
 	return count;
+}
+
+point point::Invalid()
+{
+	return point(S2LatLng::Invalid());
+}
+
+
+bool point::is_valid() const
+{
+	return latlng.is_valid();
 }
 
 bool point::operator==(const point& p) const { return p.s2latlng() == latlng; }
