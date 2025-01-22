@@ -68,14 +68,14 @@ string maxlayers::draw_fields(const vector<field>& f)
 
 	dt.erase();
 
-	if (splits) {
-		vector<field>nf = field_factory::get_instance()->add_splits(f);
-		for (field fi: nf)
-			dt.add(fi);
-	} else {
+	//if (splits) {
+//		vector<field>nf = field_factory::get_instance()->add_splits(f);
+//		for (field fi: nf)
+//			dt.add(fi);
+//	} else {
 		for (field fi: f)
 			dt.add(fi);
-	}
+//	}
 	return dt.to_string();
 }
 
@@ -114,15 +114,19 @@ double maxlayers::search_fields(const vector<field>& current, const vector<field
 	}
 	if (current.size() > 0)
 	{
-		double newSize = 0.0;
-		for (field f: current)
+		vector<field> temp = current;
+		if (splits) 
+			temp = field_factory::get_instance()->add_splits(current);
+
+ 		double newSize = 0.0;
+		for (field f: temp)
 			if (calculation_type == 0)
 				newSize += f.geo_area();
 			else 
 				newSize += cached_mu(f);
 
 		if (newSize > max) {
-			cout << newSize << " : " << current.size() << " : " << draw_fields(current) << endl; 
+			cout << newSize << " : " << current.size() << " : " << draw_fields(temp) << endl; 
 			cerr << rt.split() << " seconds." << endl;
 			max = newSize;
 		}
@@ -150,7 +154,7 @@ bool maxlayers::add_matching(const field& current, vector<field>& existing)
 	bool added = false;
 	for (field sfi: all)
 	{
-		if (current.difference(sfi) < threshold)
+		if (current.difference(sfi) < threshold && current.inside(sfi))
 		{
 			bool found = false;
 			for (field cfi: existing)
