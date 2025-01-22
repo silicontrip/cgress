@@ -352,6 +352,54 @@ std::string draw_tools::as_intel() const
 
 }
 
+vector<line> draw_tools::get_lines() const
+{
+    vector<line> result;
+    unordered_set<line> line_set;
+    Json::Value pos = as_polyline();
+    for (Json::Value dto1: pos) 
+    {
+        if (dto1["type"] == "polyline")
+        {
+            Json::Value ll = dto1["latLngs"];
+            double lato = ll[0]["lat"].asDouble();
+            double lngo = ll[0]["lng"].asDouble();
+            double latd = ll[1]["lat"].asDouble();
+            double lngd = ll[1]["lng"].asDouble();
+            
+            point po = point(lato,lngo);
+            point pd = point(latd,lngd);
+            line l = line (po,pd);
+            line_set.insert(l);
+        }
+    }
+    result.insert(result.end(),line_set.begin(),line_set.end());
+    return result;
+}
+
+vector<point> draw_tools::get_points() const
+{
+    vector<point> result;
+    unordered_set<point> point_set;
+
+    for (Json::Value dto1: entities)
+    {
+        if (dto1["type"] == "polyline" || dto1["type"] == "polygon")
+        {
+            Json::Value lls = dto1["latLngs"];
+            for (Json::Value ll : lls)
+            {
+                double lat = ll["lat"].asDouble();
+                double lng = ll["lng"].asDouble();
+                point p = point(lat,lng);
+
+                point_set.insert(p);
+            }
+        }
+    }
+    result.insert(result.end(),point_set.begin(),point_set.end());
+    return result;
+}
 
 }
 
