@@ -115,6 +115,77 @@ int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, f
 	if (fields_list.size() > max) {
 		max = fields_list.size();
 		// Draw tools
+		// cout << max << " : " << draw_fields(fields_list) << endl;
+		// cerr << rt.split() << " seconds." << endl;
+	}
+
+	vector<field> inner_cad = get_cadence(newfield, newedge, i);
+	for (field cf2 : inner_cad)
+	{		
+		line newedge = get_edge(fields_list,cf2);
+		max = next_cadence(i, newedge, fields_list, cf2, max);
+	}
+	return max;
+}
+
+line cyclonefields::get_edge(vector<field>plan, field newfield)
+{
+	// determine non shared edges
+
+	int count_point = -1;
+	line other;
+	for (line l : newfield.get_lines())
+	{
+		bool shared = false;
+		for (field f : plan)
+			if (f.has_line(l))
+			{
+				shared = true;
+				break;
+			}
+		if (!shared)
+		{
+			// we have 1 of 2 edges, which one is it?
+			int count = 0;
+			count = count_links(l.get_d_point(), plan);
+			count += count_links(l.get_o_point(), plan);
+			if (count_point == -1)
+			{
+				count_point = count;
+				other = l;
+			}
+			// these shouldn't evaluate to true on the first pass
+			if (count < count_point)
+				return l;
+			if (count_point < count)
+				return other;
+		}
+	}
+	// we would only get here if count_point == count
+	// which should not happen with the types of plans we are working with
+	// but need some return value
+	return newfield.get_lines().at(0);
+}
+
+vector<field> cyclonefields::get_cadence (field outer, line edge, int start)
+{
+	vector<field> cad_fields;
+	for (int j = start; j < all.size(); j++) {
+		field test_field = all[j];
+		// as we are limiting the continuing search space, we have to assume that the fields are sorted and decreasing in size.
+		if (test_field.has_line(edge) && !outer.intersects(test_field) && outer.inside(test_field) && !(test_field == outer)) {
+			cad_fields.push_back(test_field);
+		}
+	}
+	return cad_fields;
+}
+
+int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, field newfield, int max)
+{
+	fields_list.push_back(newfield);
+	if (fields_list.size() > max) {
+		max = fields_list.size();
+		// Draw tools
 		cout << max << " : " << draw_fields(fields_list) << endl;
 		cerr << rt.split() << " seconds." << endl;
 	}
