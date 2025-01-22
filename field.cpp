@@ -79,7 +79,7 @@ S2Polygon* field::get_field_poly()
 */
 
 point field::point_at(int i) const { return field_points[i]; }
-bool field::has_point(point p) const { return p == field_points[0] || p == field_points[1] || p == field_points[2]; }
+bool field::has_point(const point& p) const { return p == field_points[0] || p == field_points[1] || p == field_points[2]; }
 int field::point_index(point p) const
 {
     if (p == field_points[0])
@@ -277,7 +277,11 @@ bool field::inside(const std::vector<point>& p) const
 // should've been called contains
 bool field::inside(const field& f) const
 {
-    if (inside(f.point_at(0)) && inside(f.point_at(1)) && inside(f.point_at(2))) 
+    bool b0 = inside(f.point_at(0)) || has_point(f.point_at(0));
+    bool b1 = inside(f.point_at(1)) || has_point(f.point_at(1));
+    bool b2 = inside(f.point_at(2)) || has_point(f.point_at(2));
+    
+    if (b0 && b1 && b2) 
         return true;
     return false;
 }

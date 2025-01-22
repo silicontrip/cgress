@@ -47,7 +47,7 @@ namespace silicontrip {
             //S2Polygon* get_field_poly(); 
 
             point point_at(int i) const;
-            bool has_point(point p) const;
+            bool has_point(const point& p) const;
             int point_index(point p) const;
             std::vector<point> get_points() const;
             long lat_at(int i) const;
