@@ -471,7 +471,7 @@ void planner::simulated_annealing (vector<point> combination, double initial_tem
 					int kcost = key_cost(best_combination);
 					double dist = geo_cost(best_combination);
 
-					cout <<  kcost << " "  << dist <<  " : (" << temperature << "/" << iter << ") " << rt.split() << " seconds" << endl << endl;
+					cout <<  kcost << " "  << dist <<  " : (" << temperature << "/" << iter << ") " << rt.split() << " seconds" << endl;
 					if (kcost < 1000)
 					{
 						dt = plan(dt,best_combination);
@@ -484,6 +484,7 @@ void planner::simulated_annealing (vector<point> combination, double initial_tem
 			}
 		}
 	}
+	cout << "Plan fields: " << polygons_map.size() << " Links: " << poly_lines.size() << " Portals: " << best_combination.size() << ". " << rt.stop() << " seconds" << endl;
 }
 
 void print_usage()
