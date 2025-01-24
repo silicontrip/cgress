@@ -53,11 +53,10 @@ int cyclonefields::count_links (point p, vector<field> flist)
 
 	int count = 0;
 	for (field fi: flist)
-		for (line li: fi.get_lines())
-			if (li.has_point(p))
-				count++;
+		if (fi.has_point(p))
+			count++;
 				
-		return count;
+	return count;
 }
 
 line cyclonefields::get_edge(vector<field>plan, field newfield)
@@ -78,9 +77,7 @@ line cyclonefields::get_edge(vector<field>plan, field newfield)
 		if (!shared)
 		{
 			// we have 1 of 2 edges, which one is it?
-			int count = 0;
-			count = count_links(l.get_d_point(), plan);
-			count += count_links(l.get_o_point(), plan);
+			int count = count_links(l.get_d_point(), plan) + count_links(l.get_o_point(), plan);
 			if (count_point == -1)
 			{
 				count_point = count;
@@ -96,7 +93,7 @@ line cyclonefields::get_edge(vector<field>plan, field newfield)
 	// we would only get here if count_point == count
 	// which should not happen with the types of plans we are working with
 	// but need some return value
-	return newfield.get_lines().at(0);
+	return newfield.line_at(0);
 }
 
 vector<field> cyclonefields::get_cadence (field outer, line edge, int start)
@@ -115,6 +112,8 @@ vector<field> cyclonefields::get_cadence (field outer, line edge, int start)
 int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, field newfield, int max, vector<line>cyc_edges)
 {
 	fields_list.push_back(newfield);
+	cyc_edges.push_back(newedge);
+
 	if (fields_list.size() > max) {
 		max = fields_list.size();
 		// Draw tools
@@ -123,12 +122,9 @@ int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, f
 	}
 
 	vector<field> inner_cad = get_cadence(newfield, newedge, i);
-	vector<line>cyc_copy (cyc_edges);
 	for (field cf2 : inner_cad)
 	{		
 		line newedge = get_edge(fields_list,cf2);
-		cyc_edges.assign(cyc_copy.begin(),cyc_copy.end());
-		cyc_edges.push_back(newedge);
 		max = next_cadence(i, newedge, fields_list, cf2, max,cyc_edges);
 	}
 	return max;
@@ -137,49 +133,38 @@ int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, f
 void cyclonefields::search_fields()
 {
 	int max = 1;
-	vector<line>cyclone_edges;
 	for (int i = 0; i < all.size(); i++) {
 		field this_field = all[i];
 		vector<line> edges = this_field.get_lines();
 		for (line edge : edges) {
-
 			vector<field> cad_fields = get_cadence(this_field, edge, i+1);
-
-
-			//if (cad_fields.size() > 0 )
-			//	cerr << draw_fields(cad_fields) << endl << endl;
-				// cerr << rt.split() << " seconds." << endl;
 
 			for (field cfi : cad_fields) {
 				vector<line> medges = cfi.get_lines();
 				for (line medge : medges) {
 					if (!(medge == edge)) {
 
-
 						vector<field> inner_cad = get_cadence(cfi, medge, i+1);
 
 						for (field cf2 : inner_cad)
 						{
-							vector<field> fields_list;
+							vector<field>fields_list;
+							vector<line>cyclone_edges;
+
 							// we need 3 fields to define the cyclone cadence
 							fields_list.push_back(this_field);
 							fields_list.push_back(cfi);
 
+							// we should be able to implicitely determine the cadence 
+							// and therefore the next edge
 							line newedge = get_edge(fields_list,cf2);
 							cyclone_edges.erase(cyclone_edges.begin(),cyclone_edges.end());
 							cyclone_edges.push_back(edge);
 							cyclone_edges.push_back(medge);
 							cyclone_edges.push_back(newedge);
 
-							//fields_list.push_back(cf2);
-
 							max = next_cadence(i+1, newedge, fields_list, cf2, max,cyclone_edges);
 
-							// we should be able to implicitely determine the cadence 
-							// and therefore the next edge
-							//cerr << draw_fields(fields_list) << endl << endl;
-
-								//max = iterate_search(i + 1, medge,  fields_list, max, third_point);
 						}
 					}
 				}
