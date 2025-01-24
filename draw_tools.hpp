@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <regex>
 
 #include <json/json.h>
 
@@ -36,6 +37,7 @@ class draw_tools {
         void set_output_as_is();
 
         void set_colour(std::string s);
+        std::string get_colour() const;
         void add(line l);
         void add(field f);
         void add(point p);
@@ -44,6 +46,10 @@ class draw_tools {
         Json::Value as_polygon() const;
         Json::Value as_polyline() const;
         std::string as_intel() const;
+
+        void convert_to_polyline();
+        void convert_to_polygon();
+        void convert();
 
         std::string to_string() const;
         int size() const;

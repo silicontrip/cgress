@@ -88,7 +88,14 @@ void draw_tools::set_output_as_polyline() { output_type = 1; }
 void draw_tools::set_output_as_polygon() { output_type = 2; }
 void draw_tools::set_output_as_intel() { output_type = 3; }
 void draw_tools::set_output_as_is() { output_type =0; }
-void draw_tools::set_colour(string s) { colour = s; }
+
+void draw_tools::set_colour(string s) 
+{
+    // should validate this. 
+    if (regex_match(s,regex("^#[0-9a-fA-F]{6}$")))
+        colour = s; 
+}
+string draw_tools::get_colour() const { return colour; }
 
 void draw_tools::add(line l)
 {
@@ -211,7 +218,7 @@ string draw_tools::to_string() const
     Json::StreamWriterBuilder builder;
     builder["indentation"] = "";
     builder.settings_["precision"] = 9;
-    return Json::writeString(builder, entities);
+    return Json::writeString(builder, out);
 }
 
 
@@ -350,6 +357,27 @@ std::string draw_tools::as_intel() const
 
     return ss.str();
 
+}
+
+void draw_tools::convert_to_polyline()
+{
+    entities = as_polyline();
+}
+
+void draw_tools::convert_to_polygon()
+{
+    entities = as_polygon();
+}
+
+void draw_tools::convert()
+{
+    if (output_type == 3 || output_type == 1)
+        convert_to_polyline();
+
+    if (output_type == 2)
+        convert_to_polygon();
+
+    // do nothing otherwise
 }
 
 vector<line> draw_tools::get_lines() const
