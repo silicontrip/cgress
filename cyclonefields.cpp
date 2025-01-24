@@ -123,9 +123,11 @@ int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, f
 	}
 
 	vector<field> inner_cad = get_cadence(newfield, newedge, i);
+	vector<line>cyc_copy (cyc_edges);
 	for (field cf2 : inner_cad)
 	{		
 		line newedge = get_edge(fields_list,cf2);
+		cyc_edges.assign(cyc_copy.begin(),cyc_copy.end());
 		cyc_edges.push_back(newedge);
 		max = next_cadence(i, newedge, fields_list, cf2, max,cyc_edges);
 	}
@@ -152,9 +154,7 @@ void cyclonefields::search_fields()
 				vector<line> medges = cfi.get_lines();
 				for (line medge : medges) {
 					if (!(medge == edge)) {
-						cyclone_edges.erase(cyclone_edges.begin(),cyclone_edges.end());
-						cyclone_edges.push_back(edge);
-						cyclone_edges.push_back(medge);
+
 
 						vector<field> inner_cad = get_cadence(cfi, medge, i+1);
 
@@ -166,6 +166,9 @@ void cyclonefields::search_fields()
 							fields_list.push_back(cfi);
 
 							line newedge = get_edge(fields_list,cf2);
+							cyclone_edges.erase(cyclone_edges.begin(),cyclone_edges.end());
+							cyclone_edges.push_back(edge);
+							cyclone_edges.push_back(medge);
 							cyclone_edges.push_back(newedge);
 
 							//fields_list.push_back(cf2);
