@@ -117,8 +117,9 @@ struct score maxfields::search_fields(const vector<field>& current, int start, i
 			double bal = calculate_balance_score (current);
 			if (newSize > max || (sameSize == -1 && bal > balance) || ( sameSize == 1 && bal < balance) )
 			{
-				cout << bal << " : " << newSize << " : " << dispSize << " : " << draw_fields(current) << endl; 
-				cerr << rt.split() << " seconds." << endl;
+				cerr << bal << " : " << newSize << " : " << dispSize << " : "  << rt.split() << " seconds." << endl;
+				cout << draw_fields(current) << endl; 
+				cerr << endl;
 				max = newSize;
 				balance = bal;
 			}
