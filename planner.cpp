@@ -29,7 +29,8 @@ private:
 	vector<field>complete_field(const vector<line>&order, line pl);
 	bool check_plan(const vector<line>&dts);
 	bool check_same(const vector<line>&dts);
-	
+	bool check_same(vector<line>dts,const vector<line>& ndts);
+
 	double geo_cost(const vector<point>&pp);
 	int count_visited(point pp, const vector<point>&visited);
 	int count_unvisited(point pp, const vector<point>&visited);
@@ -184,6 +185,35 @@ bool planner::check_same(const vector<line>&dts)
 
 		}
 		order.push_back(pl);
+	}
+
+	return true;
+}
+
+bool planner::check_same(vector<line>dts,const vector<line>& ndts)
+{
+
+	for (int i=0; i < ndts.size(); i++)
+	{
+		line pl = ndts[i];
+		vector<field> complete_fields = complete_field(dts,pl);
+
+		if (complete_fields.size() > 2)
+			return false;
+
+		if (complete_fields.size() == 2)
+		{
+			if (complete_fields[0].inside(complete_fields[1]))
+			{
+				return false;
+			}
+			if (complete_fields[1].inside(complete_fields[0]))
+			{
+				return false;
+			}
+
+		}
+		dts.push_back(pl);
 	}
 
 	return true;
@@ -377,7 +407,7 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 			vector<line>new_line;
 
 			while (!valid_plan && counter < count_limit) {
-				ndt.assign(ldts.begin(),ldts.end());
+				// ndt.assign(ldts.begin(),ldts.end());
 				new_line.erase(new_line.begin(),new_line.end());
 
 				next_permutation(out_links, counter++);
@@ -388,16 +418,18 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 					//line nline = line(this_point,pp);
 					line nline = line(pp,this_point);
 
-					ndt.push_back(nline);
+					//ndt.push_back(nline);
 					new_line.push_back(nline);
 				}
 
-				valid_plan = check_same(ndt);
+				valid_plan = check_same(ldts,new_line);
 			}
 
 			for (line l : new_line)
+			{
+				ldts.push_back(l);
 				dts.add(l);
-			ldts.assign(ndt.begin(),ndt.end());
+			}
 
 		} else {
 			dts.add(this_point);
