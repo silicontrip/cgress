@@ -116,9 +116,16 @@ int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, f
 
 	if (fields_list.size() > max) {
 		max = fields_list.size();
+		double dispSize = 0.0;
+		for (field f: fields_list)
+			if (calculation_type == 0)
+				dispSize += f.geo_area();
+			else 
+				dispSize += cached_mu(f);
 		// Draw tools
-		cout << max << " : " << draw_fields(fields_list,cyc_edges) << endl;
-		cerr << rt.split() << " seconds." << endl;
+		cerr << max << " : " << dispSize << " : " << rt.split() << " seconds." << endl;
+		cout << draw_fields(fields_list,cyc_edges) << endl;
+		cerr << endl;
 	}
 
 	vector<field> inner_cad = get_cadence(newfield, newedge, i);
