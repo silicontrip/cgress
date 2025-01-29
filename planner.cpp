@@ -26,7 +26,7 @@ private:
 
 	unordered_map<field, vector<point>> polygons_map;
 
-	vector<field>complete_field(const vector<line>&order, line pl);
+	vector<field>complete_field(const vector<line>&order, const line& pl);
 	bool check_plan(const vector<line>&dts);
 	bool check_same(const vector<line>&dts);
 	bool check_same(vector<line>dts,const vector<line>& ndts);
@@ -39,7 +39,7 @@ private:
 
 	double total_cost(const vector<point>&comb);
 	static int factorial(int n);
-	static bool next_permutation(vector<point>&visited, int step);
+	static bool next_permutation(vector<line>&visited, int step);
 
 	draw_tools plan(draw_tools dts, vector<point>combination);
 	vector<point> gen_random(vector<point>points);
@@ -52,85 +52,37 @@ public:
 
 };
 
+planner::planner (double k, int s, draw_tools d, vector<point> din, vector<line>p, bool a2k)
+{
+	key_percent = k;
+	sbul_available = s;
+	dt = d;
+	poly_lines = p;
+	sbul_limit = 8 + sbul_available * 8;
+	allow2km = a2k;
 
-	planner::planner (double k, int s, draw_tools d, vector<point> din, vector<line>p, bool a2k)
-	{
-		key_percent = k;
-		sbul_available = s;
-		dt = d;
-		poly_lines = p;
-		sbul_limit = 8 + sbul_available * 8;
-		allow2km = a2k;
+	vector<line> order;
 
-		vector<line> order;
-
-		for (int i = 0; i < p.size(); i++) {
-			line pl = p[i];
-			vector<field> complete_fields = complete_field(order, pl);
-			for (field pg : complete_fields) {
-				if (polygons_map.find(pg) == polygons_map.end())
+	for (int i = 0; i < p.size(); i++) {
+		line pl = p[i];
+		vector<field> complete_fields = complete_field(order, pl);
+		for (field pg : complete_fields) {
+			if (polygons_map.find(pg) == polygons_map.end())
+			{
+				vector<point> vp;
+				polygons_map[pg] = vp;
+			}
+			for (point pp: din)
+			{
+				if (pg.inside(pp))
 				{
-					vector<point> vp;
-					polygons_map[pg] = vp;
-				}
-				for (point pp: din)
-				{
-					if (pg.inside(pp))
-					{
-						polygons_map[pg].push_back(pp);
-					}
+					polygons_map[pg].push_back(pp);
 				}
 			}
-			order.push_back(pl);
 		}
-
+		order.push_back(pl);
 	}
 
-vector<field>planner::complete_field(const vector<line>&order, line pl)
-{
-	vector<field> completed_fields;
-
-	for (int i = 0; i < order.size(); i++) {
-		line p1 = order.at(i);
-
-		for (int j = i + 1; j < order.size(); j++) {
-			line p2 = order.at(j);
-
-			point p1o = p1.get_o_point();
-			point p1d = p1.get_d_point();
-			point p2o = p2.get_o_point();
-			point p2d = p2.get_d_point();
-			point plo = pl.get_o_point();
-			point pld = pl.get_d_point();
-
-			if (p1o == p2o &&
-				((plo ==p1d && pld == p2d) ||
-				(plo == p2d  && pld == p1d))
-			) {
-				field potential_polygon = field(p1o,plo,pld);
-				completed_fields.push_back(potential_polygon);
-			} else if (p1d == p2o &&
-				((plo == p1o  && pld == p2d) ||
-				(plo == p2d && pld == p1o))
-			) {
-				field potential_polygon = field(p1d,plo,pld);
-				completed_fields.push_back(potential_polygon);
-			} else if (p1o == p2d &&
-				((plo == p1d && pld == p2o) ||
-				(plo == p2o && pld == p1d))
-			) {
-				field potential_polygon = field(p1o,plo,pld);
-				completed_fields.push_back(potential_polygon);
-			} else if (p1d == p2d &&
-				((plo == p1o && pld == p2o) ||
-				(plo == p2o  && pld == p1o))
-			) {
-				field potential_polygon =  field(p1d,plo,pld);
-				completed_fields.push_back(potential_polygon);
-			} 
-		}
-	}
-	return completed_fields;
 }
 
 bool planner::check_plan(const vector<line>& dt_lines)
@@ -155,65 +107,6 @@ bool planner::check_plan(const vector<line>& dt_lines)
 			}
 		}
 		order.push_back(pl);
-	}
-
-	return true;
-}
-
-bool planner::check_same(const vector<line>&dts)
-{
-	vector<line> order;
-
-	for (int i=0; i < dts.size(); i++)
-	{
-		line pl = dts[i];
-		vector<field> complete_fields = complete_field(order,pl);
-
-		if (complete_fields.size() > 2)
-			return false;
-
-		if (complete_fields.size() == 2)
-		{
-			if (complete_fields[0].inside(complete_fields[1]))
-			{
-				return false;
-			}
-			if (complete_fields[1].inside(complete_fields[0]))
-			{
-				return false;
-			}
-
-		}
-		order.push_back(pl);
-	}
-
-	return true;
-}
-
-bool planner::check_same(vector<line>dts,const vector<line>& ndts)
-{
-
-	for (int i=0; i < ndts.size(); i++)
-	{
-		line pl = ndts[i];
-		vector<field> complete_fields = complete_field(dts,pl);
-
-		if (complete_fields.size() > 2)
-			return false;
-
-		if (complete_fields.size() == 2)
-		{
-			if (complete_fields[0].inside(complete_fields[1]))
-			{
-				return false;
-			}
-			if (complete_fields[1].inside(complete_fields[0]))
-			{
-				return false;
-			}
-
-		}
-		dts.push_back(pl);
 	}
 
 	return true;
@@ -326,7 +219,83 @@ int planner::factorial(int n) {
 	return result;
 }
 
-bool planner::next_permutation(vector<point>&visited, int step)
+vector<field>planner::complete_field(const vector<line>&order, const line& pl)
+{
+	vector<field> completed_fields;
+
+	for (int i = 0; i < order.size(); i++) {
+		line p1 = order.at(i);
+
+		for (int j = i + 1; j < order.size(); j++) {
+			line p2 = order.at(j);
+
+			point p1o = p1.get_o_point();
+			point p1d = p1.get_d_point();
+			point p2o = p2.get_o_point();
+			point p2d = p2.get_d_point();
+			point plo = pl.get_o_point();
+			point pld = pl.get_d_point();
+
+			if (p1o == p2o &&
+				((plo ==p1d && pld == p2d) ||
+				(plo == p2d  && pld == p1d))
+			) {
+				field potential_polygon = field(p1o,plo,pld);
+				completed_fields.push_back(potential_polygon);
+			} else if (p1d == p2o &&
+				((plo == p1o  && pld == p2d) ||
+				(plo == p2d && pld == p1o))
+			) {
+				field potential_polygon = field(p1d,plo,pld);
+				completed_fields.push_back(potential_polygon);
+			} else if (p1o == p2d &&
+				((plo == p1d && pld == p2o) ||
+				(plo == p2o && pld == p1d))
+			) {
+				field potential_polygon = field(p1o,plo,pld);
+				completed_fields.push_back(potential_polygon);
+			} else if (p1d == p2d &&
+				((plo == p1o && pld == p2o) ||
+				(plo == p2o  && pld == p1o))
+			) {
+				field potential_polygon =  field(p1d,plo,pld);
+				completed_fields.push_back(potential_polygon);
+			} 
+		}
+	}
+	return completed_fields;
+}
+
+bool planner::check_same(vector<line>dts,const vector<line>& ndts)
+{
+
+	for (int i=0; i < ndts.size(); i++)
+	{
+		line pl = ndts[i];
+		vector<field> complete_fields = complete_field(dts,pl);
+
+		if (complete_fields.size() > 2)
+			return false;
+
+		if (complete_fields.size() == 2)
+		{
+			if (complete_fields[0].inside(complete_fields[1]))
+			{
+				return false;
+			}
+			if (complete_fields[1].inside(complete_fields[0]))
+			{
+				return false;
+			}
+
+		}
+		dts.push_back(pl);
+	}
+
+	return true;
+}
+
+bool planner::next_permutation(vector<line>&visited, int step)
 {
 	const int n = visited.size();
         
@@ -376,11 +345,13 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 	vector<point>visited; 
 	visited.push_back(combination.at(0));
 	dts.add(combination.at(0));
+	run_timer drt;
 
+	drt.start();
 	for (int i = 1; i < combination.size(); i++) 
 	{
 		point this_point = combination[i];
-		vector<point> out_links;
+		vector<line> out_links;
 
 		out_links.erase(out_links.begin(),out_links.end());
 		
@@ -391,41 +362,28 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 				if ((this_point == po.get_o_point() && visit_point == po.get_d_point()) ||
 					(this_point == po.get_d_point() && visit_point == po.get_o_point())) 
 				{
-					out_links.push_back(visit_point);
+					// not sure why but the definition is line(destination, origin)
+					line nline = line(visit_point,this_point);
+					out_links.push_back(nline);
 				}
 			}
 		}
 
 		if (out_links.size() > 0)
 		{	
+			//cerr << "out_links = " << out_links.size() << " : " << drt.split() << " seconds." << endl;
 			bool valid_plan = false;
 			int counter = 0;
-
 			int count_limit = factorial(out_links.size());
 
-			vector<line> ndt;
-			vector<line>new_line;
-
 			while (!valid_plan && counter < count_limit) {
-				// ndt.assign(ldts.begin(),ldts.end());
-				new_line.erase(new_line.begin(),new_line.end());
-
 				next_permutation(out_links, counter++);
-
-				for (point pp: out_links)
-				{
-					// not sure why but the definition is line(destination, origin)
-					//line nline = line(this_point,pp);
-					line nline = line(pp,this_point);
-
-					//ndt.push_back(nline);
-					new_line.push_back(nline);
-				}
-
-				valid_plan = check_same(ldts,new_line);
+				valid_plan = check_same(ldts,out_links);
 			}
+			// There should be at least 1 valid order
+			//cerr << "counter = " << counter << " : " << drt.split() << " seconds." << endl;
 
-			for (line l : new_line)
+			for (line l : out_links)
 			{
 				ldts.push_back(l);
 				dts.add(l);
@@ -436,6 +394,7 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 		}
 		visited.push_back(this_point);
 	}
+	//cerr << "finish " << drt.stop() << " seconds." << endl;
 
 	return dts;
 }
