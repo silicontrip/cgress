@@ -13,7 +13,7 @@ OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
 	uniform_distribution.o json_reader.o
 
-all: maxlayers maxfields cyclonefields planner
+all: maxlayers maxfields cyclonefields planner portallist
 
 tests: test_run_timer test_point test_line test_factory test_team_count test_field
 
@@ -53,6 +53,8 @@ cyclonefields: $(OBJ) cyclonefields.o
 planner: $(OBJ) planner.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o planner planner.o
 
+portallist: $(OBJ) portallist.o 
+	$(CC)  $(LDFLAGS) $(OBJ) -o portallist portallist.o
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
