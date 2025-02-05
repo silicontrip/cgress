@@ -17,6 +17,7 @@ private:
 	draw_tools dt;
 	int sbul_limit;
 	bool allow2km;
+	bool reverse_plan;
 	vector<line> poly_lines;
 	run_timer rt;
 
@@ -47,12 +48,12 @@ private:
 
 public:
 
-	planner (double k, int s, draw_tools d, vector<point> din, vector<line>p, bool a2k);
+	planner (double k, int s, draw_tools d, vector<point> din, vector<line>p, bool a2k, bool r);
 	void simulated_annealing (vector<point> combination, double initial_temperature, double cooling_rate, int iterations);
 
 };
 
-planner::planner (double k, int s, draw_tools d, vector<point> din, vector<line>p, bool a2k)
+planner::planner (double k, int s, draw_tools d, vector<point> din, vector<line>p, bool a2k, bool r)
 {
 	key_percent = k;
 	sbul_available = s;
@@ -60,6 +61,7 @@ planner::planner (double k, int s, draw_tools d, vector<point> din, vector<line>
 	poly_lines = p;
 	sbul_limit = 8 + sbul_available * 8;
 	allow2km = a2k;
+	reverse_plan = r;
 
 	vector<line> order;
 
@@ -465,7 +467,15 @@ void planner::simulated_annealing (vector<point> combination, double initial_tem
 					cout <<  kcost << " "  << dist <<  " : (" << temperature << "/" << iter << ") " << rt.split() << " seconds" << endl;
 					if (kcost < 1000)
 					{
-						dt = plan(dt,best_combination);
+						if (reverse_plan)
+						{
+							vector<point> reverse_combination;
+							reverse_combination.assign(best_combination.begin(),best_combination.end());
+							reverse(reverse_combination.begin(), reverse_combination.end());
+							dt = plan(dt,reverse_combination);
+						} else {
+							dt = plan(dt,best_combination);
+						}
 
 						cout << dt << endl;
 						cerr << rt.split() << " seconds" << endl << endl;
@@ -487,6 +497,7 @@ void print_usage()
 		cerr << "                   Lower value means favour shorter path but may require more keys." << endl;
 		cerr << " -s <number>       Number of SBUL available (don't blame me if you specify more than 4 or 2 for a single agent)" << endl;
 		cerr << " -l                Don't allow links less than 2km originating under fields" << endl;
+		cerr << " -r                Print the reverse of the plan (may result in different key cost)" << endl;
 		cerr << " -t <number>       Initial temperature default 2.0 (try single digit)" << endl;
 		cerr << " -i <number>       Number of iterations default 2000 (try mutiple 1000s)" << endl;
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
@@ -501,6 +512,7 @@ int main (int argc, char* argv[])
 	bool allow2km = true;
 	double initial_temperature = 2.0;
 	int iterations = 2000;
+	bool rev = false;
 
 	arguments ag(argc,argv);
 
@@ -510,6 +522,7 @@ int main (int argc, char* argv[])
 	ag.add_req("t","temperature",true);
 	ag.add_req("i","iterations",true);
 	ag.add_req("C","colour",true);
+	ag.add_req("r","reverse",false);
 
 	if (!ag.parse() || ag.has_option("h"))
 	{
@@ -539,6 +552,9 @@ int main (int argc, char* argv[])
 	if (ag.has_option("i"))
 		iterations = ag.get_option_for_key_as_int("i");
 
+	if (ag.has_option("r"))
+		rev = true;
+
 	if (ag.argument_size() != 1)
 	{
 		cerr << "Must specify drawtools plan" << endl;
@@ -552,7 +568,7 @@ int main (int argc, char* argv[])
 
 	//	planner::planner (int k, int s, draw_tools d, vector<point> din, vector<line>p, bool a2k)
 
-	planner p =  planner(cost_percentage, sbul_count, dt, combination, poly_lines, allow2km);
+	planner p =  planner(cost_percentage, sbul_count, dt, combination, poly_lines, allow2km, rev);
 
 	p.simulated_annealing(combination, initial_temperature, 0.95, iterations);
 
