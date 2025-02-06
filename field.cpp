@@ -215,7 +215,7 @@ bool field::intersects(line l) const
 bool field::intersects(const std::vector<line>& l) const
 {
     for (line li: l)
-        if (intersects(l))
+        if (intersects(li))
             return true;
     return false;
 }
