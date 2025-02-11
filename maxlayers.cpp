@@ -485,10 +485,11 @@ int main (int argc, char* argv[])
 		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
 		li3 = lf->filter_links(li3,links,tc);
 
-		cerr << "== cluster 3 links:  " << li1.size() << " ==" << endl;
+		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
 		all_fields = ff->make_fields_from_triple_links(li1,li2,li3);
 		all_fields = ff->filter_fields(all_fields,links,tc);
+		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
 
 	} else {
 		print_usage();
