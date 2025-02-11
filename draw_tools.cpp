@@ -308,7 +308,8 @@ std::string draw_tools::as_intel() const
     Json::Value pos = as_polyline();
 
     stringstream ss;
-
+    bool exceeds_maxlinks = false;
+    int link_count = 0;
     bool first = true;
     double maxLength = 0;
     double centreLat =0;
@@ -322,25 +323,29 @@ std::string draw_tools::as_intel() const
     {
         if (po["type"] == "polyline")
         {
-            centreLat += po["latLngs"][0]["lat"].asDouble();
-            centreLng += po["latLngs"][0]["lng"].asDouble();
-            centreLat += po["latLngs"][1]["lat"].asDouble();
-            centreLng += po["latLngs"][1]["lng"].asDouble();
-            pointCount += 2;
+            link_count++;
+            if (link_count <= 40) {
+                centreLat += po["latLngs"][0]["lat"].asDouble();
+                centreLng += po["latLngs"][0]["lng"].asDouble();
+                centreLat += po["latLngs"][1]["lat"].asDouble();
+                centreLng += po["latLngs"][1]["lng"].asDouble();
+                pointCount += 2;
 
-            if (!first) {
-                ss << "_";
-            }
+                if (!first) {
+                    ss << "_";
+                }
 
-            ss << po["latLngs"][0]["lat"].asDouble(); 
-            ss << ","; 
-            ss << po["latLngs"][0]["lng"].asDouble();
-            ss << ",";
-            ss << po["latLngs"][1]["lat"].asDouble(); 
-            ss << ","; 
-            ss << po["latLngs"][1]["lng"].asDouble();
+                ss << po["latLngs"][0]["lat"].asDouble(); 
+                ss << ","; 
+                ss << po["latLngs"][0]["lng"].asDouble();
+                ss << ",";
+                ss << po["latLngs"][1]["lat"].asDouble(); 
+                ss << ","; 
+                ss << po["latLngs"][1]["lng"].asDouble();
 
-            first = false;
+                first = false;
+            } else 
+                exceeds_maxlinks = true;
         }
     }
     //check for maximum links.
@@ -354,6 +359,9 @@ std::string draw_tools::as_intel() const
     ss << centreLat;
     ss << ",";
     ss << centreLng;
+    // should be a define somewhere.
+    if (exceeds_maxlinks)
+        ss << endl << "Warning: max links exceeded. Only showing 40.";
 
     return ss.str();
 
