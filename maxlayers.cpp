@@ -126,8 +126,8 @@ double maxlayers::search_fields(const vector<field>& current, const vector<field
 				newSize += cached_mu(f);
 
 		if (newSize > max) {
-			cout << newSize << " : " << current.size() << " : " << draw_fields(temp) << endl; 
-			cerr << rt.split() << " seconds." << endl;
+			cerr << newSize << " : " << current.size() << " : " << rt.split() << " seconds." << endl;
+			cout << draw_fields(temp) << endl << endl; 
 			max = newSize;
 		}
 	}
@@ -263,6 +263,13 @@ void print_usage()
 		cerr << "Usage:" << endl;
 		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
 		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
+		cerr << endl << "Portals clusters may be from a file, starting with './'" << endl;
+		cerr << "    from a drawtools polygon starting with '[{'" << endl;
+		cerr << "    from an S2Cell Id starting with '0x'" << endl;
+		cerr << "    two portals separated by '=' for a lat long rectangle" << endl;
+		cerr << "    three portals separated by '=' for a triangle" << endl;
+		cerr << "    one portal followed by a ':' and a km range" << endl;
+		cerr << endl;
 		cerr << "Options:" << endl;
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
