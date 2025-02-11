@@ -261,8 +261,9 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 void print_usage()
 {
 		cerr << "Usage:" << endl;
-		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
+		cerr << "maxlayers [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
 		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
+		cerr << "Generates a set of layered fields, for a given portal cluster description. Maximises geo area or MU." << endl;
 		cerr << endl << "Portals clusters may be from a file, starting with './'" << endl;
 		cerr << "    from a drawtools polygon starting with '[{'" << endl;
 		cerr << "    from an S2Cell Id starting with '0x'" << endl;
@@ -277,7 +278,7 @@ void print_usage()
 
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
-		cerr << " -O                Output as Intel Link" << endl;
+		cerr << " -I                Output as Intel Link" << endl;
 		cerr << " -M                Use MU calculation" << endl;
 		cerr << " -t <number>       Threshold for similar fields (larger less similar)" << endl;
 		cerr << " -l <number>       Maximum number of layers in plan" << endl;
@@ -308,8 +309,8 @@ int main (int argc, char* argv[])
 	ag.add_req("N","machina",true); // max machina blockers
 	
 	ag.add_req("C","colour",true); // drawtools colour
-	ag.add_req("O","polylines",false); // output as polylines
-	ag.add_req("L","intel",false); // output as intel
+	ag.add_req("I","intel",false); // output as intel
+	ag.add_req("L","polylines",false); // output as polylines
 	ag.add_req("M","MU",false); // calculate as MU
 	ag.add_req("m","",true); // maximum size
 	ag.add_req("t","threshold",true); // field similar threshold
@@ -343,7 +344,7 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("L"))
 		dt.set_output_as_polyline();
-	if (ag.has_option("O"))
+	if (ag.has_option("I")) // right that does it, I'm changing it to I
 		dt.set_output_as_intel();
 
 	if (ag.has_option("t"))

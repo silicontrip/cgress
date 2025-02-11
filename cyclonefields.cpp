@@ -244,7 +244,7 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 void print_usage()
 {
 		cerr << "Usage:" << endl;
-		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
+		cerr << "cyclonefields [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
 		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
 		cerr << "Options:" << endl;
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
@@ -255,7 +255,7 @@ void print_usage()
 		cerr << " -e                Draw cyclone edge" << endl;
 		cerr << " -c <#colour>      Cyclone edge path  colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
-		cerr << " -O                Output as Intel Link" << endl;
+		cerr << " -I                Output as Intel Link" << endl;
 		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
 }
 
@@ -277,8 +277,8 @@ int main (int argc, char* argv[])
 	ag.add_req("e","edges",false); // show cyclone edge path
 	ag.add_req("c","edgecolour",true); // cyclone edge path colour
 	ag.add_req("C","colour",true); // drawtools colour
-	ag.add_req("O","polylines",false); // output as polylines
-	ag.add_req("L","intel",false); // output as intel
+	ag.add_req("I","intel",false); // output as intel
+	ag.add_req("L","polyline",false); // output as polylines
 	ag.add_req("M","MU",false); // calculate as MU
 	ag.add_req("T","target",true); // target fields over location
 	ag.add_req("h","help",false);
@@ -319,7 +319,7 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("L"))
 		dt.set_output_as_polyline();
-	if (ag.has_option("O"))
+	if (ag.has_option("I"))
 		dt.set_output_as_intel();
 
 	if (ag.has_option("M"))
@@ -443,10 +443,11 @@ int main (int argc, char* argv[])
 		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
 		li3 = lf->filter_links(li3,links,tc);
 
-		cerr << "== cluster 3 links:  " << li1.size() << " ==" << endl;
+		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
 		all_fields = ff->make_fields_from_triple_links(li1,li2,li3);
 		all_fields = ff->filter_fields(all_fields,links,tc);
+		cerr << "fields: " << all_fields.size() << endl;
 
 	} else {
 		print_usage();
@@ -476,20 +477,12 @@ int main (int argc, char* argv[])
 //		field_list.push_back(f);
 
 	vector<field> search;
-		//search.push_back(tfi);
+	//search.push_back(tfi);
 	cyclonefields mf = cyclonefields(dt,edt,rt,calc,enable_splits,drawedge,all_fields);
 	mf.search_fields();
 	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 
 	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
-	//cerr <<  "== show all plans ==" << endl;
-
-	//sort (plan.begin(), plan.end(), pair_sort);
-	//for (pair<double,string> entry: plan) 
-	//{
-	//	cout <<  entry.first << " " << entry.second << endl <<endl;
-	//}
-
 	cerr <<  "== Finished. " << rt.split() << " elapsed time. " << rt.stop() << " total time." << endl;
 
 	} catch (exception &e) {

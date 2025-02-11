@@ -161,8 +161,9 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 void print_usage()
 {
 		cerr << "Usage:" << endl;
-		cerr << "layerlinker [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
+		cerr << "maxfields [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
 		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
+		cerr << "Generates the maximum number of fields possible for a given portal cluster description." << endl;
 		cerr << "Options:" << endl;
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
@@ -170,7 +171,7 @@ void print_usage()
 
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
-		cerr << " -O                Output as Intel Link" << endl;
+		cerr << " -I                Output as Intel Link" << endl;
 		cerr << " -s				Display plans that have the same size as the best found with decreasing variance" << endl;
 		cerr << " -S				Same as -s but with increasing variance (can't use with -s)" << endl;
 		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
@@ -191,8 +192,8 @@ int main (int argc, char* argv[])
 	ag.add_req("N","machina",true); // max machina blockers
 	
 	ag.add_req("C","colour",true); // drawtools colour
-	ag.add_req("O","polylines",false); // output as polylines
-	ag.add_req("L","intel",false); // output as intel
+	ag.add_req("I","intel",false); // output as intel
+	ag.add_req("L","polyline",false); // output as polylines
 	ag.add_req("M","MU",false); // calculate as MU
 	ag.add_req("S","same",false); // display same size plans
 	ag.add_req("s","samesmall",false); // display same size plans
@@ -221,7 +222,7 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("L"))
 		dt.set_output_as_polyline();
-	if (ag.has_option("O"))
+	if (ag.has_option("I"))
 		dt.set_output_as_intel();
 
 	if (ag.has_option("M"))
@@ -358,10 +359,11 @@ int main (int argc, char* argv[])
 		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
 		li3 = lf->filter_links(li3,links,tc);
 
-		cerr << "== cluster 3 links:  " << li1.size() << " ==" << endl;
+		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
 		all_fields = ff->make_fields_from_triple_links(li1,li2,li3);
 		all_fields = ff->filter_fields(all_fields,links,tc);
+		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
 
 	} else {
 		print_usage();
