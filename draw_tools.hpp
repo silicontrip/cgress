@@ -20,7 +20,7 @@ class draw_tools {
         std::string colour;
         int output_type;
 
-        std::vector<point>* get_points(Json::Value poly) const;
+        std::vector<point> get_points(Json::Value poly) const; // fixed return type
         Json::Value make_polygon (Json::Value ll1, Json::Value ll2, Json::Value ll3) const;
         Json::Value make_polyline (Json::Value ll1, Json::Value ll2) const;
 
@@ -29,7 +29,6 @@ class draw_tools {
         draw_tools();
         draw_tools(std::string description);
 
-        std::vector<point>* get_unique_points() const;
         void erase();
         void set_output_as_polyline();
         void set_output_as_polygon();
@@ -56,6 +55,7 @@ class draw_tools {
 
         std::vector<line> get_lines() const;
         std::vector<point> get_points() const;
+        std::vector<point> get_unique_points() const; //fixed return type
 
 };
 

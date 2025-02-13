@@ -28,10 +28,10 @@ draw_tools::draw_tools(string description)
 {"type":"circle","latLng":{"lat":-37.809267,"lng":145.346449},"radius":169.36755847372498,"color":"#a24ac3"},
 {"type":"marker","latLng":{"lat":-37.811968,"lng":145.343227},"color":"#a24ac3"}]
 */
-vector<point>* draw_tools::get_points(Json::Value poly) const
+vector<point> draw_tools::get_points(Json::Value poly) const
 {
     string type = poly["type"].asString();
-    vector<point>* v = new vector<point>();
+    vector<point> v;
 
     if (type == "circle" || type == "marker")
     {
@@ -40,7 +40,7 @@ vector<point>* draw_tools::get_points(Json::Value poly) const
         double lng = latlng["lng"].asDouble();
 
         point p =point(lat,lng);
-        v->push_back(p);
+        v.push_back(p);
     }
     if (type == "polygon" || type == "polyline")
     {
@@ -51,7 +51,7 @@ vector<point>* draw_tools::get_points(Json::Value poly) const
             double lng = latlng["lng"].asDouble();
 
             point p =point(lat,lng);
-            v->push_back(p);
+            v.push_back(p);
         }
     }
 
@@ -59,20 +59,19 @@ vector<point>* draw_tools::get_points(Json::Value poly) const
 }
 
 
-vector<point>* draw_tools::get_unique_points() const
+vector<point> draw_tools::get_unique_points() const
 {
     unordered_set<point> us;
     for (Json::Value jv: entities)
     {
-        vector<point>* pts = get_points(jv);
-        for (point p: *pts)
+        vector<point> pts = get_points(jv);
+        for (point p: pts)
         {
             us.insert(p);
         }
     }
-    vector<point>* res = new vector<point>();
-    for (point p: us)
-        res->push_back(p);
+    vector<point> res;
+    res.assign(us.begin(),us.end());
     
     return res;
 }
@@ -192,9 +191,22 @@ Json::Value draw_tools::make_polygon (Json::Value ll1, Json::Value ll2, Json::Va
 Json::Value draw_tools::make_polyline (Json::Value ll1, Json::Value ll2) const
 {
     Json::Value latLngs;
-    latLngs.append(ll1);
-    latLngs.append(ll2);
-    
+    // order so that lines are unique
+    if (ll1["lat"] < ll2["lat"])
+    {
+        latLngs.append(ll1);
+        latLngs.append(ll2);
+    } else if ( ll2["lat"] < ll1["lat"]) {
+        latLngs.append(ll2);
+        latLngs.append(ll1);
+    } else if ( ll1["lng"] < ll2["lng"]) {
+        latLngs.append(ll1);
+        latLngs.append(ll2);
+    } else {
+        latLngs.append(ll2);
+        latLngs.append(ll1);
+    }
+
     Json::Value obj;
     obj["type"] = "polyline";
     obj["color"] = colour;
@@ -287,6 +299,9 @@ Json::Value draw_tools::as_polyline() const
     Json::Value out;
     unordered_set<Json::Value> lines;
 
+// this is not a true unique, as lines are undirected.
+// where as this treats opposite direction lines as different
+// hopefully changes to make_polyline should fix reversed lines
     for (Json::Value po: entities)
     {
         if (po["type"] == "polygon")
@@ -294,6 +309,8 @@ Json::Value draw_tools::as_polyline() const
             lines.insert(make_polyline(po["latLngs"][0],po["latLngs"][1]));
             lines.insert(make_polyline(po["latLngs"][1],po["latLngs"][2]));
             lines.insert(make_polyline(po["latLngs"][2],po["latLngs"][0]));
+        } else if (po["type"] == "polyline") {
+            lines.insert(make_polyline(po["latLngs"][0],po["latLngs"][1]));
         } else {
             out.append(po);
         }
@@ -324,7 +341,9 @@ std::string draw_tools::as_intel() const
         if (po["type"] == "polyline")
         {
             link_count++;
-            if (link_count <= 40) {
+            // Intel claims 40 links but I think it is less than this.
+            // my tests seem to indicate the limit is 25.
+            if (link_count <= 25) {
                 centreLat += po["latLngs"][0]["lat"].asDouble();
                 centreLng += po["latLngs"][0]["lng"].asDouble();
                 centreLat += po["latLngs"][1]["lat"].asDouble();
@@ -361,7 +380,7 @@ std::string draw_tools::as_intel() const
     ss << centreLng;
     // should be a define somewhere.
     if (exceeds_maxlinks)
-        ss << endl << "Warning: max links exceeded. Only showing 40.";
+        ss << endl << "Warning: " << link_count <<" links exceeded maximum. Only showing 25.";
 
     return ss.str();
 
@@ -390,7 +409,6 @@ void draw_tools::convert()
 
 vector<line> draw_tools::get_lines() const
 {
-    vector<line> result;
     unordered_set<line> line_set;
     Json::Value pos = as_polyline();
     for (Json::Value dto1: pos) 
@@ -409,13 +427,13 @@ vector<line> draw_tools::get_lines() const
             line_set.insert(l);
         }
     }
-    result.insert(result.end(),line_set.begin(),line_set.end());
+    vector<line> result;
+    result.assign(line_set.begin(),line_set.end());
     return result;
 }
 
 vector<point> draw_tools::get_points() const
 {
-    vector<point> result;
     unordered_set<point> point_set;
 
     for (Json::Value dto1: entities)
@@ -433,7 +451,8 @@ vector<point> draw_tools::get_points() const
             }
         }
     }
-    result.insert(result.end(),point_set.begin(),point_set.end());
+    vector<point> result;
+    result.assign(point_set.begin(),point_set.end());
     return result;
 }
 
