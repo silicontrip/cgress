@@ -24,7 +24,9 @@ namespace silicontrip {
 class field_factory {
     private:
         std::string cell_api;
-        std::unordered_map<std::string, uniform_distribution> mu_cache;
+        std::unordered_map<std::string, uniform_distribution> mu_cache; // cell mu cache
+        std::unordered_map<field,int> field_mu_cache;
+
         field_factory();  // no one else can create one
   		~field_factory(); // prevent accidental deletion
 
@@ -53,6 +55,7 @@ class field_factory {
         std::unordered_map<S2CellId,double> cell_intersection(const S2Polygon& p) const;
         int calculate_mu(const S2Polygon& p);
         int get_est_mu(const field& f);
+        int get_cache_mu(const field& f);
 
         std::vector<field> make_fields_from_single_links(const std::vector<line>&l) const;
         // the argument order is important.

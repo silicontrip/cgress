@@ -29,8 +29,8 @@ private:
 	int link_limit;
 	bool splits;
 
-	int cached_mu (field f);
-	string draw_fields(const vector<field>& f);
+	double get_value (vector<field> fd);
+	string draw_fields(vector<field> f);
 	double search_fields(const vector<field>& current, const vector<field>& field_list, int start, double max);
 	bool add_matching(const field& current, vector<field>& existing);
 	int count_links(const vector<field>& fields);
@@ -52,30 +52,17 @@ maxlayers::maxlayers(const draw_tools& d, const vector<field>& a, int c, int lay
 	splits = s;
 }
 
-
-int maxlayers::cached_mu (field f)
-{
-	if (mucache.count(f))
-		return mucache[f];
-
-	mucache[f] = field_factory::get_instance()->get_est_mu(f);
-	return mucache[f];
-}
-
-
-string maxlayers::draw_fields(const vector<field>& f)
+string maxlayers::draw_fields(vector<field> f)
 {
 
 	dt.erase();
 
-	//if (splits) {
-//		vector<field>nf = field_factory::get_instance()->add_splits(f);
-//		for (field fi: nf)
-//			dt.add(fi);
-//	} else {
-		for (field fi: f)
-			dt.add(fi);
-//	}
+	if (splits)
+		f = field_factory::get_instance()->add_splits(f);
+
+	for (field fi: f)
+		dt.add(fi);
+
 	return dt.to_string();
 }
 
@@ -102,6 +89,22 @@ int maxlayers::count_links(const vector<field>& fields)
 	return maxLinks;
 }
 
+double maxlayers::get_value (vector<field> fd)
+{
+	field_factory* ff = field_factory::get_instance();
+	double total = 0;
+	if (splits)
+		fd = ff->add_splits(fd);
+
+	for (field f : fd)
+		if (calculation_type == 0)
+			total += f.geo_area();
+		else
+			total += ff->get_cache_mu(f);
+
+	return total;
+}
+
 double maxlayers::search_fields(const vector<field>& current, const vector<field>& field_list, int start, double max)
 {
 	if (layer_limit > 0 && current.size() > layer_limit)
@@ -114,20 +117,11 @@ double maxlayers::search_fields(const vector<field>& current, const vector<field
 	}
 	if (current.size() > 0)
 	{
-		vector<field> temp = current;
-		if (splits) 
-			temp = field_factory::get_instance()->add_splits(current);
-
- 		double newSize = 0.0;
-		for (field f: temp)
-			if (calculation_type == 0)
-				newSize += f.geo_area();
-			else 
-				newSize += cached_mu(f);
+		double newSize = get_value(current);
 
 		if (newSize > max) {
 			cerr << newSize << " : " << current.size() << " : " << rt.split() << " seconds." << endl;
-			cout << draw_fields(temp) << endl << endl; 
+			cout << draw_fields(current) << endl << endl; 
 			max = newSize;
 		}
 	}

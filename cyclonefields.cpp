@@ -33,7 +33,7 @@ private:
 	bool splits;
 	bool edge_path;
 
-	int cached_mu (field f);
+	double get_value (vector<field> fd);
 	string draw_fields(const vector<field>& f, const vector<line>& l);
 	int iterate_search(int start, line medge, vector<field>fields_list, int max, point third_point);
 	int count_links (point p, vector<field> flist);
@@ -116,12 +116,8 @@ int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, f
 
 	if (fields_list.size() > max) {
 		max = fields_list.size();
-		double dispSize = 0.0;
-		for (field f: fields_list)
-			if (calculation_type == 0)
-				dispSize += f.geo_area();
-			else 
-				dispSize += cached_mu(f);
+		double dispSize = get_value(fields_list);
+
 		// Draw tools
 		cerr << max << " : " << dispSize << " : " << rt.split() << " seconds." << endl;
 		cout << draw_fields(fields_list,cyc_edges) << endl;
@@ -194,13 +190,21 @@ cyclonefields::cyclonefields(draw_tools dts, draw_tools edt, run_timer rtm, int 
 	all = a;
 }
 
-int cyclonefields::cached_mu (field f)
+double cyclonefields::get_value (vector<field> fd)
 {
-	if (mucache.count(f))
-		return mucache[f];
+	field_factory* ff = field_factory::get_instance();
+	double total = 0;
+	if (splits)
+	{
+		fd = ff->add_splits(fd);
+	}
+	for (field f : fd)
+		if (calculation_type == 0)
+			total += f.geo_area();
+		else
+			total += ff->get_cache_mu(f);
 
-	mucache[f] = field_factory::get_instance()->get_est_mu(f);
-	return mucache[f];
+	return total;
 }
 
 string cyclonefields::draw_fields(const vector<field>& f, const vector<line>& l)

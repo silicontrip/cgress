@@ -298,6 +298,14 @@ int field_factory::get_est_mu(const field& f)
     return calculate_mu(p);
 }
 
+int field_factory::get_cache_mu(const field& f)
+{
+	if (field_mu_cache.count(f))
+		return field_mu_cache[f];
+
+	field_mu_cache[f] = get_est_mu(f);
+	return field_mu_cache[f];
+}
 
 vector<field> field_factory::make_fields_from_single_links(const vector<line>&l) const
 {
@@ -329,6 +337,7 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>&l)
 }
 
 /*
+// attempted speed up using unordered_set of fields
 vector<field> field_factory::make_fields_from_single_links(const vector<line>& l) const 
 {
     unordered_set<line> link_exists_map;
