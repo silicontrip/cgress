@@ -31,7 +31,7 @@ private:
 
 	double get_value (vector<field> fd);
 	string draw_fields(vector<field> f);
-	double search_fields(const vector<field>& current, const vector<field>& field_list, int start, double max);
+	double search_fields(vector<field>current, const field& new_field, const vector<field>& field_list, int start, double max);
 	bool add_matching(const field& current, vector<field>& existing);
 	int count_links(const vector<field>& fields);
 
@@ -105,8 +105,10 @@ double maxlayers::get_value (vector<field> fd)
 	return total;
 }
 
-double maxlayers::search_fields(const vector<field>& current, const vector<field>& field_list, int start, double max)
+// I should make use of pass by copy and add the new field as an argument
+double maxlayers::search_fields(vector<field>current, const field& new_field, const vector<field>& field_list, int start, double max)
 {
+	current.push_back(new_field);
 	if (layer_limit > 0 && current.size() > layer_limit)
 		return max;
 	if (link_limit > 0)
@@ -128,15 +130,9 @@ double maxlayers::search_fields(const vector<field>& current, const vector<field
 
 	for (int i=start; i<field_list.size(); i++)
 	{
-		field thisField = field_list.at(i);
-		if (!thisField.intersects(current))
-		{
-			vector<field> newList;
-			newList.insert(newList.end(), current.begin(), current.end());
-			newList.push_back(thisField);
-
-			max = search_fields(newList, field_list, i+1, max);	
-		}
+		field this_field = field_list.at(i);
+		if (!this_field.intersects(current))
+			max = search_fields(current, this_field, field_list, i+1, max);	
 	}
 		
 	return max;
@@ -220,8 +216,12 @@ vector<pair<double,string>> maxlayers::start_search ()
 		//cerr << "== found " << fc.size() << " fields in " << rt.split() << " seconds. ==" << endl; 
 
 		vector<field> search;
-		//search.push_back(tfi);
-		bestbest = search_fields(search,fc,0,bestbest);
+		// an unexpected side effect of using pass by copy
+		for (int i=0; i < fc.size(); i++)
+		{
+			field tfi = fc[i];
+			bestbest = search_fields(search,tfi,fc,i+1,bestbest);
+		}
 
 		if (search.size() > 0)
 		{
