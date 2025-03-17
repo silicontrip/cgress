@@ -189,6 +189,38 @@ vector<line> link_factory::filter_links(const vector<line>& lines, const vector<
 
 }
 
+vector<line> link_factory::filter_link_by_blocker (const vector<line>& lines, const vector<link>& links, const vector<portal>& portals) const
+{
+    vector<line> la;
+    for (line l: lines)
+    {
+        bool unblocked =true;
+        for (link link: links)
+        {
+            if (l.intersects(link)) {
+                point op = link.get_o_point();
+                point dp = link.get_d_point();
+                int count = 0;
+                for (portal pp: portals)
+                {
+                    if (dp == pp || op == pp)
+                        count++;
+                    if (count==2)
+                    {
+                        unblocked = false;
+                        break;
+                    }
+                }
+            }
+            if (!unblocked)
+                break;
+        }
+        if (unblocked)
+            la.push_back(l);
+    }
+    return la;
+}
+
 
 
 }
