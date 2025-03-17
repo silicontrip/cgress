@@ -23,12 +23,15 @@ int main (int argc, char* argv[])
 	using namespace silicontrip;
 	run_timer rt;
 
-	srand(time(NULL));
+	int output_type = 0;
+
+	//srand(time(NULL));
 	rt.start();
 
 	arguments ag(argc,argv);
 	ag.add_req("C","colour",true); // drawtools colour
 	ag.add_req("h","help",false);
+	ag.add_req("p","portallist",false); 
 
 	if (!ag.parse())
 	{
@@ -42,6 +45,9 @@ int main (int argc, char* argv[])
 		exit(1);
 	}
 
+	if (ag.has_option("p"))
+		output_type = 1;
+
 	draw_tools dt;
 
 	if (ag.has_option("C")) {
@@ -49,7 +55,7 @@ int main (int argc, char* argv[])
 		dt.set_colour(ag.get_option_for_key("C"));
 	}
 
-	cout << "start." << endl;	
+	cerr << "start." << endl << endl;	
 
 	portal_factory* pf = portal_factory::get_instance();
 
@@ -59,12 +65,36 @@ int main (int argc, char* argv[])
 	if (ag.argument_size() == 1)
 		all_portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
 
-	for (portal p : all_portals)
-		dt.add(p);
+	if (output_type == 0)
+	{
+		for (portal p : all_portals)
+			dt.add(p);
 
-	cout << dt.to_string() << endl;
+		cout << dt.to_string() << endl;
+	}
 
-	cout << "stop: " << rt.stop() << endl;
+	if (output_type == 1)
+	{
+		// check for duplicates
+		unordered_set<string> portal_names;
+		unordered_set<string> duplicates;
+		for (portal p : all_portals)
+		{			
+			if (portal_names.find(p.get_title()) == portal_names.end())
+				portal_names.insert(p.get_title());
+			else
+				duplicates.insert(p.get_title());
+		}
+		for (portal p : all_portals)
+		{
+			if (duplicates.find(p.get_title()) == portal_names.end())
+				cout << p.get_title() << endl;
+			else
+				cout << p.point::to_string() << " (" << p.get_title() << ")" << endl;
+		}
+	}
+
+	cerr << endl << "stop: " << rt.stop() << endl;
 
 	return 0;
 }
