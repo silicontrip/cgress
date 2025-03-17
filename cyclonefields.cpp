@@ -255,6 +255,7 @@ void print_usage()
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
 		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
 		cerr << " -s                Add split fields" << endl;
+		cerr << " -M                Use MU calculation" << endl;
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -e                Draw cyclone edge" << endl;
 		cerr << " -c <#colour>      Cyclone edge path  colour" << endl;
