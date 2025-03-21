@@ -269,6 +269,7 @@ void print_usage()
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
 		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
+		cerr << " -D <cluster>      Filter links crossing blockers using these portals." << endl;
 
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
@@ -293,6 +294,7 @@ int main (int argc, char* argv[])
 	double percentile = 100;
 	double fpercentile = 100;
 	vector<point>target;
+	vector<portal>avoid_double;
 	int calc = 0;  // area or mu
 	bool splits = false;
 
@@ -301,6 +303,7 @@ int main (int argc, char* argv[])
 	ag.add_req("E","enlightened",true); // max enlightened blockers
 	ag.add_req("R","resistance",true); // max resistance blockers
 	ag.add_req("N","machina",true); // max machina blockers
+	ag.add_req("D","blockers",true); // remove links with blocker using these portals.
 	
 	ag.add_req("C","colour",true); // drawtools colour
 	ag.add_req("I","intel",false); // output as intel
@@ -371,6 +374,9 @@ int main (int argc, char* argv[])
 	if (ag.has_option("T"))
 		target = pf->points_from_string(ag.get_option_for_key("T"));
 
+	if (ag.has_option("D"))
+		avoid_double = pf->vector_from_map(pf->cluster_from_description(ag.get_option_for_key("D")));
+
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
@@ -398,6 +404,9 @@ int main (int argc, char* argv[])
 		vector<line> li = lf->make_lines_from_single_cluster(portals);
 		cerr << "all links: " << li.size() << endl;
 		li = lf->filter_links(li,links,tc);
+		if (avoid_double.size() > 0)
+			li = lf->filter_link_by_blocker(li,links,avoid_double);
+			
 		if (percentile < 100)
 			li = lf->percentile_lines(li,percentile);
 					
