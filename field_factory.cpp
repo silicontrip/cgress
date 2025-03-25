@@ -307,6 +307,8 @@ int field_factory::get_cache_mu(const field& f)
 	return field_mu_cache[f];
 }
 
+/*
+// old linear search code
 vector<field> field_factory::make_fields_from_single_links(const vector<line>&l) const
 {
     vector<field> fa;
@@ -335,29 +337,40 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>&l)
     }
     return fa;
 }
+*/
 
-/*
 // attempted speed up using unordered_set of fields
+
+bool field_factory::share_line_index(const unordered_map<point, unordered_set<size_t>>& point_exists, const point& p1, const point& p2) const
+{
+  // Check if both points exist in the map.  If not, they can't share a line.
+  if (point_exists.find(p1) == point_exists.end() || point_exists.find(p2) == point_exists.end()) {
+    return false;
+  }
+
+  // Get the sets associated with each point.
+  const unordered_set<size_t>& set1 = point_exists.at(p1);
+  const unordered_set<size_t>& set2 = point_exists.at(p2);
+
+  // Check if any index in set2 exists in set1.
+  for (size_t index : set2) {
+    if (set1.count(index) > 0) {
+      return true; // Found a common index!
+    }
+  }
+
+  return false; // No common index found.
+}
+
 vector<field> field_factory::make_fields_from_single_links(const vector<line>& l) const 
 {
-    unordered_set<line> link_exists_map;
-    unordered_map<point,vector<line>> point_exists;
+    unordered_map<point,unordered_set<size_t>> point_exists;
 
     // Populate the map with existing links
     for (int i = 0; i < l.size(); ++i) {
-        line li = l.at(i);
-        link_exists_map.insert(li);
-        //auto it = point_exists.find(li.get_o_point());
-        //if (it == point_exists.end())
-        //    point_exists[li.get_o_point()] = vector<line>();
-        
-        point_exists[li.get_o_point()].push_back(li);
-        
-        //it = point_exists.find(li.get_d_point());
-        //if (it == point_exists.end())
-        //    point_exists[li.get_d_point()] = vector<line>();
-        
-        point_exists[li.get_d_point()].push_back(li);
+        line li = l[i];
+        point_exists[li.get_o_point()].insert(i);
+        point_exists[li.get_d_point()].insert(i);
     }
 
     vector<field> fa;
@@ -365,29 +378,15 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>& l
     for (size_t i = 0; i < l.size(); ++i) {
         line l1 = l[i];
 
-        for (line l2: point_exists[l1.get_o_point()]) {       
+        for (size_t k: point_exists[l1.get_o_point()]) {
+            line l2 = l[k];
             // point l1.o == point l2.o
             if (l1.get_o_point() == l2.get_o_point()) {
-                auto it = link_exists_map.find(line(l1.get_d_point(), l2.get_d_point()));
-                if (it != link_exists_map.end()) {
+                if (share_line_index(point_exists,l1.get_d_point(),l2.get_d_point())) { // l1.get_d_point() to l2.get_d_point exists
                     fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_d_point()));
                 }
-            } else if (l1.o_s2latlng() == l2.d_s2latlng()) {
-                auto it = link_exists_map.find(line(l1.get_d_point(), l2.get_o_point()));
-                if (it != link_exists_map.end()) {
-                    fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_o_point()));
-                }
-            }
-        }
-        for (line l2: point_exists[l1.get_d_point()]) {
-            if (l1.get_d_point() == l2.get_o_point()) {
-                auto it = link_exists_map.find(line(l1.get_o_point(), l2.get_d_point()));
-                if (it != link_exists_map.end() ) {
-                    fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_d_point()));
-                }
-            } else if (l1.get_d_point() == l2.get_d_point()) {
-                auto it = link_exists_map.find(line(l1.get_o_point(), l2.get_o_point()));
-                if (it != link_exists_map.end()) {
+            } else if (l1.get_o_point() == l2.get_d_point()) {
+                if (share_line_index(point_exists,l1.get_d_point(),l2.get_o_point())) { // l1.get_d_point() to l2.get_o_point exists
                     fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_o_point()));
                 }
             }
@@ -396,7 +395,7 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>& l
 
     return fa;
 }
-*/
+
 
 // the argument order is important.
 // two from lines1 and 1 from lines2

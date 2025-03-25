@@ -36,6 +36,8 @@ class field_factory {
         std::unordered_map<std::string, uniform_distribution>query_mu_from_servlet(const std::vector<std::string>& cell_tokens) const;
         std::unordered_map<std::string, uniform_distribution>query_mu(const std::vector<std::string>& cells);
         bool link_exists(const std::vector<line>&l, int j, point p1, point p2) const;
+        bool share_line_index(const std::unordered_map<point, std::unordered_set<size_t>>& point_exists, const point& p1, const point& p2) const;
+
 
     public:
 		static field_factory* get_instance();
@@ -58,6 +60,8 @@ class field_factory {
         int get_cache_mu(const field& f);
 
         std::vector<field> make_fields_from_single_links(const std::vector<line>&l) const;
+       // std::vector<field> make_fields_from_single_links_cache(const std::vector<line>& l) const;
+
         // the argument order is important.
         // two from lines1 and 1 from lines2
         std::vector<field> make_fields_from_double_links(const std::vector<line>&lk1, const std::vector<line>&lk2) const;
