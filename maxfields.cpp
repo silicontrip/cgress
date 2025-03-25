@@ -31,7 +31,8 @@ private:
 
 	int cached_mu (field f);
 	string draw_fields(const vector<field>& f);
-	double calculate_balance_score(const vector<field>&  fields);
+	double calculate_balance_score(const vector<field>& fields);
+	double get_value (vector<field> fd);
 
 public:
 	maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss);
@@ -100,21 +101,31 @@ double maxfields::calculate_balance_score(const vector<field>& fields)
 	return sqrt(variance); // return the standard deviation as the balance score
 }
 
+double maxfields::get_value (vector<field> fd)
+{
+	field_factory* ff = field_factory::get_instance();
+	double total = 0;
+
+	for (field f : fd)
+		if (calculation_type == 0)
+			total += f.geo_area();
+		else
+			total += ff->get_cache_mu(f);
+
+	return total;
+}
+
 struct score maxfields::search_fields(const vector<field>& current, int start, int max, double balance)
 {
 	if (current.size() > 0)
 	{
 		int newSize = current.size();
-		double dispSize = 0.0;
-		for (field f: current)
-			if (calculation_type == 0)
-				dispSize += f.geo_area();
-			else 
-				dispSize += cached_mu(f);
+		double dispSize = get_value(current);
 
 		if (newSize > max || (sameSize != 0 && newSize == max)) {
 
 			double bal = calculate_balance_score (current);
+			// want to maximise geo or mu 
 			if (newSize > max || (sameSize == -1 && bal > balance) || ( sameSize == 1 && bal < balance) )
 			{
 				cerr << bal << " : " << newSize << " : " << dispSize << " : "  << rt.split() << " seconds." << endl;
@@ -163,7 +174,7 @@ void print_usage()
 		cerr << "Usage:" << endl;
 		cerr << "maxfields [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
 		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
-		cerr << "Generates the maximum number of fields possible for a given portal cluster description." << endl;
+		cerr << "Generates the maximum number of fields possible for a given portal cluster descriptions." << endl;
 		cerr << "Options:" << endl;
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
@@ -174,6 +185,7 @@ void print_usage()
 		cerr << " -I                Output as Intel Link" << endl;
 		cerr << " -s				Display plans that have the same size as the best found with decreasing variance" << endl;
 		cerr << " -S				Same as -s but with increasing variance (can't use with -s)" << endl;
+		cerr << " -M                Use MU calculation" << endl;
 		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
 }
 
@@ -197,6 +209,8 @@ int main (int argc, char* argv[])
 	ag.add_req("M","MU",false); // calculate as MU
 	ag.add_req("S","same",false); // display same size plans
 	ag.add_req("s","samesmall",false); // display same size plans
+	ag.add_req("G","geo",false); // display same size plans
+
 	ag.add_req("T","target",true); // target fields over location
 	ag.add_req("h","help",false);
 
@@ -247,6 +261,10 @@ int main (int argc, char* argv[])
 				print_usage();
 				exit(1);
 		}
+	}
+	if (ag.has_option("G"))
+	{
+		same_size = 2;
 	}
 
 	if (ag.has_option("T"))
