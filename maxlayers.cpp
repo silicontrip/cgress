@@ -375,8 +375,11 @@ int main (int argc, char* argv[])
 		target = pf->points_from_string(ag.get_option_for_key("T"));
 
 	if (ag.has_option("D"))
+	{
 		avoid_double = pf->vector_from_map(pf->cluster_from_description(ag.get_option_for_key("D")));
-
+		// for (portal p: avoid_double)
+		//	cerr << "avoid: " << p << endl;
+	}
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
@@ -406,7 +409,7 @@ int main (int argc, char* argv[])
 		li = lf->filter_links(li,links,tc);
 		if (avoid_double.size() > 0)
 			li = lf->filter_link_by_blocker(li,links,avoid_double);
-			
+
 		if (percentile < 100)
 			li = lf->percentile_lines(li,percentile);
 					
