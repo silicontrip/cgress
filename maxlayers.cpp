@@ -444,11 +444,21 @@ int main (int argc, char* argv[])
 
 		vector<line> li1 = lf->make_lines_from_single_cluster(portals1);
 		li1 = lf->filter_links(li1,links,tc);
+		if (avoid_double.size() > 0)
+			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
+
+		// not sure if I should use this with multiple portal clusters
+		if (percentile < 100)
+			li1 = lf->percentile_lines(li1,percentile);
 
 		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
 		vector<line> li2 = lf->make_lines_from_double_cluster(portals1,portals2);
 		li2 = lf->filter_links(li2,links,tc);	
+		if (avoid_double.size() > 0)
+			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
+		if (percentile < 100)
+			li2 = lf->percentile_lines(li2,percentile);
 
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
@@ -481,17 +491,26 @@ int main (int argc, char* argv[])
 
 		vector<line> li1 = lf->make_lines_from_double_cluster(portals1,portals2);
 		li1 = lf->filter_links(li1,links,tc);
-
+		if (avoid_double.size() > 0)
+			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
+		if (percentile < 100)
+			li1 = lf->percentile_lines(li1,percentile);
 		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
 		vector<line> li2 = lf->make_lines_from_double_cluster(portals2,portals3);
 		li2 = lf->filter_links(li2,links,tc);
-
+		if (avoid_double.size() > 0)
+			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
+		if (percentile < 100)
+			li2 = lf->percentile_lines(li2,percentile);
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
 		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
 		li3 = lf->filter_links(li3,links,tc);
-
+		if (avoid_double.size() > 0)
+			li3 = lf->filter_link_by_blocker(li3,links,avoid_double);
+		if (percentile < 100)
+			li3 = lf->percentile_lines(li3,percentile);
 		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
 		all_fields = ff->make_fields_from_triple_links(li1,li2,li3);
