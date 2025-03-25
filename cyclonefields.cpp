@@ -254,6 +254,8 @@ void print_usage()
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
 		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
+		cerr << " -D <cluster>      Filter links crossing blockers using these portals." << endl;
+
 		cerr << " -s                Add split fields" << endl;
 		cerr << " -M                Use MU calculation" << endl;
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
@@ -272,13 +274,16 @@ int main (int argc, char* argv[])
 	int calc = 0;  // area or mu
 	int same_size = 0; // same calc
 	bool drawedge = false;
+	vector<portal>avoid_double;
+
 
 	arguments ag(argc,argv);
 
 	ag.add_req("E","enlightened",true); // max enlightened blockers
 	ag.add_req("R","resistance",true); // max resistance blockers
 	ag.add_req("N","machina",true); // max machina blockers
-	
+	ag.add_req("D","blockers",true); // remove links with blocker using these portals.
+
 	ag.add_req("e","edges",false); // show cyclone edge path
 	ag.add_req("c","edgecolour",true); // cyclone edge path colour
 	ag.add_req("C","colour",true); // drawtools colour
@@ -341,6 +346,10 @@ int main (int argc, char* argv[])
 	if (ag.has_option("T"))
 		target = pf->points_from_string(ag.get_option_for_key("T"));
 
+	if (ag.has_option("D"))
+		avoid_double = pf->vector_from_map(pf->cluster_from_description(ag.get_option_for_key("D")));
+
+
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
@@ -368,6 +377,8 @@ int main (int argc, char* argv[])
 		vector<line> li = lf->make_lines_from_single_cluster(portals);
 		cerr << "all links: " << li.size() << endl;
 		li = lf->filter_links(li,links,tc);
+		if (avoid_double.size() > 0)
+			li = lf->filter_link_by_blocker(li,links,avoid_double);
 					
 		cerr << "purged links: " << li.size() << endl;
 		cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
@@ -400,11 +411,15 @@ int main (int argc, char* argv[])
 
 		vector<line> li1 = lf->make_lines_from_single_cluster(portals1);
 		li1 = lf->filter_links(li1,links,tc);
+		if (avoid_double.size() > 0)
+			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
 
 		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
 		vector<line> li2 = lf->make_lines_from_double_cluster(portals1,portals2);
-		li2 = lf->filter_links(li2,links,tc);	
+		li2 = lf->filter_links(li2,links,tc);
+		if (avoid_double.size() > 0)
+			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
 
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
@@ -437,16 +452,22 @@ int main (int argc, char* argv[])
 
 		vector<line> li1 = lf->make_lines_from_double_cluster(portals1,portals2);
 		li1 = lf->filter_links(li1,links,tc);
+		if (avoid_double.size() > 0)
+			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
 
 		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
 		vector<line> li2 = lf->make_lines_from_double_cluster(portals2,portals3);
 		li2 = lf->filter_links(li2,links,tc);
+		if (avoid_double.size() > 0)
+			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
 
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
 		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
 		li3 = lf->filter_links(li3,links,tc);
+		if (avoid_double.size() > 0)
+			li3 = lf->filter_link_by_blocker(li3,links,avoid_double);
 
 		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
