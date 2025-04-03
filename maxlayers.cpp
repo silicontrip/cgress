@@ -295,6 +295,7 @@ int main (int argc, char* argv[])
 	double fpercentile = 100;
 	vector<point>target;
 	vector<portal>avoid_double;
+	vector<portal>avoid_single;
 	int calc = 0;  // area or mu
 	bool splits = false;
 
@@ -304,6 +305,7 @@ int main (int argc, char* argv[])
 	ag.add_req("R","resistance",true); // max resistance blockers
 	ag.add_req("N","machina",true); // max machina blockers
 	ag.add_req("D","blockers",true); // remove links with blocker using these portals.
+	ag.add_req("S","avoid", true); // avoid using these portals.
 	
 	ag.add_req("C","colour",true); // drawtools colour
 	ag.add_req("I","intel",false); // output as intel
@@ -380,6 +382,9 @@ int main (int argc, char* argv[])
 		// for (portal p: avoid_double)
 		//	cerr << "avoid: " << p << endl;
 	}
+	if (ag.has_option("S"))
+		avoid_single = pf->vector_from_map(pf->cluster_from_description(ag.get_option_for_key("S")));
+
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
@@ -399,7 +404,7 @@ int main (int argc, char* argv[])
 		cerr << "== getting links ==" << endl;
                                 
 		links = lf->get_purged_links(portals);
-                                
+        
 		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 
 		cerr << "== generating potential links ==" << endl;
@@ -409,6 +414,9 @@ int main (int argc, char* argv[])
 		li = lf->filter_links(li,links,tc);
 		if (avoid_double.size() > 0)
 			li = lf->filter_link_by_blocker(li,links,avoid_double);
+
+		if (avoid_single.size() > 0)
+			li = lf->filter_link_by_portal(li,avoid_single);
 
 		if (percentile < 100)
 			li = lf->percentile_lines(li,percentile);
@@ -447,6 +455,9 @@ int main (int argc, char* argv[])
 		if (avoid_double.size() > 0)
 			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
 
+		if (avoid_single.size() > 0)
+			li1 = lf->filter_link_by_portal(li1,avoid_single);
+
 		// not sure if I should use this with multiple portal clusters
 		if (percentile < 100)
 			li1 = lf->percentile_lines(li1,percentile);
@@ -457,6 +468,10 @@ int main (int argc, char* argv[])
 		li2 = lf->filter_links(li2,links,tc);	
 		if (avoid_double.size() > 0)
 			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
+
+		if (avoid_single.size() > 0)
+			li2 = lf->filter_link_by_portal(li2,avoid_single);
+
 		if (percentile < 100)
 			li2 = lf->percentile_lines(li2,percentile);
 
@@ -493,6 +508,10 @@ int main (int argc, char* argv[])
 		li1 = lf->filter_links(li1,links,tc);
 		if (avoid_double.size() > 0)
 			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
+
+		if (avoid_single.size() > 0)
+			li1 = lf->filter_link_by_portal(li1,avoid_single);
+
 		if (percentile < 100)
 			li1 = lf->percentile_lines(li1,percentile);
 		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
@@ -501,6 +520,10 @@ int main (int argc, char* argv[])
 		li2 = lf->filter_links(li2,links,tc);
 		if (avoid_double.size() > 0)
 			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
+
+		if (avoid_single.size() > 0)
+			li2 = lf->filter_link_by_portal(li2,avoid_single);
+
 		if (percentile < 100)
 			li2 = lf->percentile_lines(li2,percentile);
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
@@ -509,6 +532,10 @@ int main (int argc, char* argv[])
 		li3 = lf->filter_links(li3,links,tc);
 		if (avoid_double.size() > 0)
 			li3 = lf->filter_link_by_blocker(li3,links,avoid_double);
+
+		if (avoid_single.size() > 0)
+			li3 = lf->filter_link_by_portal(li3,avoid_single);
+
 		if (percentile < 100)
 			li3 = lf->percentile_lines(li3,percentile);
 		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;

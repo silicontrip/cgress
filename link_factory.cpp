@@ -221,6 +221,27 @@ vector<line> link_factory::filter_link_by_blocker (const vector<line>& lines, co
     return la;
 }
 
+// this should probably be added to portal_factory, avoid adding these portals altogether
+vector<line> link_factory::filter_link_by_portal (const vector<line>& lines, const vector<portal>& portals) const
+{
+    vector<line> la;
+    for (line l: lines)
+    {
+        bool unblocked =true;
+        for (portal pp: portals)
+        {
+            if (l.get_o_point() == pp || l.get_d_point() == pp)
+            {
+                unblocked = false;
+                break;
+            }
+        }
+        if (unblocked)
+            la.push_back(l);
+    }
+    return la;
+}
+
 
 
 }
