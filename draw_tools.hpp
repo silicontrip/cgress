@@ -23,6 +23,8 @@ class draw_tools {
         std::vector<point> get_points(Json::Value poly) const; // fixed return type
         Json::Value make_polygon (Json::Value ll1, Json::Value ll2, Json::Value ll3) const;
         Json::Value make_polyline (Json::Value ll1, Json::Value ll2) const;
+        void from_intel(std::string intel);
+
 
     public:
 
