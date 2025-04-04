@@ -24,6 +24,8 @@ class draw_tools {
         Json::Value make_polygon (Json::Value ll1, Json::Value ll2, Json::Value ll3) const;
         Json::Value make_polyline (Json::Value ll1, Json::Value ll2) const;
         void from_intel(std::string intel);
+        Json::Value line_from_intel_string(std::string pline) const;
+
 
 
     public:

@@ -32,6 +32,44 @@ draw_tools::draw_tools(string description)
 https://www.ingress.com/intel?pls=-37.785266,145.321623,-37.780938,145.30097_-37.785266,145.321623,-37.780612,145.300877_-37.785266,145.321623,-37.780328,145.299737_-37.797046,145.288719,-37.778853,145.296606_-37.797046,145.288719,-37.780328,145.299737_-37.785266,145.321623,-37.778853,145.296606_-37.797046,145.288719,-37.777231,145.29692_-37.797046,145.288719,-37.780938,145.30097_-37.797046,145.288719,-37.775976,145.29567_-37.785266,145.321623,-37.776385,145.295777_-37.785266,145.321623,-37.775264,145.294738_-37.797046,145.288719,-37.780612,145.300877_-37.785266,145.321623,-37.777231,145.29692_-37.797046,145.288719,-37.776385,145.295777_-37.797046,145.288719,-37.785401,145.322228_-37.797046,145.288719,-37.775264,145.294738_-37.797046,145.288719,-37.772964,145.289957_-37.785401,145.322228,-37.771258,145.287039_-37.785266,145.321623,-37.775976,145.29567_-37.785266,145.321623,-37.772964,145.289957_-37.797046,145.288719,-37.785266,145.321623_-37.785266,145.321623,-37.771258,145.287039_-37.797046,145.288719,-37.771258,145.287039&ll=-37.784438,145.301099
 */
 
+Json::Value draw_tools::line_from_intel_string(string pline) const
+{
+    size_t co = pline.find(",",0);
+    double la1;
+    istringstream(pline.substr(0,co-1)) >> la1;
+    pline = pline.substr(co+1,pline.length()-(co+1));
+    co = pline.find(",",0);
+    double lo1;
+    istringstream(pline.substr(0,co-1)) >> lo1;
+    pline = pline.substr(co+1,pline.length()-(co+1));
+    double la2;
+    istringstream(pline.substr(0,co-1)) >> la2;
+    double lo2;
+    istringstream(pline.substr(co+1,pline.length()-(co+1))) >> lo2;
+
+    //cerr << la1 << ", " << lo1 << " - " << la2 << ", " << lo2 << endl;
+
+    Json::Value latLngs;
+    Json::Value ll;
+
+    ll["lat"] = la1;
+    ll["lng"] = lo1;
+
+    latLngs.append(ll);
+
+    ll["lat"] = la2;
+    ll["lng"] = lo2;
+
+    latLngs.append(ll);
+
+    Json::Value obj;
+    obj["type"] = "polyline";
+    obj["color"] = colour;
+    obj["latLngs"] = latLngs;
+
+    return obj;
+}
+
 void draw_tools::from_intel(string intel)
 {
 
@@ -55,45 +93,17 @@ void draw_tools::from_intel(string intel)
         string pline = idesc.substr(0,inext);
         // cerr << pline << endl;
 
-        size_t co = pline.find(",",0);
-        double la1;
-        istringstream(pline.substr(0,co-1)) >> la1;
-        pline = pline.substr(co+1,pline.length()-(co+1));
-        co = pline.find(",",0);
-        double lo1;
-        istringstream(pline.substr(0,co-1)) >> lo1;
-        pline = pline.substr(co+1,pline.length()-(co+1));
-        double la2;
-        istringstream(pline.substr(0,co-1)) >> la2;
-        double lo2;
-        istringstream(pline.substr(co+1,pline.length()-(co+1))) >> lo2;
 
-        //cerr << la1 << ", " << lo1 << " - " << la2 << ", " << lo2 << endl;
 
-        Json::Value latLngs;
-        Json::Value ll;
-
-        ll["lat"] = la1;
-        ll["lng"] = lo1;
-
-        latLngs.append(ll);
-
-        ll["lat"] = la2;
-        ll["lng"] = lo2;
-
-        latLngs.append(ll);
-
-        Json::Value obj;
-        obj["type"] = "polyline";
-        obj["color"] = colour;
-        obj["latLngs"] = latLngs;
-
-        entities.append(obj);
+        entities.append(line_from_intel_string(pline));
 
         idesc = idesc.substr(inext+1,idesc.length()-(inext+1));
         inext = idesc.find("_",0);
     }
+    entities.append(line_from_intel_string(idesc));
+
 }
+
 
 /*
 [{"type":"polygon","latLngs":[{"lat":-37.813154,"lng":145.348738},{"lat":-37.80919,"lng":145.343338},{"lat":-37.813431,"lng":145.341783}],"color":"#a05000"},
