@@ -36,18 +36,18 @@ Json::Value draw_tools::line_from_intel_string(string pline) const
 {
     size_t co = pline.find(",",0);
     double la1;
-    istringstream(pline.substr(0,co-1)) >> la1;
+    istringstream(pline.substr(0,co)) >> la1;
     pline = pline.substr(co+1,pline.length()-(co+1));
     co = pline.find(",",0);
     double lo1;
-    istringstream(pline.substr(0,co-1)) >> lo1;
+    istringstream(pline.substr(0,co)) >> lo1;
     pline = pline.substr(co+1,pline.length()-(co+1));
     double la2;
-    istringstream(pline.substr(0,co-1)) >> la2;
+    istringstream(pline.substr(0,co)) >> la2;
     double lo2;
     istringstream(pline.substr(co+1,pline.length()-(co+1))) >> lo2;
 
-    //cerr << la1 << ", " << lo1 << " - " << la2 << ", " << lo2 << endl;
+    //cerr << setprecision(9) << la1 << ", " << lo1 << " - " << la2 << ", " << lo2 << endl;
 
     Json::Value latLngs;
     Json::Value ll;
