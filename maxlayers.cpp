@@ -231,7 +231,7 @@ vector<pair<double,string>> maxlayers::start_search ()
 			ps.second = " ("+ std::to_string(search.size())+") / " + draw_fields(search);
 			plan.push_back(ps);
 			cout << bestbest << " (" << search.size() << ") / " << draw_fields(search) << endl;
-			cerr << "split: " << rt.split() << endl;
+			cerr  << rt.split() << " seconds." << endl;
 		}
 		if (fc.size() > 0)
 			i=field_list.begin();
