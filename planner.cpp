@@ -31,6 +31,11 @@ private:
 	bool check_plan(const vector<line>&dts);
 	bool check_same(const vector<line>&dts);
 	bool check_same(vector<line>dts,const vector<line>& ndts);
+	vector<int> find_lines(const vector<field>& f, const vector<line>& ndts, const line& current);
+	vector<line> make_valid(vector<line>dts,vector<line> ndts);
+	unordered_map<field,int> count_fields(vector<field>f);
+	vector<line> remove_lines(field f, vector<line> l1, vector<line> l2);
+
 
 	double geo_cost(const vector<point>&pp);
 	int count_visited(point pp, const vector<point>&visited);
@@ -268,6 +273,136 @@ vector<field>planner::complete_field(const vector<line>&order, const line& pl)
 	return completed_fields;
 }
 
+vector<int> planner::find_lines(const vector<field>& f, const vector<line>& ndts, const line& current)
+{
+	vector<int> found;
+	for (int i=0; i < ndts.size(); ++i)
+	{
+		line li = ndts[i];
+		if (!(current == li))
+			for (field fi: f)
+				if (fi.has_line(li))
+					found.push_back(i);
+	}			
+	return found;
+}
+
+void out_debug(const vector<line>& l, const line current)
+{
+	draw_tools dt;
+
+	for (line li: l)
+		dt.add(li);
+
+	dt.set_colour("#FFFFFF");
+	dt.add(current);
+
+	cerr << dt << endl;
+}
+
+unordered_map<field,int> planner::count_fields(vector<field>f)
+{
+	unordered_map<field,int> field_count;
+	for (field f1: f)
+	{
+		int count = 0;
+		for (field f2: f)
+		{
+			if (!(f1 == f2))
+				if (f1.inside(f2))
+					count ++;
+		}
+		field_count[f1] = count;
+	}
+	return field_count;
+}
+
+vector<line> planner::remove_lines(field f, vector<line> l1, vector<line> l2)
+{
+	vector<line> remain;
+	for (line fl: f.get_lines())
+	{
+		bool found = false;
+		for (line li: l1)
+		{
+			if (li == fl)
+			{
+				found = true;
+				break;
+			}
+		}
+		for (line li: l2)
+		{
+			if (li == fl)
+			{
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+			remain.push_back(fl);
+	}
+	return remain;
+}
+
+vector<line> planner::make_valid(vector<line>dts,vector<line> ndts)
+{
+	if (ndts.size() == 1)
+		return ndts;
+
+	vector<field> make_fields;
+	vector<line>nndts = dts;
+	for(line li: ndts)
+	{
+		vector<field> complete_fields = complete_field(nndts,li);
+		make_fields.insert(make_fields.end(),complete_fields.begin(),complete_fields.end());
+		nndts.push_back(li);
+	}
+	unordered_map<field,int> fc = count_fields(make_fields);
+	vector<line> link_order;
+	while (fc.size() > 0)
+	{
+		int max = -1;
+		field max_field;
+		for (pair<field,int>vv: fc) {
+			if (vv.second > max)
+			{
+				max = vv.second;
+				max_field = vv.first;
+			}
+		}
+		vector<line>add_lines = remove_lines(max_field,link_order,dts);
+
+		// lines need to be orientated the same way as the ndts array
+		for (line la: add_lines)
+			for (line ln: ndts)
+				if (la == ln)
+					link_order.push_back(ln);
+		fc.erase (max_field);
+	}
+
+	// handle input links which aren't in the output...
+	vector<line> unused_links;
+	for (line ln: ndts)
+	{
+		bool found = false;
+		for (line lo: link_order)
+		{
+
+			if (ln == lo)
+			{
+				found=true;
+				break;
+			}
+		}
+		if (!found)
+			unused_links.push_back(ln);
+	}
+	unused_links.insert(unused_links.end(),link_order.begin(),link_order.end());
+	return unused_links;
+}
+
+// I'm leaving this in for now incase there are flaws with my make_valid function
 bool planner::check_same(vector<line>dts,const vector<line>& ndts)
 {
 
@@ -374,6 +509,7 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 		if (out_links.size() > 0)
 		{	
 			//cerr << "out_links = " << out_links.size() << " : " << drt.split() << " seconds." << endl;
+			/*
 			bool valid_plan = false;
 			int counter = 0;
 			int count_limit = factorial(out_links.size());
@@ -382,6 +518,13 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 				next_permutation(out_links, counter++);
 				valid_plan = check_same(ldts,out_links);
 			}
+			if (!valid_plan)
+				cerr << "No valid plans exist for this path." << endl;
+			*/
+ 
+			// I think I nailed the field heuristic logic rather than needing to test permutations as above.
+ 			out_links = make_valid(ldts,out_links);
+ 
 			// There should be at least 1 valid order
 			//cerr << "counter = " << counter << " : " << drt.split() << " seconds." << endl;
 
