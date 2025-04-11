@@ -644,6 +644,7 @@ void print_usage()
 		cerr << " -t <number>       Initial temperature default 2.0 (try single digit)" << endl;
 		cerr << " -i <number>       Number of iterations default 2000 (try mutiple 1000s)" << endl;
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
+		cerr << " -I                Output Drawtools as intel" << endl;
 }
 
 int main (int argc, char* argv[])
@@ -665,6 +666,7 @@ int main (int argc, char* argv[])
 	ag.add_req("t","temperature",true);
 	ag.add_req("i","iterations",true);
 	ag.add_req("C","colour",true);
+	ag.add_req("I","intel",false);
 	ag.add_req("r","reverse",false);
 
 	if (!ag.parse() || ag.has_option("h"))
@@ -679,6 +681,10 @@ int main (int argc, char* argv[])
 		cerr << "set colour: " << ag.get_option_for_key("C") << endl;
 		dt.set_colour(ag.get_option_for_key("C"));
 	}
+
+// this might defeat the purpose of this tool.
+	if (ag.has_option("I"))
+		dt.set_output_as_intel();
 
 	if (ag.has_option("k"))
 		cost_percentage = ag.get_option_for_key_as_double("k");
