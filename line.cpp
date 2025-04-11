@@ -38,6 +38,15 @@ line::line(long dla, long dlo, long ola, long olo): d_point(dla,dlo), o_point(ol
 	//crosser.S2EdgeCrosserBase(d_point.ToPoint(),o_point.ToPoint());
 }
 
+line::line(const line& l)
+{
+	o_point = l.get_o_point();
+	d_point = l.get_d_point();
+
+	o_s2Point = o_point.s2latlng().ToPoint();
+	d_s2Point = d_point.s2latlng().ToPoint();
+}
+
 bool line::operator==(const line& l) const { return (l.o_point==o_point && l.d_point==d_point) || ( l.o_point==d_point && l.d_point==o_point); }
 bool line::found(vector<line> la) const
 {
