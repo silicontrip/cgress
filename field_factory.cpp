@@ -344,9 +344,9 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>&l)
 bool field_factory::share_line_index(const unordered_map<point, unordered_set<size_t>>& point_exists, const point& p1, const point& p2) const
 {
   // Check if both points exist in the map.  If not, they can't share a line.
-  if (point_exists.find(p1) == point_exists.end() || point_exists.find(p2) == point_exists.end()) {
-    return false;
-  }
+  //if (point_exists.find(p1) == point_exists.end() || point_exists.find(p2) == point_exists.end()) {
+  //  return false;
+  //}
 
   // Get the sets associated with each point.
   const unordered_set<size_t>& set1 = point_exists.at(p1);
@@ -380,14 +380,17 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>& l
 
         for (size_t k: point_exists[l1.get_o_point()]) {
             line l2 = l[k];
-            // point l1.o == point l2.o
-            if (l1.get_o_point() == l2.get_o_point()) {
-                if (share_line_index(point_exists,l1.get_d_point(),l2.get_d_point())) { // l1.get_d_point() to l2.get_d_point exists
-                    fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_d_point()));
-                }
-            } else if (l1.get_o_point() == l2.get_d_point()) {
-                if (share_line_index(point_exists,l1.get_d_point(),l2.get_o_point())) { // l1.get_d_point() to l2.get_o_point exists
-                    fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_o_point()));
+            if (!(l1 == l2)) 
+            {
+                // point l1.o == point l2.o
+                if (l1.get_o_point() == l2.get_o_point()) {
+                    if (share_line_index(point_exists,l1.get_d_point(),l2.get_d_point())) { // l1.get_d_point() to l2.get_d_point exists
+                        fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_d_point()));
+                    }
+                } else { // if (l1.get_o_point() == l2.get_d_point()) {
+                    if (share_line_index(point_exists,l1.get_d_point(),l2.get_o_point())) { // l1.get_d_point() to l2.get_o_point exists
+                        fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_o_point()));
+                    }
                 }
             }
         }
