@@ -47,6 +47,7 @@ namespace silicontrip {
 			S2LatLng d_s2latlng() const;
 			S2LatLng o_s2latlng() const;
 
+			line(const line& l);
 			line(point d, point o);
 			line(long dla, long dlo, long ola, long olo);
 			line();
