@@ -368,35 +368,37 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>& l
 
     // Populate the map with existing links
     for (int i = 0; i < l.size(); ++i) {
-        line li = l[i];
+        const line& li = l[i];
         point_exists[li.get_o_point()].insert(i);
         point_exists[li.get_d_point()].insert(i);
     }
 
-    vector<field> fa;
+    unordered_set<field> fa;
 
     for (size_t i = 0; i < l.size(); ++i) {
-        line l1 = l[i];
+        const line& l1 = l[i];
 
         for (size_t k: point_exists[l1.get_o_point()]) {
-            line l2 = l[k];
+            const line& l2 = l[k];
             if (!(l1 == l2)) 
             {
                 // point l1.o == point l2.o
                 if (l1.get_o_point() == l2.get_o_point()) {
                     if (share_line_index(point_exists,l1.get_d_point(),l2.get_d_point())) { // l1.get_d_point() to l2.get_d_point exists
-                        fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_d_point()));
+                        fa.insert(field(l1.get_o_point(), l1.get_d_point(), l2.get_d_point()));
                     }
                 } else { // if (l1.get_o_point() == l2.get_d_point()) {
                     if (share_line_index(point_exists,l1.get_d_point(),l2.get_o_point())) { // l1.get_d_point() to l2.get_o_point exists
-                        fa.emplace_back(field(l1.get_o_point(), l1.get_d_point(), l2.get_o_point()));
+                        fa.insert(field(l1.get_o_point(), l1.get_d_point(), l2.get_o_point()));
                     }
                 }
             }
         }
     }
+    vector<field> fv;
+    fv.insert(fv.end(), fa.begin(), fa.end());
 
-    return fa;
+    return fv;
 }
 
 

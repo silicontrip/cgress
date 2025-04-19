@@ -402,6 +402,14 @@ int main (int argc, char* argv[])
 	cerr << "==  fields sortered " << rt.split() << " ==" << endl;
 	cerr << "== show matches ==" << endl;
 
+	/*
+	// remove once duplicate bug is found
+	for (int i=0; i<all_fields.size(); i++)
+		for (int j=i+1; j < all_fields.size(); j++)
+			if (all_fields[i] == all_fields[j])
+				cerr << "Duplicate: " << all_fields[i] << endl;
+	*/
+
 	vector<pair<double,string>> plan;
 	int bestbest = 0;
 
