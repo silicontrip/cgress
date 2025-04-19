@@ -242,6 +242,16 @@ vector<line> link_factory::filter_link_by_portal (const vector<line>& lines, con
     return la;
 }
 
+vector<line> link_factory::filter_link_by_length (const std::vector<line>& lines, double km) const
+{
+    vector<line> la;
+    for (line l: lines)
+    {
+        if (l.geo_distance() <= km)
+            la.push_back(l);
+    }
+    return la;
+}
 
 
 }
