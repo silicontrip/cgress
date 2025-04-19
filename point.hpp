@@ -45,6 +45,8 @@ namespace silicontrip {
 			static point Invalid();
 			bool is_valid() const;
 			bool operator==(const point& p) const;
+			bool operator<(const point& p) const;
+
 	};
 
 }

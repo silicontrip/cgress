@@ -97,7 +97,12 @@ bool point::is_valid() const
 }
 
 bool point::operator==(const point& p) const { return p.s2latlng() == latlng; }
-
+bool point::operator<(const point& p) const
+{
+    if (latlng.lat().radians() != p.s2latlng().lat().radians())
+        return latlng.lat().radians() < p.s2latlng().lat().radians();
+    return latlng.lng().radians() < p.s2latlng().lng().radians();
+}
 }
 
 std::ostream& operator<<(std::ostream& os, const silicontrip::point& p)
