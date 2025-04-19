@@ -86,11 +86,20 @@ namespace silicontrip {
 std::ostream& operator<<(std::ostream& os, const silicontrip::field& l);
 
 template<> struct std::hash<silicontrip::field> {
-    std::size_t operator()(silicontrip::field const& s) const noexcept {
-        std::size_t h1 = std::hash<silicontrip::point>{}(s.point_at(0));
-        std::size_t h2 = std::hash<silicontrip::point>{}(s.point_at(1));
-        std::size_t h3 = std::hash<silicontrip::point>{}(s.point_at(2));
-        return h1 ^ h2 ^ h3;  // order isn't really important 
+    std::size_t operator()(const silicontrip::field& s) const noexcept {
+        std::array<std::size_t, 3> hashes = {
+            std::hash<silicontrip::point>{}(s.point_at(0)),
+            std::hash<silicontrip::point>{}(s.point_at(1)),
+            std::hash<silicontrip::point>{}(s.point_at(2))
+        };
+
+        std::sort(hashes.begin(), hashes.end());
+
+        std::size_t result = 0;
+        for (auto h : hashes) {
+            result ^= h + 0x9e3779b9 + (result << 6) + (result >> 2);
+        }
+        return result;
     }
 };
 

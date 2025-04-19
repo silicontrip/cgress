@@ -7,6 +7,9 @@ namespace silicontrip{
 field::field() { ; }
 field::field(point p1, point p2, point p3)
 {
+    array<point, 3> pts = {p1, p2, p3};
+    sort(pts.begin(), pts.end()); // requires operator<
+
     if (s2pred::Sign(p1.s2latlng().ToPoint(),p2.s2latlng().ToPoint(),p3.s2latlng().ToPoint()) > 0) { 
         field_points[0] = p1;
         field_points[1] = p2;
