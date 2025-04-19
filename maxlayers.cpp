@@ -278,6 +278,7 @@ void print_usage()
 		cerr << " -t <number>       Threshold for similar fields (larger less similar)" << endl;
 		cerr << " -l <number>       Maximum number of layers in plan" << endl;
 		cerr << " -P <number>       Maximum number of links from a single portal" << endl;
+		cerr << " -k                Limit links to 2km" << endl;
 		cerr << " -s                Add split fields" << endl;
 		cerr << " -p <percentile>   Use longest percentile links" << endl;
 		cerr << " -f <percentile>   Use largest percentile fields" << endl;
@@ -298,6 +299,7 @@ int main (int argc, char* argv[])
 	vector<portal>avoid_single;
 	int calc = 0;  // area or mu
 	bool splits = false;
+	bool limit2k = false;
 
 	arguments ag(argc,argv);
 
@@ -318,16 +320,11 @@ int main (int argc, char* argv[])
 	ag.add_req("l","maxlayers",true); // maximum layers
 	ag.add_req("P","maxlinks",true); // maximum links
 	ag.add_req("T","target",true); // target fields over location
+	ag.add_req("k","limit2k",false); // limit link length to that can be made under fields.
 	ag.add_req("h","help",false);
 	ag.add_req("s","splits",false);
 
-	if (!ag.parse())
-	{
-		print_usage();
-		exit(1);
-	}
-
-	if (ag.has_option("h"))
+	if (!ag.parse() || ag.has_option("h"))
 	{
 		print_usage();
 		exit(1);
@@ -346,10 +343,9 @@ int main (int argc, char* argv[])
 	if (ag.has_option("I")) // right that does it, I'm changing it to I
 		dt.set_output_as_intel();
 
+	threshold = 0.2;
 	if (ag.has_option("t"))
 		threshold = ag.get_option_for_key_as_double("t");
-	else 
-		threshold = 0.2;
 	
 	if (ag.has_option("p"))
 		percentile = ag.get_option_for_key_as_double("p");
@@ -368,6 +364,9 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("s"))
 		splits = true;
+
+	if (ag.has_option("k"))
+		limit2k=true;
 
 	portal_factory* pf = portal_factory::get_instance();
 	link_factory* lf = link_factory::get_instance();
@@ -415,6 +414,9 @@ int main (int argc, char* argv[])
 		if (avoid_double.size() > 0)
 			li = lf->filter_link_by_blocker(li,links,avoid_double);
 
+		if (limit2k)
+			li = lf->filter_link_by_length(li,2);
+
 		if (avoid_single.size() > 0)
 			li = lf->filter_link_by_portal(li,avoid_single);
 
@@ -451,6 +453,8 @@ int main (int argc, char* argv[])
 		cerr << "== generating potential links ==" << endl;
 
 		vector<line> li1 = lf->make_lines_from_single_cluster(portals1);
+		if (limit2k)
+			li1 = lf->filter_link_by_length(li1,2000);
 		li1 = lf->filter_links(li1,links,tc);
 		if (avoid_double.size() > 0)
 			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
@@ -465,6 +469,8 @@ int main (int argc, char* argv[])
 		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
 		vector<line> li2 = lf->make_lines_from_double_cluster(portals1,portals2);
+		if (limit2k)
+			li2 = lf->filter_link_by_length(li2,2000);
 		li2 = lf->filter_links(li2,links,tc);	
 		if (avoid_double.size() > 0)
 			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
@@ -505,6 +511,8 @@ int main (int argc, char* argv[])
 		cerr << "== generating potential links ==" << endl;
 
 		vector<line> li1 = lf->make_lines_from_double_cluster(portals1,portals2);
+		if (limit2k)
+			li1 = lf->filter_link_by_length(li1,2000);
 		li1 = lf->filter_links(li1,links,tc);
 		if (avoid_double.size() > 0)
 			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
@@ -517,6 +525,8 @@ int main (int argc, char* argv[])
 		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
 		vector<line> li2 = lf->make_lines_from_double_cluster(portals2,portals3);
+		if (limit2k)
+			li2 = lf->filter_link_by_length(li2,2000);
 		li2 = lf->filter_links(li2,links,tc);
 		if (avoid_double.size() > 0)
 			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
@@ -529,6 +539,8 @@ int main (int argc, char* argv[])
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
 		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
+		if (limit2k)
+			li3 = lf->filter_link_by_length(li3,2000);
 		li3 = lf->filter_links(li3,links,tc);
 		if (avoid_double.size() > 0)
 			li3 = lf->filter_link_by_blocker(li3,links,avoid_double);
