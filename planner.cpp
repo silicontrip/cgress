@@ -16,6 +16,7 @@ private:
 	int sbul_available;
 	draw_tools dt;
 	int sbul_limit;
+	bool outbound_message_shown;
 	bool allow2km;
 	bool reverse_plan;
 	vector<line> poly_lines;
@@ -65,6 +66,7 @@ planner::planner (double k, int s, draw_tools d, vector<point> din, vector<line>
 	dt = d;
 	poly_lines = p;
 	sbul_limit = 8 + sbul_available * 8;
+	outbound_message_shown = false;
 	allow2km = a2k;
 	reverse_plan = r;
 
@@ -193,7 +195,14 @@ int planner::key_cost(const vector<point>&order)
 		int link_limit = count_visited(order.at(i), visited);
 		// cerr << "link_limit " << link_limit << endl;
 		if (link_limit>sbul_limit)
+		{
+			if (!outbound_message_shown)
+			{
+				cerr << "Outbound links exceeded. Consider SBUL." << endl;
+				outbound_message_shown = true;
+			}
 			return 1000;
+		}
 		int point_cost = count_unvisited(order.at(i),visited);
 		// cerr << "point_cost " << point_cost << endl; 
 		if (point_cost > max_cost)
@@ -620,8 +629,9 @@ void planner::simulated_annealing (vector<point> combination, double initial_tem
 							dt = plan(dt,best_combination);
 						}
 
-						cout << dt << endl;
-						cerr << rt.split() << " seconds" << endl << endl;
+						cout << dt << endl << endl;
+						// cerr << rt.split() << " seconds" << endl << endl;
+						outbound_message_shown = false;
 
 					}
 				}
