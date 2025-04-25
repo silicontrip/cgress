@@ -160,13 +160,14 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 void print_usage()
 {
 		cerr << "Usage:" << endl;
-		cerr << "maxfields [options] <portal cluster>" << endl;
+		cerr << "maxfields [options] -c <cellid> [<portal cluster>]" << endl;
 		cerr << "Generates fields for specified cell." << endl;
 		cerr << "Options:" << endl;
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
 		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
 		cerr << " -S <cluster>      Avoid linking to these portals" << endl;
+		cerr << " -f <number>       Make this many fields." << endl;
 		cerr << " -c <cell id>      Use this cell. Required." << endl;
 		cerr << " -l <number>       limit fields to no more than this." << endl;
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
@@ -183,6 +184,7 @@ int main (int argc, char* argv[])
 	vector<portal>avoid_single;
 	string cellid;
 	int limit=0;
+	int fields=100;
 
 	arguments ag(argc,argv);
 
@@ -190,7 +192,7 @@ int main (int argc, char* argv[])
 	ag.add_req("R","resistance",true); // max resistance blockers
 	ag.add_req("N","machina",true); // max machina blockers
 	ag.add_req("S","avoid", true); // avoid using these portals.
-
+	ag.add_req("f","fields",true); 
 	ag.add_req("C","colour",true); // drawtools colour
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polyline",false); // output as polylines
@@ -226,6 +228,9 @@ int main (int argc, char* argv[])
 	if (ag.has_option("l"))
 		limit = ag.get_option_for_key_as_int("l");
 
+	if (ag.has_option("f"))
+		fields = ag.get_option_for_key_as_int("f");
+
 	if (ag.has_option("c"))
 		cellid = ag.get_option_for_key("c");
 
@@ -234,6 +239,14 @@ int main (int argc, char* argv[])
 		print_usage();
 		exit(1);
 	}
+
+	S2CellId s2cellid = S2CellId::FromToken(cellid);
+	S2Cell s2cell = S2Cell(s2cellid);
+
+	S2Point s2point = s2cell.GetCenter();
+	S2LatLng s2latlng = S2LatLng(s2point);
+
+	cout << "Cell Centre: " << s2latlng.lat() <<","<<s2latlng.lng() << endl;
 
 	portal_factory* pf = portal_factory::get_instance();
 	link_factory* lf = link_factory::get_instance();
@@ -251,11 +264,70 @@ int main (int argc, char* argv[])
 	//vector<field> af;
 
 	try {
-	if (ag.argument_size() == 1)
+	if (ag.argument_size() == 0)
+	{
+		// ooo fun
+		
+		S2LatLng cell_centre = S2LatLng(S2Cell(S2CellId::FromToken(cellid)).GetCenter());
+		double range = 1.0;
+
+		while (all_fields.size() < fields) // whats a good value here...
+		{
+			stringstream cluster_desc;
+
+			cluster_desc << cell_centre.lat() << "," << cell_centre.lng() << ":" << range;
+
+			cerr << "Query: " << cluster_desc.str() << endl;
+
+			vector<portal> portals = pf->vector_from_map(pf->cluster_from_description(cluster_desc.str()));
+
+			if (avoid_single.size() > 0)
+				portals = pf->remove_portals(portals,avoid_single); 
+
+			cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
+			if (portals.size() > 2)
+			{
+				cerr << "== getting links ==" << endl;
+										
+				links = lf->get_purged_links(portals);
+										
+				cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+
+				cerr << "== generating potential links ==" << endl;
+
+				vector<line> li = lf->make_lines_from_single_cluster(portals);
+				cerr << "all links: " << li.size() << endl;
+
+				li = lf->filter_links(li,links,tc);
+							
+				cerr << "purged links: " << li.size() << endl;
+				cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
+				if (li.size() > 2)
+				{
+					cerr << "== Generating fields ==" << endl;
+
+					all_fields = ff->make_fields_from_single_links(li);
+					all_fields = ff->filter_existing_fields(all_fields,links);
+					all_fields = ff->filter_fields_with_cell(all_fields,cellid);
+
+					all_fields = ff->filter_fields(all_fields,links,tc);
+					cerr << "fields: " << all_fields.size() << endl;
+				}
+			}
+			range += 0.1;
+
+		}
+
+		cerr << "Found threshold fields." << endl;
+
+	}	
+	else if (ag.argument_size() == 1)
 	{
 		vector<portal> portals;
 		
 		portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		if (avoid_single.size() > 0)
+			portals = pf->remove_portals(portals,avoid_single); // this is now in portal factory
 		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 
 		cerr << "== getting links ==" << endl;
@@ -269,8 +341,7 @@ int main (int argc, char* argv[])
 		vector<line> li = lf->make_lines_from_single_cluster(portals);
 		cerr << "all links: " << li.size() << endl;
 
-		if (avoid_single.size() > 0)
-			li = lf->filter_link_by_portal(li,avoid_single); // this really should be in portal factory
+
 
 		li = lf->filter_links(li,links,tc);
 					
