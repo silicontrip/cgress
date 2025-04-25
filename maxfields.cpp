@@ -276,7 +276,7 @@ int main (int argc, char* argv[])
 // of course I had to pick a colliding name for my class
 	vector<silicontrip::link> links;
 	vector<field> all_fields;
-	vector<field> af;
+	//vector<field> af;
 
 	try {
 	if (ag.argument_size() == 1)
@@ -302,8 +302,9 @@ int main (int argc, char* argv[])
 		cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
 		cerr << "== Generating fields ==" << endl;
 
-		af = ff->make_fields_from_single_links(li);
-		all_fields = ff->filter_fields(af,links,tc);
+		all_fields = ff->make_fields_from_single_links(li);
+		all_fields = ff->filter_existing_fields(all_fields,links);
+		all_fields = ff->filter_fields(all_fields,links,tc);
 		cerr << "fields: " << all_fields.size() << endl;
 
 	} else if (ag.argument_size() == 2) {
@@ -338,6 +339,7 @@ int main (int argc, char* argv[])
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
 		all_fields = ff->make_fields_from_double_links(li2,li1);
+		all_fields = ff->filter_existing_fields(all_fields,links);
 		all_fields = ff->filter_fields(all_fields,links,tc);
 
 		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
@@ -380,6 +382,7 @@ int main (int argc, char* argv[])
 		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
 		all_fields = ff->make_fields_from_triple_links(li1,li2,li3);
+		all_fields = ff->filter_existing_fields(all_fields,links);
 		all_fields = ff->filter_fields(all_fields,links,tc);
 		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
 
@@ -412,11 +415,6 @@ int main (int argc, char* argv[])
 
 	vector<pair<double,string>> plan;
 	int bestbest = 0;
-
-//	list<field> field_list;
-
-//	for (field f: all_fields)
-//		field_list.push_back(f);
 
 	vector<field> search;
 		//search.push_back(tfi);
