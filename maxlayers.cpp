@@ -264,6 +264,8 @@ void print_usage()
 		cerr << "    two portals separated by '=' for a lat long rectangle" << endl;
 		cerr << "    three portals separated by '=' for a triangle" << endl;
 		cerr << "    one portal followed by a ':' and a km range" << endl;
+		cerr << "    Portals may be specified by title, guid or lat,lng." << endl;
+		cerr << "    Cluster descriptions which specify regions can use arbitrary lat,lng points." << endl;
 		cerr << endl;
 		cerr << "Options:" << endl;
 		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
@@ -498,9 +500,11 @@ int main (int argc, char* argv[])
 		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
 		if (avoid_single.size() > 0)
 			portals1 = pf->remove_portals(portals1,avoid_single); // moved to portal factory
+
 		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
 		if (avoid_single.size() > 0)
 			portals2 = pf->remove_portals(portals2,avoid_single); // moved to portal factory
+
 		portals3 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(2)));
 		if (avoid_single.size() > 0)
 			portals3 = pf->remove_portals(portals3,avoid_single); // moved to portal factory
@@ -519,42 +523,43 @@ int main (int argc, char* argv[])
 		cerr << "== generating potential links ==" << endl;
 
 		vector<line> li1 = lf->make_lines_from_double_cluster(portals1,portals2);
+
 		if (limit2k)
 			li1 = lf->filter_link_by_length(li1,2000);
+
 		li1 = lf->filter_links(li1,links,tc);
+
 		if (avoid_double.size() > 0)
 			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
-
-		if (avoid_single.size() > 0)
-			li1 = lf->filter_link_by_portal(li1,avoid_single);
 
 		if (percentile < 100)
 			li1 = lf->percentile_lines(li1,percentile);
 		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
 		vector<line> li2 = lf->make_lines_from_double_cluster(portals2,portals3);
+
 		if (limit2k)
 			li2 = lf->filter_link_by_length(li2,2000);
+		
 		li2 = lf->filter_links(li2,links,tc);
+
 		if (avoid_double.size() > 0)
 			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
-
-		if (avoid_single.size() > 0)
-			li2 = lf->filter_link_by_portal(li2,avoid_single);
 
 		if (percentile < 100)
 			li2 = lf->percentile_lines(li2,percentile);
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
 		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
+
 		if (limit2k)
 			li3 = lf->filter_link_by_length(li3,2000);
+
 		li3 = lf->filter_links(li3,links,tc);
+
 		if (avoid_double.size() > 0)
 			li3 = lf->filter_link_by_blocker(li3,links,avoid_double);
 
-		if (avoid_single.size() > 0)
-			li3 = lf->filter_link_by_portal(li3,avoid_single);
 
 		if (percentile < 100)
 			li3 = lf->percentile_lines(li3,percentile);
