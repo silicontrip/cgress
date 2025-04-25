@@ -1,8 +1,9 @@
-OPTFLAGS=-O2
+#OPTFLAGS=-O2
 #OPTFLAGS=-g -fsanitize=address
-CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
+OPTFLAGS=-g
 CC=clang++
 #CC=/usr/local/Cellar/llvm/19.1.4/bin/clang++
+CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
 S2FLAGS=-ls2
 ABSLFLAGS=-labsl_log_internal_message -labsl_log_internal_check_op
 JSONCPP=-ljsoncpp
@@ -13,7 +14,7 @@ OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
 	uniform_distribution.o json_reader.o
 
-all: maxlayers maxfields cyclonefields planner portallist
+all: maxlayers maxfields cyclonefields planner portallist cellfields
 
 tests: test_run_timer test_point test_line test_factory test_team_count test_field
 
@@ -55,6 +56,12 @@ planner: $(OBJ) planner.o
 
 portallist: $(OBJ) portallist.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o portallist portallist.o
+
+exofields: $(OBJ) exofields.o 
+	$(CC)  $(LDFLAGS) $(OBJ) -o exofields exofields.o
+
+cellfields: $(OBJ) cellfields.o 
+	$(CC)  $(LDFLAGS) $(OBJ) -o cellfields cellfields.o
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
