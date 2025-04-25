@@ -398,6 +398,8 @@ int main (int argc, char* argv[])
 		vector<portal> portals;
 		
 		portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		if (avoid_single.size() > 0)
+			portals = pf->remove_portals(portals,avoid_single); // moved to portal factory
 		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 
 		cerr << "== getting links ==" << endl;
@@ -417,8 +419,8 @@ int main (int argc, char* argv[])
 		if (limit2k)
 			li = lf->filter_link_by_length(li,2);
 
-		if (avoid_single.size() > 0)
-			li = lf->filter_link_by_portal(li,avoid_single);
+		//if (avoid_single.size() > 0)
+		//	li = lf->filter_link_by_portal(li,avoid_single); // this really should be in portal factory
 
 		if (percentile < 100)
 			li = lf->percentile_lines(li,percentile);
@@ -437,8 +439,11 @@ int main (int argc, char* argv[])
 		vector<portal> portals2;
 
 		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		if (avoid_single.size() > 0)
+			portals1 = pf->remove_portals(portals1,avoid_single); // moved to portal factory
 		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
-
+		if (avoid_single.size() > 0)
+			portals2 = pf->remove_portals(portals2,avoid_single); // moved to portal factory
 		vector<portal> all_portals;
 
 		all_portals.insert( all_portals.end(), portals1.begin(), portals1.end() );
@@ -455,12 +460,10 @@ int main (int argc, char* argv[])
 		vector<line> li1 = lf->make_lines_from_single_cluster(portals1);
 		if (limit2k)
 			li1 = lf->filter_link_by_length(li1,2000);
+
 		li1 = lf->filter_links(li1,links,tc);
 		if (avoid_double.size() > 0)
 			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
-
-		if (avoid_single.size() > 0)
-			li1 = lf->filter_link_by_portal(li1,avoid_single);
 
 		// not sure if I should use this with multiple portal clusters
 		if (percentile < 100)
@@ -471,12 +474,11 @@ int main (int argc, char* argv[])
 		vector<line> li2 = lf->make_lines_from_double_cluster(portals1,portals2);
 		if (limit2k)
 			li2 = lf->filter_link_by_length(li2,2000);
-		li2 = lf->filter_links(li2,links,tc);	
+
+		li2 = lf->filter_links(li2,links,tc);
+
 		if (avoid_double.size() > 0)
 			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
-
-		if (avoid_single.size() > 0)
-			li2 = lf->filter_link_by_portal(li2,avoid_single);
 
 		if (percentile < 100)
 			li2 = lf->percentile_lines(li2,percentile);
@@ -494,8 +496,14 @@ int main (int argc, char* argv[])
 		vector<portal> portals3;
 
 		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		if (avoid_single.size() > 0)
+			portals1 = pf->remove_portals(portals1,avoid_single); // moved to portal factory
 		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
+		if (avoid_single.size() > 0)
+			portals2 = pf->remove_portals(portals2,avoid_single); // moved to portal factory
 		portals3 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(2)));
+		if (avoid_single.size() > 0)
+			portals3 = pf->remove_portals(portals3,avoid_single); // moved to portal factory
 
 		vector<portal> all_portals;
 		all_portals.insert(all_portals.end(), portals1.begin(), portals1.end());

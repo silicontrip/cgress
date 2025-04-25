@@ -83,6 +83,7 @@ portal portal_factory::get_single(const string desc) const
     {
         // why is this here?
         // if this is needed it has to handle title, guid and location
+        // we need to handle file reading which returns the entire json entries.
         //if (jv["title"] == desc)
         //{
             p.set_guid(jv["guid"].asString());
@@ -368,5 +369,26 @@ vector<point> portal_factory::points_from_string(string p) const
     return pa;
 
 }
+
+vector<portal> portal_factory::remove_portals(const vector<portal>& portals, const vector<portal>& remove) const
+{
+    vector<portal> pa;
+    for (portal p1 : portals)
+    {
+        bool found = false;
+        for (portal p2 : remove)
+        {
+            if (p1 == p2)
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+            pa.push_back(p1);
+    }
+    return pa;
+}
+
 
 }
