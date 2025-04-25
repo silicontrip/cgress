@@ -66,6 +66,8 @@ S2Loop* portal_factory::s2loop_from_json(const string desc) const
     return result;
 }
 
+// get single returns a real portal.
+// if desc is a lat/lng it must match the portal location exactly
 portal portal_factory::get_single(const string desc) const
 {
     Json::Value res;
@@ -74,6 +76,7 @@ portal portal_factory::get_single(const string desc) const
         res = json_reader::read_json_from_file(portal_api);
     } else {
         string url = portal_api+"?ll="+curlpp::escape(desc);
+        cerr << "query: " << url << endl;
         res = json_reader::read_json_from_http(url);
     }
     // filter
@@ -85,7 +88,8 @@ portal portal_factory::get_single(const string desc) const
         // if this is needed it has to handle title, guid and location
         // we need to handle file reading which returns the entire json entries.
         //if (jv["title"] == desc)
-        //{
+        if (json_matches(jv,desc))   // hopefully this function is the fix.
+        {
             p.set_guid(jv["guid"].asString());
             p.set_health(jv["health"].asInt());
             p.set_level(jv["level"].asInt());
@@ -99,7 +103,7 @@ portal portal_factory::get_single(const string desc) const
             S2LatLng ll = S2LatLng::FromE6(la,ln);
 
             p.set_s2latlng(ll);
-        //}
+        }
     }
 
     return p;
@@ -108,7 +112,9 @@ portal portal_factory::get_single(const string desc) const
 unordered_map<string,portal> portal_factory::cluster_from_description(const string desc) const
 {
     S2Region* search_region = nullptr;
-    if (desc[0]=='.' && desc[1]=='/') { return cluster_from_file(desc); } 
+    if (desc[0]=='.' && desc[1]=='/') { return cluster_from_file(desc); }
+    if (desc[0]=='.' && desc[1]=='\\') { return cluster_from_file(desc); }  // if someone decides to port it.
+
     if (desc[0]=='[' && desc[1]=='{') 
     {
         search_region = s2loop_from_json(desc);
@@ -133,22 +139,31 @@ unordered_map<string,portal> portal_factory::cluster_from_description(const stri
         vector<string> pd = split_str(desc,':');
         if (pd.size() == 1)
         {
-            portal ploc = get_single(desc);
+            portal ploc = get_single(desc); // this must be a portal
 
             unordered_map<string,portal> result;
-		result[ploc.get_guid()] = ploc;
+		    result[ploc.get_guid()] = ploc;
             //pair<string,portal> gloc (ploc.get_guid(),ploc);
             //result.insert(gloc);
 
             return result;
 
         } else if (pd.size() == 2) {
-            portal ploc = get_single(pd.at(0));
-            cerr << "portal location: " << ploc << endl;
-            S2Point loc = ploc.s2latlng().ToPoint();
-            char* end;
+            // skip if we've been given a lat/lng string
+            S2Point loc; // this is what we want
+            if (is_point(pd.at(0)))
+            {
+                point ploc = point_from(pd.at(0));
+                loc = ploc.s2latlng().ToPoint();
+            } else {
+                portal ploc = get_single(pd.at(0)); // this can be an arbitrary point
+                cerr << "portal location: " << ploc << endl;
+                loc = ploc.s2latlng().ToPoint();
+            }
 
-            double rangek = strtod(pd.at(1).c_str(),&end);
+            size_t end;
+            double rangek = stod(pd.at(1),&end);
+
             //S1Angle range = S2Earth::KmToAngle(rangek);
             // The S2 Library changed it's value of earth radius
             S1Angle range = S1Angle::Radians(rangek / point::earth_radius);
@@ -160,7 +175,8 @@ unordered_map<string,portal> portal_factory::cluster_from_description(const stri
         }
          
     } else if (sz==2) {
-        vector<portal> ploc = get_array(pt);
+        // FIX: it's valid for these to be arbitrary points
+        vector<point> ploc = get_array(pt);
         S2LatLngRect s2ll;
 
         s2ll = S2LatLngRect::FromPointPair(ploc.at(0).s2latlng(),ploc.at(1).s2latlng());
@@ -168,7 +184,8 @@ unordered_map<string,portal> portal_factory::cluster_from_description(const stri
 
         return cluster_from_region(search_region);
     } else if (sz==3) {
-        vector<portal> ploc = get_array(pt);
+        // FIX: it's valid for these to be arbitrary points
+        vector<point> ploc = get_array(pt);
 
         //S2Builder::Options* opt = new S2Builder::Options();
         //S2Builder* builder = new S2Builder(opt);
@@ -286,6 +303,7 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
 }
 
 
+// these will all be single portals.
 unordered_map<string,portal> portal_factory::cluster_from_array(const vector<string>& desc) const
 {
 
@@ -297,10 +315,11 @@ unordered_map<string,portal> portal_factory::cluster_from_array(const vector<str
     for (Json::Value jv: res)
     {
         for (string tt: desc) {
-            if (jv["title"] == tt)
+            //if (jv["title"] == tt)
+            if (json_matches(jv,tt))
             {
                 portal p = portal_from_json(jv);
-		results[p.get_guid()] = p;
+		        results[p.get_guid()] = p;
                 //pair<string,portal> gloc (p.get_guid(),p);
                 //results->insert(gloc);
             }
@@ -310,18 +329,30 @@ unordered_map<string,portal> portal_factory::cluster_from_array(const vector<str
     return results;
 }
 
-vector<portal> portal_factory::get_array(const vector<string>& desc) const
+// this is used for arbitrary regions
+// any lat/lngs do not need to be exact portals.
+vector<point> portal_factory::get_array(const vector<string>& desc) const
 {
 
-    Json::Value res = read_json_from_array(desc);
+    // check desc for points.
+    vector<string> unknown;
+    vector<point> results;
+    for (string po : desc)
+        if (is_point(po))
+            results.push_back(point_from(po));
+        else
+            unknown.push_back(po);
+
+    Json::Value res = read_json_from_array(unknown);
     
     // filter
-    vector<portal> results;
+    //vector<point> results;
 
     for (Json::Value jv: res)
     {
         for (string tt: desc) {
-            if (jv["title"] == tt)
+            // if (jv["title"] == tt)
+            if (json_matches(jv,tt))
             {
                 portal p =portal_from_json(jv);
                 results.push_back(p);
@@ -352,6 +383,72 @@ Json::Value portal_factory::read_json_from_array(const vector<string>& desc) con
         res = json_reader::read_json_from_http(url);
     }
     return res;
+}
+
+bool portal_factory::json_matches(Json::Value jv, std::string desc) const
+{
+    regex rguid("^[0-9a-fA-F]{32}\\.1[16]$");
+    regex rlatlng("(\\+|-)?([0-9]+(\\.[0-9]+)),(\\+|-)?([0-9]+(\\.[0-9]+))");
+
+    if (regex_match(desc, rguid))
+    {
+        if (jv["guid"] == desc)
+            return true;
+        return false;
+    }
+    if (regex_match(desc,rlatlng))
+    {
+        point p = point_from(desc);
+        double lat = jv["lat"].asDouble() / 1000000;
+        double lng = jv["lng"].asDouble() / 1000000;
+
+        point jvp = point (lat,lng);
+        if (p == jvp)
+            return true;
+        return false;
+    }
+
+    if (jv["title"].asString() == desc)
+        return true;
+
+    return false;
+
+}
+
+
+bool portal_factory::is_point(string p) const
+{
+    vector<string> point_desc = split_str(p,',');
+    if (point_desc.size() != 2)
+        return false;
+
+    size_t pos;
+    string str;
+    str = point_desc.at(0);
+    stod(str, &pos);
+    if (pos != str.size())
+        return false;
+
+    str = point_desc.at(1);
+    stod(str, &pos);
+    if (pos != str.size())
+        return false;
+
+    return true;
+}
+
+point portal_factory::point_from(string p) const
+{
+    point po;
+    if (is_point(p))
+    {
+        vector<string> point_desc = split_str(p,',');
+
+        double lat = stod(point_desc.at(0));
+        double lng = stod(point_desc.at(1));
+        po = point(lat,lng);
+    }
+    return po;
 }
 
 vector<point> portal_factory::points_from_string(string p) const

@@ -4,10 +4,11 @@
 #include "portal.hpp"
 #include "json_reader.hpp"
 
+#include <fstream>
+#include <iostream>
+#include <regex>
 #include <string>
 #include <unordered_map>
-#include <iostream>
-#include <fstream>
 #include <vector>
 
 #include <json/json.h>
@@ -32,9 +33,12 @@ class portal_factory {
 
 		std::vector<std::string> split_str(const std::string str, char del) const;
 		S2Loop* s2loop_from_json(std::string desc) const;
-		std::vector<portal> get_array(const std::vector<std::string>& desc) const;
+		std::vector<point> get_array(const std::vector<std::string>& desc) const;
 		Json::Value read_json_from_array(const std::vector<std::string>& desc) const;
 		portal portal_from_json(Json::Value jp) const;
+		point point_from(std::string p) const;
+		bool is_point(std::string p) const;
+		bool json_matches(Json::Value jp, std::string desc) const;
 
 	public:
 		static portal_factory* get_instance();
@@ -50,8 +54,9 @@ class portal_factory {
 		std::unordered_map<std::string,portal> cluster_from_region(S2Region* reg) const;
 		std::unordered_map<std::string,portal> cluster_from_array(const std::vector<std::string>& desc) const;
 		portal get_single(std::string desc) const;
-		std::vector<point> points_from_string(std::string p) const;
 		std::vector<portal> remove_portals(const std::vector<portal>& portals, const std::vector<portal>& remove) const;
+		std::vector<point> points_from_string(std::string p) const; // used for fields over target.
+
 };
 
 }
