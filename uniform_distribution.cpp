@@ -6,4 +6,78 @@ uniform_distribution::uniform_distribution(double a, double b) { lower = a; uppe
 uniform_distribution::uniform_distribution(const uniform_distribution& u) { lower = u.lower; upper = u.upper; }
 
 double uniform_distribution::mean() const { return ( lower + upper ) / 2.0; }
+double uniform_distribution::range() const { return upper - lower; }
+uniform_distribution uniform_distribution::inverse() const 
+{ 
+    double nlower = __DBL_MAX__;
+    if (lower !=0)
+        nlower = 1 / lower;
+    double nupper = __DBL_MAX__;
+    if (upper != 0)
+        nupper = 1 / upper;
+
+    if (nlower < nupper)
+        return uniform_distribution(nlower,nupper);
+
+    return uniform_distribution(nupper,nlower);
+}
+
+uniform_distribution uniform_distribution::operator+(const uniform_distribution& o) const
+{
+    double nlower = lower + o.lower;
+    double nupper = upper + o.upper;
+    if (nlower < nupper)
+        return uniform_distribution(nlower,nupper);
+
+    return uniform_distribution(nupper,nlower);
+}
+
+uniform_distribution& uniform_distribution::operator+=(const uniform_distribution& o)
+{
+    double nlower = lower + o.lower;
+    double nupper = upper + o.upper;
+    if (nlower < nupper)
+    {
+        lower = nlower;
+        upper = nupper;
+    } else {
+        lower = nupper;
+        upper = nlower;
+    }
+
+    return *this;
+}
+
+uniform_distribution uniform_distribution::operator-(const uniform_distribution& o) const
+{
+    double nlower = lower - o.upper;
+    double nupper = upper + o.lower;
+    if (nlower < nupper)
+        return uniform_distribution(nlower,nupper);
+
+    return uniform_distribution(nupper,nlower);
+}
+
+
+uniform_distribution uniform_distribution::operator*(const double d) const
+{
+    double nlower = lower * d;
+    double nupper = upper * d;
+    if (nlower < nupper)
+        return uniform_distribution(nlower,nupper);
+
+    return uniform_distribution(nupper,nlower);
+}
+
+std::string uniform_distribution::to_string() const
+{
+    return "[" + std::to_string(lower) + "," + std::to_string(upper) +"]";
+}
+
+}
+
+std::ostream& operator<<(std::ostream& os, const silicontrip::uniform_distribution& l)
+{
+    os << l.to_string();
+    return os;
 }

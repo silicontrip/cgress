@@ -105,6 +105,23 @@ vector<field> field_factory::filter_existing_fields(const vector<field>&f, const
 
 }
 
+vector<field> field_factory::filter_fields_with_cell(const vector<field>&f,string s2cellid_token) const
+{
+    vector<field> fa;
+    for (field fi : f)
+    {
+        S2Polygon s2p = s2polygon(fi);
+        S2CellUnion s2u = cells(s2p);
+        for (S2CellId cellid: s2u)
+        {
+            if (cellid.ToToken() == s2cellid_token)
+                fa.push_back(fi);
+        }
+    }
+    return fa;
+}
+
+
 bool field_factory::link_exists(const vector<line>&l, int j, point p1, point p2) const
 {
     for (int k=j+1; k<l.size(); k++)

@@ -34,7 +34,6 @@ class field_factory {
 
         Json::Value json_from_array(const std::vector<std::string>& desc) const;
         std::unordered_map<std::string, uniform_distribution>query_mu_from_servlet(const std::vector<std::string>& cell_tokens) const;
-        std::unordered_map<std::string, uniform_distribution>query_mu(const std::vector<std::string>& cells);
         bool link_exists(const std::vector<line>&l, int j, point p1, point p2) const;
         bool share_line_index(const std::unordered_map<point, std::unordered_set<size_t>>& point_exists, const point& p1, const point& p2) const;
 
@@ -51,10 +50,12 @@ class field_factory {
         std::vector<field> percentile(const std::vector<field>&f, double percent) const;
         std::vector<field> filter_fields(const std::vector<field>&f, const std::vector<link>&l, team_count tc) const;
         std::vector<field> filter_existing_fields(const std::vector<field>&f, const std::vector<link>&l) const;
+        std::vector<field> filter_fields_with_cell(const std::vector<field>&f,std::string s2cellid_token) const;
 
         S2Polygon s2polygon(const field& f) const;
         S2CellUnion cells(const S2Polygon& p) const;
         std::unordered_map<S2CellId,double> cell_intersection(const S2Polygon& p) const;
+        std::unordered_map<std::string, uniform_distribution>query_mu(const std::vector<std::string>& cells);
         int calculate_mu(const S2Polygon& p);
         int get_est_mu(const field& f);
         int get_cache_mu(const field& f);
