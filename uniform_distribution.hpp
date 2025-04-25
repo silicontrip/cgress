@@ -1,6 +1,7 @@
 #ifndef SILICONTRIP_UNIFORM_DISTRIBUTION_HPP
 #define SILICONTRIP_UNIFORM_DISTRIBUTION_HPP
 
+#include <cfloat>
 #include <string>
 
 namespace silicontrip

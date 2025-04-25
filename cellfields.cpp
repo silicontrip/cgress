@@ -77,13 +77,14 @@ double cellfields::calc_score(field f) const
 
 	double area = intersections[cellid];
 
-	uniform_distribution others = uniform_distribution(0,0);
+	//uniform_distribution others = uniform_distribution(0,0);
 	double other_range = 1.0;
 	for (pair<S2CellId,double> ii : intersections)
 	{
 		if (ii.first != cellid)
 		{
 			uniform_distribution this_cell = cellmu[ii.first.ToToken()]; // handle undefined
+			//cerr << ii.first.ToToken() << ": " << this_cell << endl;
 			uniform_distribution mu_intersection = this_cell * ii.second;
 			//others += mu_intersection;
 			other_range += mu_intersection.range();
@@ -95,10 +96,10 @@ double cellfields::calc_score(field f) const
 	uniform_distribution fieldmu = cellmu[cellid.ToToken()] * area;
 
 	//uniform_distribution inverse = others.inverse();
-	uniform_distribution score = fieldmu - others.inverse();
+	//uniform_distribution score = fieldmu - others.inverse();
 
 	//cerr << "others: " << others << " score: " << score << endl;
-
+	// cerr << "other range: " << other_range <<endl;
 	return fieldmu.range() / other_range;
 
 }
