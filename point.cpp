@@ -96,7 +96,7 @@ bool point::is_valid() const
 	return latlng.is_valid();
 }
 
-bool point::operator==(const point& p) const { return p.s2latlng() == latlng; }
+bool point::operator==(const point& p) const { return p.latlng == latlng; }
 bool point::operator<(const point& p) const
 {
     if (latlng.lat().radians() != p.s2latlng().lat().radians())
