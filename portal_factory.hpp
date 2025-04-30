@@ -4,6 +4,7 @@
 #include "portal.hpp"
 #include "json_reader.hpp"
 
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <regex>

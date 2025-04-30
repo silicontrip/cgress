@@ -76,7 +76,7 @@ class field_factory {
 
 template<> struct std::hash<S2CellId> {
     std::size_t operator()(S2CellId const& s) const noexcept {
-        std::size_t h1 = std::hash<uint64>{}(s.id());
+        std::size_t h1 = std::hash<uint64_t>{}(s.id());
         return h1; 
     }
 };

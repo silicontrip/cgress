@@ -123,7 +123,7 @@ unordered_map<string,portal> portal_factory::cluster_from_description(const stri
     if (desc[0]=='0' && desc[1]=='x') 
     {
         char* end;
-        uint64 result = strtoul(desc.c_str(), &end, 16);
+        uint64_t result = strtoul(desc.c_str(), &end, 16);
         S2CellId id = S2CellId(result << 32);
         S2Cell s2c = S2Cell(id);
         search_region = &s2c;
