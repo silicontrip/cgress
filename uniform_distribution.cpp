@@ -1,5 +1,7 @@
 #include "uniform_distribution.hpp"
 
+using namespace std;
+
 namespace silicontrip {
 uniform_distribution::uniform_distribution() { lower = 0; upper =FLT_MAX; }
 uniform_distribution::uniform_distribution(double a, double b) { lower = a; upper = b; }
@@ -69,7 +71,7 @@ uniform_distribution uniform_distribution::operator*(const double d) const
     return uniform_distribution(nupper,nlower);
 }
 
-std::string uniform_distribution::to_string() const
+string uniform_distribution::to_string() const
 {
     return "[" + std::to_string(lower) + "," + std::to_string(upper) +"]";
 }

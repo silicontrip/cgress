@@ -253,7 +253,7 @@ int main (int argc, char* argv[])
 	field_factory* ff = field_factory::get_instance();
 
 	if (ag.has_option("S"))
-		avoid_single = pf->vector_from_map(pf->cluster_from_description(ag.get_option_for_key("S")));
+		avoid_single = pf->cluster_from_description(ag.get_option_for_key("S"));
 
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
@@ -279,7 +279,7 @@ int main (int argc, char* argv[])
 
 			cerr << "Query: " << cluster_desc.str() << endl;
 
-			vector<portal> portals = pf->vector_from_map(pf->cluster_from_description(cluster_desc.str()));
+			vector<portal> portals = pf->cluster_from_description(cluster_desc.str());
 
 			if (avoid_single.size() > 0)
 				portals = pf->remove_portals(portals,avoid_single); 
@@ -325,7 +325,7 @@ int main (int argc, char* argv[])
 	{
 		vector<portal> portals;
 		
-		portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		portals = pf->cluster_from_description(ag.get_argument_at(0));
 		if (avoid_single.size() > 0)
 			portals = pf->remove_portals(portals,avoid_single); // this is now in portal factory
 		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;

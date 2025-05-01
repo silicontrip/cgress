@@ -68,7 +68,8 @@ S2Loop* portal_factory::s2loop_from_json(const string desc) const
 
 // get single returns a real portal.
 // if desc is a lat/lng it must match the portal location exactly
-portal portal_factory::get_single(const string desc) const
+// this may return multiples if title is not unique
+vector<portal> portal_factory::get_single(const string desc) const
 {
     Json::Value res;
     if (portal_api.substr(0,4) == "file")
@@ -80,8 +81,7 @@ portal portal_factory::get_single(const string desc) const
         res = json_reader::read_json_from_http(url);
     }
     // filter
-    portal p;
-
+    vector<portal>result;
     for (Json::Value jv: res)
     {
         // why is this here?
@@ -90,6 +90,8 @@ portal portal_factory::get_single(const string desc) const
         //if (jv["title"] == desc)
         if (json_matches(jv,desc))   // hopefully this function is the fix.
         {
+            portal p;
+
             p.set_guid(jv["guid"].asString());
             p.set_health(jv["health"].asInt());
             p.set_level(jv["level"].asInt());
@@ -103,13 +105,16 @@ portal portal_factory::get_single(const string desc) const
             S2LatLng ll = S2LatLng::FromE6(la,ln);
 
             p.set_s2latlng(ll);
+            result.push_back(p);
         }
     }
 
-    return p;
+    return result;
 }
 
-unordered_map<string,portal> portal_factory::cluster_from_description(const string desc) const
+// it is legacy that this returns a map.  
+// TODO: return vector<portal>
+vector<portal> portal_factory::cluster_from_description(const string desc) const
 {
     S2Region* search_region = nullptr;
     if (desc[0]=='.' && desc[1]=='/') { return cluster_from_file(desc); }
@@ -139,14 +144,14 @@ unordered_map<string,portal> portal_factory::cluster_from_description(const stri
         vector<string> pd = split_str(desc,':');
         if (pd.size() == 1)
         {
-            portal ploc = get_single(desc); // this must be a portal
+            return get_single(desc); // this must be a portal
 
-            unordered_map<string,portal> result;
-		    result[ploc.get_guid()] = ploc;
+            //vector<portal> result;
+		    //result.push_back(ploc);
             //pair<string,portal> gloc (ploc.get_guid(),ploc);
             //result.insert(gloc);
 
-            return result;
+            //return result;
 
         } else if (pd.size() == 2) {
             // skip if we've been given a lat/lng string
@@ -156,9 +161,18 @@ unordered_map<string,portal> portal_factory::cluster_from_description(const stri
                 point ploc = point_from(pd.at(0));
                 loc = ploc.s2latlng().ToPoint();
             } else {
-                portal ploc = get_single(pd.at(0)); // this can be an arbitrary point
-                cerr << "portal location: " << ploc << endl;
-                loc = ploc.s2latlng().ToPoint();
+                vector<portal> ploc = get_single(pd.at(0)); // this can be an arbitrary point
+                if (ploc.size() > 1)
+                {
+                    stringstream ss;
+                    ss << "Non unique portal title: " << pd.at(0);
+                    for (portal po: ploc)
+                        ss << " " << po.s2latlng();
+
+                    throw domain_error(ss.str());
+                }
+                //cerr << "portal location: " << ploc[0] << endl;
+                loc = ploc[0].s2latlng().ToPoint();
             }
 
             size_t end;
@@ -196,13 +210,13 @@ unordered_map<string,portal> portal_factory::cluster_from_description(const stri
         return cluster_from_region(search_region);
 
     }
-	unordered_map<string,portal> map;
+	vector<portal> map;
     return map;
 }
 
-unordered_map<string,portal> portal_factory::cluster_from_file(const string desc) const
+vector<portal> portal_factory::cluster_from_file(const string desc) const
 {
-    unordered_map<string,portal> res;
+    vector<portal> res;
     vector<string> portal_list;
     ifstream portal_list_ss(desc);
 
@@ -238,6 +252,7 @@ portal portal_factory::portal_from_json(Json::Value jv) const
     return p;
 }
 
+/*
 vector<portal> portal_factory::vector_from_map(const unordered_map<string,portal>& portals) const
 {
     vector<portal> poli;
@@ -245,8 +260,9 @@ vector<portal> portal_factory::vector_from_map(const unordered_map<string,portal
 		poli.push_back(it.second);
 	return poli;
 }
+*/
 
-unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) const
+vector<portal> portal_factory::cluster_from_region(S2Region* reg) const
 {
     Json::Value res;
     if (portal_api.substr(0,4) == "file")
@@ -264,7 +280,7 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
     }
 
     // filter
-    unordered_map<string,portal> results;
+    vector<portal> results;
 
     for (Json::Value jv: res)
     {
@@ -276,7 +292,7 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
         if (reg->Contains(cell))
         {
             portal p = portal_from_json(jv);
-		    results[p.get_guid()]=p;
+		    results.push_back(p);
             //pair<string,portal> gloc (p.get_guid(),p);
             //results->insert(gloc);
         } else if (dynamic_cast<S2Polygon*>(reg)) {
@@ -285,7 +301,7 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
             if (ang.e6() == 0 )
             {
                 portal p = portal_from_json(jv);
-		        results[p.get_guid()] = p;
+                results.push_back(p);
             }
         } else if (dynamic_cast<S2Loop*>(reg)) {
             S2Loop* preg = dynamic_cast<S2Loop*>(reg);
@@ -293,7 +309,7 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
             if (ang.e6() == 0 )
             {
                 portal p = portal_from_json(jv);
-		        results[p.get_guid()] = p;
+                results.push_back(p);
             }
         }
 
@@ -304,13 +320,13 @@ unordered_map<string,portal> portal_factory::cluster_from_region(S2Region* reg) 
 
 
 // these will all be single portals.
-unordered_map<string,portal> portal_factory::cluster_from_array(const vector<string>& desc) const
+vector<portal> portal_factory::cluster_from_array(const vector<string>& desc) const
 {
 
     Json::Value res = read_json_from_array(desc);
     
     // filter
-    unordered_map<string,portal>results;
+    vector<portal>results;
 
     for (Json::Value jv: res)
     {
@@ -319,7 +335,7 @@ unordered_map<string,portal> portal_factory::cluster_from_array(const vector<str
             if (json_matches(jv,tt))
             {
                 portal p = portal_from_json(jv);
-		        results[p.get_guid()] = p;
+                results.push_back(p);
                 //pair<string,portal> gloc (p.get_guid(),p);
                 //results->insert(gloc);
             }

@@ -36,7 +36,7 @@ private:
 
 public:
 	maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss);
-	struct score search_fields(const vector<field>& current, int start, int max, double balance);
+	struct score search_fields(vector<field> current, const field& newField, int start, int max, double balance);
 
 };
 
@@ -115,8 +115,9 @@ double maxfields::get_value (vector<field> fd)
 	return total;
 }
 
-struct score maxfields::search_fields(const vector<field>& current, int start, int max, double balance)
+struct score maxfields::search_fields(vector<field> current, const field& newField, int start, int max, double balance)
 {
+	current.push_back(newField);
 	if (current.size() > 0)
 	{
 		int newSize = current.size();
@@ -125,8 +126,10 @@ struct score maxfields::search_fields(const vector<field>& current, int start, i
 		if (newSize > max || (sameSize != 0 && newSize == max)) {
 
 			double bal = calculate_balance_score (current);
+			if (sameSize == 2)
+				bal = dispSize;
 			// want to maximise geo or mu 
-			if (newSize > max || (sameSize == -1 && bal > balance) || ( sameSize == 1 && bal < balance) )
+			if (newSize > max || (sameSize == -1 && bal > balance) || ( sameSize == 1 && bal < balance) || (sameSize == 2 && bal > balance))
 			{
 				cerr << bal << " : " << newSize << " : " << dispSize << " : "  << rt.split() << " seconds." << endl;
 				cout << draw_fields(current) << endl; 
@@ -142,11 +145,8 @@ struct score maxfields::search_fields(const vector<field>& current, int start, i
 		field thisField = all.at(i);
 		if (!thisField.intersects(current))
 		{
-			vector<field> newList;
-			newList.insert(newList.end(), current.begin(), current.end());
-			newList.push_back(thisField);
 
-			struct score res = search_fields(newList, i+1, max, balance);
+			struct score res = search_fields(current, thisField, i+1, max, balance);
 
 			max = res.count;
 			balance = res.balance;
@@ -283,7 +283,7 @@ int main (int argc, char* argv[])
 	{
 		vector<portal> portals;
 		
-		portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		portals = pf->cluster_from_description(ag.get_argument_at(0));
 		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 
 		cerr << "== getting links ==" << endl;
@@ -312,8 +312,8 @@ int main (int argc, char* argv[])
 		vector<portal> portals1;
 		vector<portal> portals2;
 
-		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
-		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
+		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
+		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
 
 		vector<portal> all_portals;
 
@@ -349,9 +349,9 @@ int main (int argc, char* argv[])
 		vector<portal> portals2;
 		vector<portal> portals3;
 
-		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
-		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
-		portals3 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(2)));
+		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
+		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
+		portals3 = pf->cluster_from_description(ag.get_argument_at(2));
 
 		vector<portal> all_portals;
 		all_portals.insert(all_portals.end(), portals1.begin(), portals1.end());
@@ -419,7 +419,8 @@ int main (int argc, char* argv[])
 	vector<field> search;
 		//search.push_back(tfi);
 	maxfields mf = maxfields(dt,rt,calc,all_fields,same_size);
-	struct score result = mf.search_fields(search, 0, 0, 0.0);
+	field fi = all_fields[0];
+	struct score result = mf.search_fields(search, fi, 1, 0, 0.0);
 	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 
 	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;

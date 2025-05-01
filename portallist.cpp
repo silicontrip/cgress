@@ -57,13 +57,14 @@ int main (int argc, char* argv[])
 
 	cerr << "start." << endl << endl;	
 
+	try {
 	portal_factory* pf = portal_factory::get_instance();
 
 
 	vector<portal> all_portals;
 
 	if (ag.argument_size() == 1)
-		all_portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		all_portals = pf->cluster_from_description(ag.get_argument_at(0));
 
 	if (output_type == 0)
 	{
@@ -93,7 +94,9 @@ int main (int argc, char* argv[])
 				cout << p.point::to_string() << " (" << p.get_title() << ")" << endl;
 		}
 	}
-
+	} catch (exception &e) {
+		cerr << "An Error occured: " << e.what() << endl;
+	}
 	cerr << endl << "stop: " << rt.stop() << endl;
 
 	return 0;
