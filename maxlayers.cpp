@@ -271,6 +271,7 @@ void print_usage()
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
 		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
 		cerr << " -D <cluster>      Filter links crossing blockers using these portals." << endl;
+		cerr << " -S <cluster>      Avoid linking to these portals" << endl;
 
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
@@ -314,10 +315,10 @@ int main (int argc, char* argv[])
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polylines",false); // output as polylines
 	ag.add_req("M","MU",false); // calculate as MU
-	ag.add_req("m","",true); // maximum size
+	//ag.add_req("m","",true); // maximum size
 	ag.add_req("t","threshold",true); // field similar threshold
-	ag.add_req("p","",true); // use percentile longest links
-	ag.add_req("f","",true); // use percentile biggest fields
+	ag.add_req("p","lpercent",true); // use percentile longest links
+	ag.add_req("f","fpercent",true); // use percentile biggest fields
 	ag.add_req("l","maxlayers",true); // maximum layers
 	ag.add_req("P","maxlinks",true); // maximum links
 	ag.add_req("T","target",true); // target fields over location
