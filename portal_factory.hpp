@@ -40,6 +40,10 @@ class portal_factory {
 		point point_from(std::string p) const;
 		bool is_point(std::string p) const;
 		bool json_matches(Json::Value jp, std::string desc) const;
+		std::vector<portal> cluster_from_file(const std::string desc) const;
+		std::vector<portal> cluster_from_region(S2Region* reg) const;
+		std::vector<portal> cluster_from_array(const std::vector<std::string>& desc) const;
+		std::vector<portal> get_single(std::string desc) const;
 
 	public:
 		static portal_factory* get_instance();
@@ -49,12 +53,9 @@ class portal_factory {
   		portal_factory& operator=(const portal_factory&) = delete;
   		portal_factory& operator=(portal_factory&&) = delete;
 
-		std::vector<portal> vector_from_map(const std::unordered_map<std::string,portal>& portals) const;
-		std::unordered_map<std::string,portal> cluster_from_description(const std::string desc) const;
-		std::unordered_map<std::string,portal> cluster_from_file(const std::string desc) const;
-		std::unordered_map<std::string,portal> cluster_from_region(S2Region* reg) const;
-		std::unordered_map<std::string,portal> cluster_from_array(const std::vector<std::string>& desc) const;
-		portal get_single(std::string desc) const;
+		//std::vector<portal> vector_from_map(const std::unordered_map<std::string,portal>& portals) const;
+		std::vector<portal> cluster_from_description(const std::string desc) const;
+
 		std::vector<portal> remove_portals(const std::vector<portal>& portals, const std::vector<portal>& remove) const;
 		std::vector<point> points_from_string(std::string p) const; // used for fields over target.
 

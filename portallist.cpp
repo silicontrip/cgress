@@ -63,7 +63,7 @@ int main (int argc, char* argv[])
 	vector<portal> all_portals;
 
 	if (ag.argument_size() == 1)
-		all_portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		all_portals = pf->cluster_from_description(ag.get_argument_at(0));
 
 	if (output_type == 0)
 	{

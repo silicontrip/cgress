@@ -19,7 +19,6 @@ class maxlayers {
 
 private:
 
-	unordered_map<field,int> mucache;
 	draw_tools dt;
 	vector<field> all;
 	int calculation_type;
@@ -379,12 +378,12 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("D"))
 	{
-		avoid_double = pf->vector_from_map(pf->cluster_from_description(ag.get_option_for_key("D")));
+		avoid_double = pf->cluster_from_description(ag.get_option_for_key("D"));
 		// for (portal p: avoid_double)
 		//	cerr << "avoid: " << p << endl;
 	}
 	if (ag.has_option("S"))
-		avoid_single = pf->vector_from_map(pf->cluster_from_description(ag.get_option_for_key("S")));
+		avoid_single = pf->cluster_from_description(ag.get_option_for_key("S"));
 
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
@@ -399,7 +398,7 @@ int main (int argc, char* argv[])
 	{
 		vector<portal> portals;
 		
-		portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		portals = pf->cluster_from_description(ag.get_argument_at(0));
 		if (avoid_single.size() > 0)
 			portals = pf->remove_portals(portals,avoid_single); // moved to portal factory
 		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
@@ -440,10 +439,10 @@ int main (int argc, char* argv[])
 		vector<portal> portals1;
 		vector<portal> portals2;
 
-		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
 		if (avoid_single.size() > 0)
 			portals1 = pf->remove_portals(portals1,avoid_single); // moved to portal factory
-		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
+		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
 		if (avoid_single.size() > 0)
 			portals2 = pf->remove_portals(portals2,avoid_single); // moved to portal factory
 		vector<portal> all_portals;
@@ -497,15 +496,15 @@ int main (int argc, char* argv[])
 		vector<portal> portals2;
 		vector<portal> portals3;
 
-		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
 		if (avoid_single.size() > 0)
 			portals1 = pf->remove_portals(portals1,avoid_single); // moved to portal factory
 
-		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
+		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
 		if (avoid_single.size() > 0)
 			portals2 = pf->remove_portals(portals2,avoid_single); // moved to portal factory
 
-		portals3 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(2)));
+		portals3 = pf->cluster_from_description(ag.get_argument_at(2));
 		if (avoid_single.size() > 0)
 			portals3 = pf->remove_portals(portals3,avoid_single); // moved to portal factory
 

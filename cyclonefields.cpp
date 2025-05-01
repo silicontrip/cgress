@@ -352,7 +352,7 @@ int main (int argc, char* argv[])
 		target = pf->points_from_string(ag.get_option_for_key("T"));
 
 	if (ag.has_option("D"))
-		avoid_double = pf->vector_from_map(pf->cluster_from_description(ag.get_option_for_key("D")));
+		avoid_double = pf->cluster_from_description(ag.get_option_for_key("D"));
 
 
 	cerr << "== Reading links and portals ==" << endl;
@@ -368,7 +368,7 @@ int main (int argc, char* argv[])
 	{
 		vector<portal> portals;
 		
-		portals = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
+		portals = pf->cluster_from_description(ag.get_argument_at(0));
 		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 
 		cerr << "== getting links ==" << endl;
@@ -401,8 +401,8 @@ int main (int argc, char* argv[])
 		vector<portal> portals1;
 		vector<portal> portals2;
 
-		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
-		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
+		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
+		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
 
 		vector<portal> all_portals;
 
@@ -445,9 +445,9 @@ int main (int argc, char* argv[])
 		vector<portal> portals2;
 		vector<portal> portals3;
 
-		portals1 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(0)));
-		portals2 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(1)));
-		portals3 = pf->vector_from_map(pf->cluster_from_description(ag.get_argument_at(2)));
+		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
+		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
+		portals3 = pf->cluster_from_description(ag.get_argument_at(2));
 
 		vector<portal> all_portals;
 		all_portals.insert(all_portals.end(), portals1.begin(), portals1.end());
