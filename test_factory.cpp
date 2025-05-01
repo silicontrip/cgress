@@ -22,53 +22,53 @@ int main ()
 
 	portal_factory* pf = portal_factory::get_instance();
 
-	portal po = pf->get_single("The Peoples Garden");
+	vector<portal> po = pf->cluster_from_description("The Peoples Garden");
 
-	cout << po << endl;
+	for (portal it: po) {
+		cout << it << endl;
+	}	
 	cout << "single " << rt.split() <<  endl;
 
-	unordered_map<string,portal>* li = pf->cluster_from_file("./test_list.txt");
+	vector<portal> li = pf->cluster_from_description("./test_list.txt");
 
-	for (auto it: *li) {
-		cout << it.second << endl;
+	for (portal it: li) {
+		cout << it << endl;
 	}
 	cout << "list " << rt.split() << endl;
 
-	unordered_map<string,portal>* li2 = pf->cluster_from_description("The Peoples Garden:1");
-	vector<portal>* poli = new vector<portal>();
-	for (auto it: *li2) {
-		cout << it.second << endl;
-		poli->push_back(it.second);
+	vector<portal> li2 = pf->cluster_from_description("The Peoples Garden:1");
+	for (portal it: li2) {
+		cout << it << endl;
 	}
 
-	cout << "read " << to_string(li2->size())<<" portals in " << rt.split() << " seconds." << endl;
+	cout << "read " << to_string(li2.size())<<" portals in " << rt.split() << " seconds." << endl;
 	cout << endl;
 
 	link_factory* lf = link_factory::get_instance();
 
-	unordered_map<string,silicontrip::link>* li3 = lf->get_all_links();
-	cout << "read: " + to_string(li3->size()) + " links in " << rt.split() <<" seconds." << endl;
+	unordered_map<string,silicontrip::link> li3 = lf->get_all_links();
+	cout << "read: " + to_string(li3.size()) + " links in " << rt.split() <<" seconds." << endl;
 
-	vector<silicontrip::link>*li4 = lf->purge_links(poli,li3);
-	cout << "purged: " + to_string(li4->size()) + " links in " << rt.split() <<" seconds." << endl;
+	vector<silicontrip::link>li4 = lf->purge_links(li2,li3);
+	cout << "purged: " + to_string(li4.size()) + " links in " << rt.split() <<" seconds." << endl;
 
-	vector<line>* li5 = lf->make_lines_from_single_cluster(poli);
+	vector<line> li5 = lf->make_lines_from_single_cluster(li2);
 
-	cout << "generated: " << li5->size() << " links in " << rt.split() << " seconds." << endl;
+	cout << "generated: " << li5.size() << " links in " << rt.split() << " seconds." << endl;
 
-	vector<line>* li6 = lf->percentile_lines(li5,1);
+	vector<line> li6 = lf->percentile_lines(li5,1);
 
-	for (line line6: *li6)
+	for (line line6: li6)
 	{
 		cout << line6 << endl;
 	}
-	cout << "percentiled: " << li6->size() << " links in " << rt.split() << " seconds." << endl;
+	cout << "percentiled: " << li6.size() << " links in " << rt.split() << " seconds." << endl;
 
 	team_count tc = team_count(0,0,0);
 
-	vector<line>* li7 = lf->filter_links(li5,li4,tc);
+	vector<line> li7 = lf->filter_links(li5,li4,tc);
 
-	cout << "blocked: " << li7->size() << " links in " << rt.split() << " seconds." << endl;
+	cout << "blocked: " << li7.size() << " links in " << rt.split() << " seconds." << endl;
 
 
 	cout << "stop: " << rt.stop() << endl;

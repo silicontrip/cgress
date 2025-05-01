@@ -58,9 +58,9 @@ int main (int argc, char* argv[])
 	v.push_back(f5);
 	v.push_back(f6);
 
-	vector<field>* s =  ff->percentile(&v,100);
+	vector<field> s =  ff->percentile(v,100);
 
-	for (field f: *s)
+	for (field f: s)
 	{
 		cout << f << endl;
 	}
