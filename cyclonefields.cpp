@@ -43,7 +43,7 @@ private:
 
 
 public:
-	cyclonefields(draw_tools dts, draw_tools edt, run_timer rtm, int calc, bool s, bool e, const vector<field> a);
+	cyclonefields(draw_tools dts, draw_tools edt, run_timer rtm, int calc, bool s, bool e, const vector<field>& a);
 	void search_fields();
 
 };
@@ -177,7 +177,7 @@ void cyclonefields::search_fields()
 }
 
 
-cyclonefields::cyclonefields(draw_tools dts, draw_tools edt, run_timer rtm, int calc, bool s, bool e, const vector<field> a)
+cyclonefields::cyclonefields(draw_tools dts, draw_tools edt, run_timer rtm, int calc, bool s, bool e, const vector<field>& a)
 {
 	dt = dts;
 	rt = rtm;
@@ -187,6 +187,7 @@ cyclonefields::cyclonefields(draw_tools dts, draw_tools edt, run_timer rtm, int 
 	plan_colour = dts.get_colour();
 	edge_colour = edt.get_colour();
 	// this can be a shallow copy.  is this right?
+	// no, I need an & in the parameter definition. I hope.
 	all = a;
 }
 
@@ -255,6 +256,7 @@ void print_usage()
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
 		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
 		cerr << " -D <cluster>      Filter links crossing blockers using these portals." << endl;
+		cerr << " -S <cluster>      Avoid linking to these portals" << endl;
 
 		cerr << " -s                Add split fields" << endl;
 		cerr << " -M                Use MU calculation" << endl;
@@ -277,6 +279,7 @@ int main (int argc, char* argv[])
 	bool drawedge = false;
 	bool limit = false;
 	vector<portal>avoid_double;
+	vector<portal>avoid_single;
 
 	arguments ag(argc,argv);
 
@@ -284,6 +287,8 @@ int main (int argc, char* argv[])
 	ag.add_req("R","resistance",true); // max resistance blockers
 	ag.add_req("N","machina",true); // max machina blockers
 	ag.add_req("D","blockers",true); // remove links with blocker using these portals.
+	ag.add_req("S","avoid", true); // avoid using these portals.
+
 
 	ag.add_req("e","edges",false); // show cyclone edge path
 	ag.add_req("c","edgecolour",true); // cyclone edge path colour
@@ -354,6 +359,8 @@ int main (int argc, char* argv[])
 	if (ag.has_option("D"))
 		avoid_double = pf->cluster_from_description(ag.get_option_for_key("D"));
 
+	if (ag.has_option("S"))
+		avoid_single = pf->cluster_from_description(ag.get_option_for_key("S"));
 
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
@@ -369,6 +376,8 @@ int main (int argc, char* argv[])
 		vector<portal> portals;
 		
 		portals = pf->cluster_from_description(ag.get_argument_at(0));
+		if (avoid_single.size() > 0)
+			portals = pf->remove_portals(portals,avoid_single);
 		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 
 		cerr << "== getting links ==" << endl;
@@ -402,8 +411,11 @@ int main (int argc, char* argv[])
 		vector<portal> portals2;
 
 		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
+		if (avoid_single.size() > 0)
+			portals1 = pf->remove_portals(portals1,avoid_single);
 		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
-
+		if (avoid_single.size() > 0)
+			portals2 = pf->remove_portals(portals2,avoid_single);
 		vector<portal> all_portals;
 
 		all_portals.insert( all_portals.end(), portals1.begin(), portals1.end() );
@@ -446,8 +458,14 @@ int main (int argc, char* argv[])
 		vector<portal> portals3;
 
 		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
+		if (avoid_single.size() > 0)
+			portals1 = pf->remove_portals(portals1,avoid_single);
 		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
+		if (avoid_single.size() > 0)
+			portals2 = pf->remove_portals(portals2,avoid_single);
 		portals3 = pf->cluster_from_description(ag.get_argument_at(2));
+		if (avoid_single.size() > 0)
+			portals3 = pf->remove_portals(portals3,avoid_single);
 
 		vector<portal> all_portals;
 		all_portals.insert(all_portals.end(), portals1.begin(), portals1.end());
@@ -514,11 +532,6 @@ int main (int argc, char* argv[])
 
 	vector<pair<double,string>> plan;
 	int bestbest = 0;
-
-//	list<field> field_list;
-
-//	for (field f: all_fields)
-//		field_list.push_back(f);
 
 	vector<field> search;
 	//search.push_back(tfi);
