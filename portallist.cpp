@@ -57,6 +57,7 @@ int main (int argc, char* argv[])
 
 	cerr << "start." << endl << endl;	
 
+	try {
 	portal_factory* pf = portal_factory::get_instance();
 
 
@@ -93,7 +94,9 @@ int main (int argc, char* argv[])
 				cout << p.point::to_string() << " (" << p.get_title() << ")" << endl;
 		}
 	}
-
+	} catch (exception &e) {
+		cerr << "An Error occured: " << e.what() << endl;
+	}
 	cerr << endl << "stop: " << rt.stop() << endl;
 
 	return 0;
