@@ -14,6 +14,10 @@ OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
 	uniform_distribution.o json_reader.o
 
+EXEOBJ=test_run_timer.o test_point.o test_point.o test_point.o test_factory.o \
+	test_team_count.o test_field.o test_arguments.o maxlayers.o maxfields.o \
+	cyclonefields.o planner.o exofields.o cellfields.o
+
 all: maxlayers maxfields cyclonefields planner portallist cellfields
 
 tests: test_run_timer test_point test_line test_factory test_team_count test_field
@@ -67,4 +71,4 @@ cellfields: $(OBJ) cellfields.o
 	$(CC) $(CFLAGS) -c $^
 
 clean:
-	rm -f $(OBJ)
+	rm -f $(OBJ) $(EXEOBJ)
