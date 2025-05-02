@@ -22,12 +22,12 @@ private:
 	run_timer rt;
 	vector<field> all;
 	string cell_token;
-	S2CellId cellid;
+	//S2CellId cellid;
 	field_factory* ff;
 	int limit_layers;
 
 	string draw_fields(const vector<field>& f);
-	double calc_score(field f) const;
+	double calc_score(const field& f) const;
 
 public:
 	cellfields(draw_tools dts, run_timer rtm, const vector<field> a, string tok, int l);
@@ -42,7 +42,7 @@ cellfields::cellfields(draw_tools dts, run_timer rtm, const vector<field> a, str
 	// this can be a shallow copy.  is this right?
 	all = a;
 	cell_token = tok;
-	cellid = S2CellId::FromToken(tok);
+	//cellid = S2CellId::FromToken(tok);
 	ff = field_factory::get_instance();
 	limit_layers = l;
 }
@@ -58,32 +58,21 @@ string cellfields::draw_fields(const vector<field>& f)
 	return dt.to_string();
 }
 
-vector<string> celltokens(S2CellUnion s2u)
+double cellfields::calc_score(const field& f) const
 {
-	vector<string> ctok;
-	for (S2CellId s2c : s2u)
-		ctok.push_back(s2c.ToToken());
-
-	return ctok;	
-}
-
-double cellfields::calc_score(field f) const
-{
-	S2Polygon s2p = ff->s2polygon(f);
-	unordered_map<S2CellId,double> intersections = ff->cell_intersection(s2p);
-	S2CellUnion s2u = ff-> cells(s2p);
-	vector<string> cells = celltokens(s2u);
+	unordered_map<string,double> intersections = ff->cell_intersection(f);
+	vector<string> cells = ff->celltokens(f);
 	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);  // caching handled by field_factory
 
-	double area = intersections[cellid];
+	double area = intersections[cell_token];
 
 	//uniform_distribution others = uniform_distribution(0,0);
 	double other_range = 1.0;
-	for (pair<S2CellId,double> ii : intersections)
+	for (pair<string,double> ii : intersections)
 	{
-		if (ii.first != cellid)
+		if (ii.first != cell_token)
 		{
-			uniform_distribution this_cell = cellmu[ii.first.ToToken()]; // handle undefined
+			uniform_distribution this_cell = cellmu[ii.first]; // handle undefined
 			//cerr << ii.first.ToToken() << ": " << this_cell << endl;
 			uniform_distribution mu_intersection = this_cell * ii.second;
 			//others += mu_intersection;
@@ -93,7 +82,7 @@ double cellfields::calc_score(field f) const
 
 
 	// not sure about this method
-	uniform_distribution fieldmu = cellmu[cellid.ToToken()] * area;
+	uniform_distribution fieldmu = cellmu[cell_token] * area;
 
 	//uniform_distribution inverse = others.inverse();
 	//uniform_distribution score = fieldmu - others.inverse();
