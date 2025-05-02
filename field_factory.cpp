@@ -22,6 +22,11 @@ field_factory* field_factory::get_instance()
     return ptr;
 }
 
+/************************************************
+ * FILTER Functions
+*************************************************/
+
+// return fields that cover the target points.
 vector<field> field_factory::over_target(const vector<field>&f, const std::vector<point>&t) const
 {
     vector<field> fa;
@@ -39,6 +44,7 @@ bool geo_comparison(const field& a, const field& b)
     return a.geo_area() > b.geo_area();
 }
 
+// return the largest percent of fields
 vector<field> field_factory::percentile(const vector<field>&f, double percent) const
 {
 
@@ -59,6 +65,7 @@ vector<field> field_factory::percentile(const vector<field>&f, double percent) c
 
 }
 
+// return fields that have fewer blockers than specified by team_count
 vector<field> field_factory::filter_fields(const vector<field>&f, const vector<link>&l, team_count tc) const
 {
     vector<field> fa;
@@ -80,6 +87,7 @@ vector<field> field_factory::filter_fields(const vector<field>&f, const vector<l
     return fa;
 }
 
+// return only fields that are missing any links in intel
 vector<field> field_factory::filter_existing_fields(const vector<field>&f, const vector<link>&l) const
 {
     vector<field> ff;
@@ -105,6 +113,8 @@ vector<field> field_factory::filter_existing_fields(const vector<field>&f, const
 
 }
 
+// return only fields which have specified cell token
+// used in cellfields
 vector<field> field_factory::filter_fields_with_cell(const vector<field>&f,string s2cellid_token) const
 {
     vector<field> fa;
@@ -121,23 +131,11 @@ vector<field> field_factory::filter_fields_with_cell(const vector<field>&f,strin
     return fa;
 }
 
+/************************************************
+ * MU Functions
+*************************************************/
 
-bool field_factory::link_exists(const vector<line>&l, int j, point p1, point p2) const
-{
-    for (int k=j+1; k<l.size(); k++)
-    {
-        line l3 = l.at(k);
-        if (
-                (p1 == l3.get_o_point() && p2 == l3.get_d_point()) ||
-                (p1 == l3.get_d_point() && p2 == l3.get_o_point())
-        ) { 
-                return true;
-        }
-    }
-    return false;
-
-}
-
+// generates a s2polygon from a field
 S2Polygon field_factory::s2polygon(const field& f) const
 { 
     vector<S2Point> loop_points;
@@ -151,6 +149,7 @@ S2Polygon field_factory::s2polygon(const field& f) const
     return S2Polygon(unique_ptr<S2Loop>(field_loop));
 }
 
+// returns the s2CellUnion (array of cells) for a polygon
 S2CellUnion field_factory::cells(const S2Polygon& p) const
 {
     S2RegionCoverer::Options opt;
@@ -162,6 +161,7 @@ S2CellUnion field_factory::cells(const S2Polygon& p) const
     return rc.GetCovering(p);
 }
 
+// calculates the area a polygon overlaps a cell
 std::unordered_map<S2CellId,double> field_factory::cell_intersection(const S2Polygon& p) const 
 {
     unordered_map<S2CellId,double> area;
@@ -234,6 +234,9 @@ unordered_map<string, uniform_distribution>field_factory::query_mu_from_servlet(
 
     return result;
 }
+
+// returns a map of mu values for array of cell tokens
+// uses a cell token cache to limit calls to web api
 unordered_map<string, uniform_distribution>field_factory::query_mu(const vector<string>& cell_tokens)
 {
     unordered_map<std::string, uniform_distribution> result; // = new unordered_map<std::string, uniform_distribution>();
@@ -273,39 +276,29 @@ unordered_map<string, uniform_distribution>field_factory::query_mu(const vector<
 
 int field_factory::calculate_mu(const S2Polygon& p)
 {
+    // keep swapping back and forward between S2CellId and string (s2cellid tokens)
     unordered_map<S2CellId, double> cell_intersections = cell_intersection(p);
     double total_mu = 0.0;
 
-        // Create a map to store the mu/km2 values for each S2CellId
-    unordered_map<S2CellId, uniform_distribution> mu_map;
-
-        // Prepare a list of S2CellIds to query
-    vector<string> cell_ids_to_query;
-    for (pair<S2CellId,double>cell_pair : cell_intersections) {
-        cell_ids_to_query.push_back(cell_pair.first.ToToken());
-    }
+    // Prepare a list of S2CellIds to query
+    S2CellUnion s2u = cells(p);
+    vector<string> cell_ids_to_query = union_to_tokens(s2u);
 
         // Query MU/km2 values from cache
     unordered_map<string, uniform_distribution> mu_values = query_mu(cell_ids_to_query);
 
-        // Populate muMap with retrieved mu/km2 values
-    for (pair<string, uniform_distribution> entry : mu_values) {
-        S2CellId cellId = S2CellId::FromToken(entry.first);
-        mu_map[cellId] = entry.second;
-    }
-
         // Calculate total MU
     for (pair<S2CellId, double> entry : cell_intersections) {
-        S2CellId cell_id = entry.first;
-            double intersection_area = entry.second;
-            if (mu_map.count(cell_id)) {
-                uniform_distribution muPerKm2 = mu_map.at(cell_id);
-                double average_mu = muPerKm2.mean();
-                total_mu += intersection_area * average_mu;
-            }
+        string cell_id = entry.first.ToToken();
+        double intersection_area = entry.second;
+        if (mu_values.count(cell_id)) {
+            uniform_distribution muPerKm2 = mu_values[cell_id];
+            double average_mu = muPerKm2.mean();
+            total_mu += intersection_area * average_mu;
         }
+    }
 
-        return (int) round(total_mu);
+    return (int) round(total_mu);
 
 }
 
@@ -315,6 +308,7 @@ int field_factory::get_est_mu(const field& f)
     return calculate_mu(p);
 }
 
+// returns the mu for a field
 int field_factory::get_cache_mu(const field& f)
 {
 	if (field_mu_cache.count(f))
@@ -323,6 +317,39 @@ int field_factory::get_cache_mu(const field& f)
 	field_mu_cache[f] = get_est_mu(f);
 	return field_mu_cache[f];
 }
+
+vector<string> field_factory::union_to_tokens(const S2CellUnion& s2u) const
+{
+	vector<string> ctok;
+	for (S2CellId s2c : s2u)
+		ctok.push_back(s2c.ToToken());
+
+	return ctok;
+}
+
+vector<string> field_factory::celltokens(const field& f) const
+{
+    S2Polygon s2p = s2polygon(f);
+	S2CellUnion s2u = cells(s2p);
+
+    return union_to_tokens(s2u);
+}
+
+unordered_map<string,double> field_factory::cell_intersection(const field& f) const
+{
+    S2Polygon s2p = s2polygon(f);
+	unordered_map<S2CellId,double> intersections = cell_intersection(s2p);
+
+    unordered_map<string,double> result;
+    for (pair<S2CellId,double> ii : intersections)
+        result[ii.first.ToToken()] = ii.second;
+
+    return result;
+}
+
+/************************************************
+ * Field Generation Functions
+*************************************************/
 
 /*
 // old linear search code
@@ -356,8 +383,25 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>&l)
 }
 */
 
-// attempted speed up using unordered_set of fields
+// should be replaced with share_link_index
+bool field_factory::link_exists(const vector<line>&l, int j, point p1, point p2) const
+{
+    for (int k=j+1; k<l.size(); k++)
+    {
+        line l3 = l.at(k);
+        if (
+                (p1 == l3.get_o_point() && p2 == l3.get_d_point()) ||
+                (p1 == l3.get_d_point() && p2 == l3.get_o_point())
+        ) {
+                return true;
+        }
+    }
+    return false;
 
+}
+
+// attempted speed up using unordered_set of fields
+// support function for field generations functions
 bool field_factory::share_line_index(const unordered_map<point, unordered_set<size_t>>& point_exists, const point& p1, const point& p2) const
 {
   // Check if both points exist in the map.  If not, they can't share a line.
@@ -369,12 +413,15 @@ bool field_factory::share_line_index(const unordered_map<point, unordered_set<si
   const unordered_set<size_t>& set1 = point_exists.at(p1);
   const unordered_set<size_t>& set2 = point_exists.at(p2);
 
-  // Check if any index in set2 exists in set1.
-  for (size_t index : set2) {
-    if (set1.count(index) > 0) {
-      return true; // Found a common index!
+    if (set1.size() < set2.size()) { // iterate the smaller set for performance.
+        for (size_t index : set1) {
+            if (set2.count(index)) return true;
+        }
+    } else {
+        for (size_t index : set2) {
+            if (set1.count(index)) return true;
+        }
     }
-  }
 
   return false; // No common index found.
 }
@@ -414,15 +461,15 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>& l
             }
         }
     }
-    vector<field> fv;
-    fv.insert(fv.end(), fa.begin(), fa.end());
 
-    return fv;
+    return vector<field>(fa.begin(), fa.end());
+
 }
 
 
 // the argument order is important.
 // two from lines1 and 1 from lines2
+/*
 vector<field> field_factory::make_fields_from_double_links(const vector<line>&lk1, const vector<line>&lk2) const
 {
     vector<field> fa;
@@ -452,7 +499,56 @@ vector<field> field_factory::make_fields_from_double_links(const vector<line>&lk
     }   
     return fa;
 }
+*/
 
+// the argument order is important.
+// two from lines1 and 1 from lines2
+// optimised version of the make_fields_from_double_links
+// makes every possible field from two arrays of links.
+vector<field> field_factory::make_fields_from_double_links(const vector<line>& lk1, const vector<line>& lk2) const {
+    // Step 1: Index lk1 by point → line index
+    unordered_map<point, unordered_set<size_t>> point_index1;
+    for (size_t i = 0; i < lk1.size(); ++i) {
+        const line& li = lk1[i];
+        point_index1[li.get_o_point()].insert(i);
+        point_index1[li.get_d_point()].insert(i);
+    }
+
+    unordered_map<point, unordered_set<size_t>> point_index2;
+    for (size_t i = 0; i < lk2.size(); ++i) {
+        const line& li = lk2[i];
+        point_index2[li.get_o_point()].insert(i);
+        point_index2[li.get_d_point()].insert(i);
+    }
+
+    unordered_set<field> field_set;
+
+    // Step 3: Loop through lk1 to build triangles
+    for (size_t i = 0; i < lk1.size(); ++i) {
+        const line& l1 = lk1[i];
+
+        for (size_t j : point_index1[l1.get_o_point()]) {
+            if (j > i) {
+                const line& l2 = lk1[j];
+
+                // shared start: l1.o == l2.o
+                if (l1.get_o_point() == l2.get_o_point()) {
+                    if (share_line_index(point_index2,l1.get_d_point(), l2.get_d_point()))
+                        field_set.insert(field(l1.get_o_point(), l1.get_d_point(), l2.get_d_point()));
+                }
+                else  {
+                    if (share_line_index(point_index2,l1.get_d_point(), l2.get_o_point()))
+                        field_set.insert(field(l1.get_o_point(), l1.get_d_point(), l2.get_o_point()));
+                }
+            }
+        }
+    }
+
+    // Step 4: Convert to vector and return
+    return vector<field>(field_set.begin(), field_set.end());
+}
+
+// not sure if I should add the optimisations here.
 std::vector<field> field_factory::make_fields_from_triple_links(const vector<line>&lk1, const vector<line>&lk2, const vector<line>&lk3) const
 {
     vector<field> fa;
@@ -482,7 +578,9 @@ std::vector<field> field_factory::make_fields_from_triple_links(const vector<lin
     return fa;
 }
 
-vector<field> field_factory::get_splits(field f1, field f2) const
+// This function returns the two split fields that would be made when the joining link is made
+// If the two supplied fields share no common link this function returns an empty array
+vector<field> field_factory::get_splits(const field& f1, const field& f2) const
 {
     vector<field> splits;
     if (f1 == f2)
@@ -515,7 +613,12 @@ vector<field> field_factory::get_splits(field f1, field f2) const
     return splits;
 }
 
-vector<field> field_factory::add_splits(std::vector<field>fields) const
+// This function adds all the split fields to an array of fields.
+// It compares every field in the array with every other field
+// then checks that the split fields for these two fields do not
+// intersect any fields in the plan before adding them.
+// So should work with any arbitrary number of fields.
+vector<field> field_factory::add_splits(const vector<field>& fields) const
 {
     unordered_set<field> split_set;
     vector<field> splits_fields;
