@@ -55,7 +55,7 @@ int maxfields::cached_mu (field f)
 	if (mucache.count(f))
 		return mucache[f];
 
-	mucache[f] = field_factory::get_instance()->get_est_mu(f);
+	mucache[f] = field_factory::get_instance()->get_cache_mu(f);
 	return mucache[f];
 }
 
