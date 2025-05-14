@@ -100,7 +100,7 @@ double cellfields::search_fields(const vector<field>& current, int start, double
 		int newSize = current.size();
 		if (limit_layers > 0 && newSize > limit_layers)
 			return best;
-		double total_score;
+		double total_score = 0;
 		for (field fi : current)
 			total_score += calc_score(fi);
 
