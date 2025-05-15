@@ -2,8 +2,15 @@
 #include "run_timer.hpp"
 #include "arguments.hpp"
 
+#include "portal_factory.hpp"
+#include "link_factory.hpp"
+
+
 #include <algorithm>
+#include <fstream>
 #include <random>
+#include <string>
+
 
 using namespace std;
 using namespace silicontrip;
@@ -641,6 +648,66 @@ void planner::simulated_annealing (vector<point> combination, double initial_tem
 	cout << "Plan fields: " << polygons_map.size() << " Links: " << poly_lines.size() << " Portals: " << best_combination.size() << ". " << rt.stop() << " seconds" << endl;
 }
 
+
+unordered_map<point,int> read_keyfile(const string& filename)
+{
+	ifstream file(filename);
+	if (!file.is_open())
+		throw runtime_error("Unable to open key file: "+filename);
+
+	unordered_map <string, int> name_keys;
+	vector<string>name_list;
+
+	string line;
+
+	while (getline(file, line))
+	{
+		// split t
+		size_t last_space = line.find_last_of(' ');
+		string name = line.substr(0, last_space);
+
+		name_list.push_back(name);
+
+		int key_count = 0;
+		istringstream iss(line.substr(last_space + 1));
+		if (iss >> key_count) {
+			name_keys[name] = key_count;
+		} else {
+			throw std::runtime_error("Unable to read key count for portal: " + name);
+		}
+
+	}
+
+	portal_factory* pf = portal_factory::get_instance();
+	vector<portal> po = pf->cluster_from_array(name_list); // this needs to be passed in as an array to reduce web api calls
+
+	unordered_map <point, int> keys;
+
+	for (portal p : po)
+	{
+		keys[p] = name_keys[p.get_title()];
+	}
+
+	return keys;
+
+}
+
+vector<portal> get_portals(const vector<point>& points)
+{
+	vector<string>point_str;
+
+	for (point p : points)
+	{
+		string ss = "" + to_string(p.s2latlng().lat().e6() / 1000000.0) + "," + to_string(p.s2latlng().lat().e6() / 1000000.0);
+		point_str.push_back(ss);
+	}
+
+	portal_factory* pf = portal_factory::get_instance();
+	vector<portal> po = pf->cluster_from_array(point_str); 
+
+	return po;
+}
+
 void print_usage()
 {
 		cerr << "Usage:" << endl;
@@ -678,6 +745,7 @@ int main (int argc, char* argv[])
 	ag.add_req("C","colour",true);
 	ag.add_req("I","intel",false);
 	ag.add_req("r","reverse",false);
+	ag.add_req("K","keyfile",true);
 
 	if (!ag.parse() || ag.has_option("h"))
 	{
