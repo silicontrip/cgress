@@ -488,6 +488,8 @@ int main (int argc, char* argv[])
 
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
+		cerr << "== links generated " << rt.split() << " seconds. Generating fields ==" << endl;
+
 		all_fields = ff->make_fields_from_double_links(li2,li1);
 		all_fields = ff->filter_existing_fields(all_fields,links);
 		all_fields = ff->filter_fields(all_fields,links,tc);
