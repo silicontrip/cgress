@@ -417,7 +417,7 @@ std::string draw_tools::as_intel() const
     double pointCount = 0;
 
     ss.precision(9);
-    ss << "https://www.ingress.com/intel?pls="; 
+    ss << "https://intel.ingress.com/?pls="; 
 
     for (Json::Value po: pos)
     {

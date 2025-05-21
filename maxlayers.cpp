@@ -433,6 +433,7 @@ int main (int argc, char* argv[])
 
 		af = ff->make_fields_from_single_links(li);
 		all_fields = ff->filter_fields(af,links,tc);
+		all_fields = ff->filter_existing_fields(all_fields,links);
 		cerr << "fields: " << all_fields.size() << endl;
 
 	} else if (ag.argument_size() == 2) {
@@ -488,6 +489,7 @@ int main (int argc, char* argv[])
 		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
 		all_fields = ff->make_fields_from_double_links(li2,li1);
+		all_fields = ff->filter_existing_fields(all_fields,links);
 		all_fields = ff->filter_fields(all_fields,links,tc);
 
 		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
@@ -566,6 +568,8 @@ int main (int argc, char* argv[])
 		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
 		all_fields = ff->make_fields_from_triple_links(li1,li2,li3);
+		all_fields = ff->filter_existing_fields(all_fields,links);
+
 		all_fields = ff->filter_fields(all_fields,links,tc);
 		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
 
