@@ -9,6 +9,7 @@ uniform_distribution::uniform_distribution(const uniform_distribution& u) { lowe
 
 double uniform_distribution::mean() const { return ( lower + upper ) / 2.0; }
 double uniform_distribution::range() const { return upper - lower; }
+double uniform_distribution::perror() const { return 100 * (upper - lower) / ((lower + upper) / 2.0 ); }
 uniform_distribution uniform_distribution::inverse() const 
 { 
     double nlower = DBL_MAX;

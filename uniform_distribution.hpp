@@ -19,6 +19,7 @@ class uniform_distribution {
 
 		double mean() const;
 		double range() const;
+		double perror() const;
 		uniform_distribution inverse() const; 
 
 		uniform_distribution operator+(const uniform_distribution& o) const;
