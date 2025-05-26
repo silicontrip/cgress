@@ -79,7 +79,7 @@ double cellfields::calc_score(const field& f) const
 			//cerr << ii.first.ToToken() << ": " << this_cell << endl;
 			uniform_distribution mu_intersection = this_cell * ii.second;
 			//others += mu_intersection;
-			other_range += mu_intersection.perror();
+			other_range += mu_intersection.range();
 		}
 	}
 
@@ -92,7 +92,7 @@ double cellfields::calc_score(const field& f) const
 
 	//cerr << "others: " << others << " score: " << score << endl;
 	// cerr << "other range: " << other_range <<endl;
-	return fieldmu.perror() / other_range;
+	return fieldmu.range() / other_range;
 
 }
 
