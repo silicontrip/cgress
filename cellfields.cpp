@@ -28,19 +28,21 @@ private:
 
 	string draw_fields(const vector<field>& f);
 	double calc_score(const field& f) const;
+	double search_fields(vector<field> current, const field& f, int start, double best);
 
 public:
-	cellfields(draw_tools dts, run_timer rtm, const vector<field> a, string tok, int l);
-	double search_fields(const vector<field>& current, int start, double best);
+	cellfields(draw_tools dts, run_timer rtm, string tok, int l);
+	double start_search(double best, const vector<field>&af);
+
 
 };
 
-cellfields::cellfields(draw_tools dts, run_timer rtm, const vector<field> a, string tok, int l)
+cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l)
 {
 	dt = dts;
 	rt = rtm;
 	// this can be a shallow copy.  is this right?
-	all = a;
+	//all = a;
 	cell_token = tok;
 	//cellid = S2CellId::FromToken(tok);
 	ff = field_factory::get_instance();
@@ -64,7 +66,8 @@ double cellfields::calc_score(const field& f) const
 	vector<string> cells = ff->celltokens(f);
 	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);  // caching handled by field_factory
 
-	double area = intersections[cell_token];
+	double farea = f.geo_area();
+	double area = intersections[cell_token];	
 
 	//uniform_distribution others = uniform_distribution(0,0);
 	double other_range = 1.0;
@@ -76,7 +79,7 @@ double cellfields::calc_score(const field& f) const
 			//cerr << ii.first.ToToken() << ": " << this_cell << endl;
 			uniform_distribution mu_intersection = this_cell * ii.second;
 			//others += mu_intersection;
-			other_range += mu_intersection.range();
+			other_range += mu_intersection.perror();
 		}
 	}
 
@@ -89,12 +92,31 @@ double cellfields::calc_score(const field& f) const
 
 	//cerr << "others: " << others << " score: " << score << endl;
 	// cerr << "other range: " << other_range <<endl;
-	return fieldmu.range() / other_range;
+	return fieldmu.perror() / other_range;
 
 }
 
-double cellfields::search_fields(const vector<field>& current, int start, double best)
+double cellfields::start_search(double best, const vector<field>& af)
 {
+	all = af;
+	vector<field> current;
+	for (int i=0; i<all.size(); i++)
+	{
+		field thisField = all.at(i);
+		double res = search_fields(current, thisField, i+1, best);
+		if (res > best)
+			best = res;
+	}
+	return best;
+}
+
+double cellfields::search_fields(vector<field> current, const field& f, int start, double best)
+{
+	if (calc_score(f) > 1.0)
+		current.push_back(f);
+	else
+		return best;
+
 	if (current.size() > 0)
 	{
 		int newSize = current.size();
@@ -121,11 +143,11 @@ double cellfields::search_fields(const vector<field>& current, int start, double
 		field thisField = all.at(i);
 		if (!thisField.intersects(current))
 		{
-			vector<field> newList;
-			newList.insert(newList.end(), current.begin(), current.end());
-			newList.push_back(thisField);
+			//vector<field> newList;
+			//newList.insert(newList.end(), current.begin(), current.end());
+			//newList.push_back(thisField);
 
-			double res = search_fields(newList, i+1, best);
+			double res = search_fields(current, thisField, i+1, best);
 			if (res > best)
 				best = res;
 
@@ -256,8 +278,10 @@ int main (int argc, char* argv[])
 	if (ag.argument_size() == 0)
 	{
 		// ooo fun
-		
+		//   void GetEdgeNeighbors(S2CellId neighbors[4]) const;
+
 		S2LatLng cell_centre = S2LatLng(S2Cell(S2CellId::FromToken(cellid)).GetCenter());
+
 		double range = 1.0;
 
 		while (all_fields.size() < fields) // whats a good value here...
@@ -361,8 +385,8 @@ int main (int argc, char* argv[])
 
 	vector<field> search;
 	//search.push_back(tfi);
-	cellfields cf = cellfields(dt,rt,all_fields,cellid,limit);
-	double result = cf.search_fields(search, 0, 0.0);
+	cellfields cf = cellfields(dt,rt,cellid,limit);
+	double result = cf.start_search(0.0,all_fields);
 	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 
 	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
