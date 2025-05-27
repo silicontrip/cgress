@@ -186,6 +186,86 @@ void print_usage()
 		cerr << " -I                Output as Intel Link" << endl;
 }
 
+double max_dist (unordered_set<S2CellId> cellids, S2CellId centre)
+{
+	S2LatLng cenll = centre.ToLatLng();
+
+	S1Angle adist = S1Angle::Radians(0);
+
+	for (S2CellId cid : cellids)
+	{
+		S2LatLng cill = cid.ToLatLng();
+		S1Angle cdist = cill.GetDistance(cenll);
+		if (cdist > adist)
+			adist = cdist;
+	}
+
+	return adist.radians() * point::earth_radius; 
+}
+
+unordered_set<S2CellId> expand_cells(unordered_set<S2CellId> cellids, S2CellId centre)
+{
+
+	//   void GetEdgeNeighbors(S2CellId neighbors[4]) const;
+	unordered_set<S2CellId> new_cells;
+	S2LatLng cenll = centre.ToLatLng();
+
+	int csize = cellids.size();
+
+	double current = max_dist(cellids, centre);
+
+	while (new_cells.size() <= csize)
+	{
+		for (S2CellId cid : cellids)
+		{
+			new_cells.insert(cid);
+			S2CellId neighbors[4];
+			cid.GetEdgeNeighbors(neighbors);
+			for (S2CellId icid : neighbors) {
+				S1Angle ndist = icid.ToLatLng().GetDistance(cenll);
+				if (ndist.radians() * point::earth_radius < current)
+					new_cells.insert(icid);
+			}
+		}
+		current += 0.1;
+	}
+
+	return new_cells;
+}
+
+vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc) 
+{
+	link_factory* lf = link_factory::get_instance();
+    vector<line> la = lf->filter_links(li, links, tc);
+    
+    return la;
+}
+
+vector<portal> cluster_and_filter_from_cell_set(const vector<portal>& remove, const unordered_set<S2CellId>& cellids) 
+{
+	portal_factory* pf = portal_factory::get_instance();
+	vector<portal> all_portals;
+	for (S2CellId cid : cellids)
+	{
+		string desc = "0x" + cid.ToToken();
+		//cerr << "Getting portals from cell: " << desc << endl;
+     	vector<portal> cluster = pf->cluster_from_description(desc);
+		all_portals.insert(all_portals.end(), cluster.begin(), cluster.end());
+	}
+    if (remove.size() > 0)
+        all_portals = pf->remove_portals(all_portals, remove);
+    return all_portals;
+}
+
+vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc) 
+{
+	portal_factory* pf = portal_factory::get_instance();
+    vector<portal> portals = pf->cluster_from_description(desc);
+    if (remove.size() > 0)
+        portals = pf->remove_portals(portals, remove);
+    return portals;
+}
+
 int main (int argc, char* argv[])
 {
 	run_timer rt;
@@ -274,110 +354,141 @@ int main (int argc, char* argv[])
 	vector<field> all_fields;
 	//vector<field> af;
 
+	vector<portal> all_portals;
+    vector<vector<portal>> clusters;
+
 	try {
 	if (ag.argument_size() == 0)
 	{
 		// ooo fun
 		//   void GetEdgeNeighbors(S2CellId neighbors[4]) const;
-
-		S2LatLng cell_centre = S2LatLng(S2Cell(S2CellId::FromToken(cellid)).GetCenter());
-
-		double range = 1.0;
-
-		while (all_fields.size() < fields) // whats a good value here...
+		cellfields cf = cellfields(dt,rt,cellid,limit);
+		
+		unordered_set<S2CellId> search_cells;
+		search_cells.insert(s2cellid);
+		double best = 0;
+		int old_fields = -1;
+		while (true) // whats a good value here...
 		{
 			stringstream cluster_desc;
 
-			cluster_desc << cell_centre.lat() << "," << cell_centre.lng() << ":" << range;
+			//cluster_desc << cell_centre.lat() << "," << cell_centre.lng() << ":" << range;
 
-			cerr << "Query: " << cluster_desc.str() << endl;
+			//cerr << "Query: " << cluster_desc.str() << endl;
 
-			vector<portal> portals = pf->cluster_from_description(cluster_desc.str());
-
-			if (avoid_single.size() > 0)
-				portals = pf->remove_portals(portals,avoid_single); 
+			vector<portal> portals = cluster_and_filter_from_cell_set(avoid_single, search_cells);
 
 			cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 			if (portals.size() > 2)
 			{
-				cerr << "== getting links ==" << endl;
+				//cerr << "== getting links ==" << endl;
 										
 				links = lf->get_purged_links(portals);
 										
-				cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+				//cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 
-				cerr << "== generating potential links ==" << endl;
+				//cerr << "== generating potential links ==" << endl;
 
 				vector<line> li = lf->make_lines_from_single_cluster(portals);
-				cerr << "all links: " << li.size() << endl;
+				//cerr << "all links: " << li.size() << endl;
 
 				li = lf->filter_links(li,links,tc);
 							
-				cerr << "purged links: " << li.size() << endl;
+				//cerr << "purged links: " << li.size() << endl;
 				cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
 				if (li.size() > 2)
 				{
-					cerr << "== Generating fields ==" << endl;
+					//cerr << "== Generating fields ==" << endl;
 
 					all_fields = ff->make_fields_from_single_links(li);
 					all_fields = ff->filter_existing_fields(all_fields,links);
 					all_fields = ff->filter_fields_with_cell(all_fields,cellid);
 
 					all_fields = ff->filter_fields(all_fields,links,tc);
-					cerr << "fields: " << all_fields.size() << endl;
+					cerr << "== fields: " << all_fields.size() << " generated in "<< rt.split() << " seconds. ==" << endl;
+					if (all_fields.size()>0)
+					{
+						best = cf.start_search(best,all_fields);
+					}
 				}
 			}
-			range += 0.1;
+			search_cells = expand_cells(search_cells,s2cellid);
 
 		}
 
-		cerr << "Found threshold fields." << endl;
+		// cerr << "Found threshold fields." << endl;
 
 	}	
-	else if (ag.argument_size() == 1)
-	{
-		vector<portal> portals;
-		
-		portals = pf->cluster_from_description(ag.get_argument_at(0));
-		if (avoid_single.size() > 0)
-			portals = pf->remove_portals(portals,avoid_single); // this is now in portal factory
-		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
+	else if (ag.argument_size() == 1) {
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
+    } else if (ag.argument_size() == 2) {
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(1)));
+    } else if (ag.argument_size() == 3) {
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(1)));
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(2)));
+    } else {
+        print_usage();
+        exit(1);
+    }
 
-		cerr << "== getting links ==" << endl;
-                                
-		links = lf->get_purged_links(portals);
-                                
-		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+    // Combine all portals
+    for (const vector<portal>& cluster : clusters) {
+        all_portals.insert(all_portals.end(), cluster.begin(), cluster.end());
+    }
+    
+    cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
+    cerr << "== getting links ==" << endl;
 
-		cerr << "== generating potential links ==" << endl;
+	    // Get purged links
+    vector<silicontrip::link> links = lf->get_purged_links(all_portals);
+    cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+    cerr << "== generating potential links ==" << endl;
 
-		vector<line> li = lf->make_lines_from_single_cluster(portals);
-		cerr << "all links: " << li.size() << endl;
+	if (ag.argument_size() == 1) {
+        vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
+        cerr << "all links: " << li.size() << endl;
+        
+        li = filter_lines(li, links, tc);
+        
+        cerr << "== links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
+        all_fields = ff->make_fields_from_single_links(li);
+    } else if (ag.argument_size() == 2) {
+        vector<line> li1 = filter_lines(lf->make_lines_from_single_cluster(clusters[0]), links, tc);
+        cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc);
+        cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
-		li = lf->filter_links(li,links,tc);
-					
-		cerr << "purged links: " << li.size() << endl;
-		cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
-		cerr << "== Generating fields ==" << endl;
+        all_fields = ff->make_fields_from_double_links(li2, li1);
+    } else if (ag.argument_size() == 3) {
+        vector<line> li1 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc);
+        cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-		all_fields = ff->make_fields_from_single_links(li);
-		all_fields = ff->filter_existing_fields(all_fields,links);
-		all_fields = ff->filter_fields_with_cell(all_fields,cellid);
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[1], clusters[2]), links, tc);
+        cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
-		all_fields = ff->filter_fields(all_fields,links,tc);
-		cerr << "fields: " << all_fields.size() << endl;
-	} else {
-		print_usage();
-		exit(1);
-	}
+        vector<line> li3 = filter_lines(lf->make_lines_from_double_cluster(clusters[2], clusters[0]), links, tc);
+        cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
+
+        all_fields = ff->make_fields_from_triple_links(li1, li2, li3);
+    }
+
+    // Common field processing
+	all_fields = ff->filter_fields_with_cell(all_fields,cellid);
+    all_fields = ff->filter_existing_fields(all_fields, links);
+    all_fields = ff->filter_fields(all_fields, links, tc);
+
+    cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
+
 	cerr << "==  fields generated " << rt.split() << " seconds ==" << endl;
 	cerr << "== sorting fields ==" << endl;
 
 	sort(all_fields.begin(),all_fields.end(),geo_comparison);
 
-	cerr << "==  fields sortered " << rt.split() << " ==" << endl;
+	cerr << "==  fields sorted " << rt.split() << " ==" << endl;
 	cerr << "== show matches ==" << endl;
 
 	//vector<pair<double,string>> plan;
