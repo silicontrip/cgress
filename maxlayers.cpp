@@ -251,6 +251,31 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 	return a.first < b.first;
 }
 
+vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit2k, double percentile) 
+{
+	link_factory* lf = link_factory::get_instance();
+    vector<line> la = lf->filter_links(li, links, tc);
+    if (avoid_double.size() > 0)
+        la = lf->filter_link_by_blocker(la, links, avoid_double);
+
+    if (limit2k)
+        la = lf->filter_link_by_length(la, 2000);
+
+    if (percentile < 100)
+        la = lf->percentile_lines(la, percentile);
+    
+    return la;
+}
+
+vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc) 
+{
+	portal_factory* pf = portal_factory::get_instance();
+    vector<portal> portals = pf->cluster_from_description(desc);
+    if (remove.size() > 0)
+        portals = pf->remove_portals(portals, remove);
+    return portals;
+}
+
 void print_usage()
 {
 		cerr << "Usage:" << endl;
@@ -395,190 +420,76 @@ int main (int argc, char* argv[])
 	vector<field> af;
 
 	try {
-	if (ag.argument_size() == 1)
-	{
-		vector<portal> portals;
-		
-		portals = pf->cluster_from_description(ag.get_argument_at(0));
-		if (avoid_single.size() > 0)
-			portals = pf->remove_portals(portals,avoid_single); // moved to portal factory
-		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 
-		cerr << "== getting links ==" << endl;
-                                
-		links = lf->get_purged_links(portals);
+	vector<portal> all_portals;
+    vector<vector<portal>> clusters;
+    
+    // Load portals based on argument count
+    if (ag.argument_size() == 1) {
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
+    } else if (ag.argument_size() == 2) {
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(1)));
+    } else if (ag.argument_size() == 3) {
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(1)));
+        clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(2)));
+    } else {
+        print_usage();
+        exit(1);
+    }
+
+    // Combine all portals
+    for (const vector<portal>& cluster : clusters) {
+        all_portals.insert(all_portals.end(), cluster.begin(), cluster.end());
+    }
+    
+    cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
+    cerr << "== getting links ==" << endl;
+
+	    // Get purged links
+    vector<silicontrip::link> links = lf->get_purged_links(all_portals);
+    cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+    cerr << "== generating potential links ==" << endl;
+
+	if (ag.argument_size() == 1) {
+        vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
+        cerr << "all links: " << li.size() << endl;
         
-		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
+        li = filter_lines(li, links, tc, avoid_double, limit2k, percentile);
+        
+        cerr << "== links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
-		cerr << "== generating potential links ==" << endl;
+        all_fields = ff->make_fields_from_single_links(li);
+    } else if (ag.argument_size() == 2) {
+        vector<line> li1 = filter_lines(lf->make_lines_from_single_cluster(clusters[0]), links, tc, avoid_double, limit2k, percentile);
+        cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-		vector<line> li = lf->make_lines_from_single_cluster(portals);
-		cerr << "all links: " << li.size() << endl;
-		li = lf->filter_links(li,links,tc);
-		if (avoid_double.size() > 0)
-			li = lf->filter_link_by_blocker(li,links,avoid_double);
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit2k, percentile);
+        cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
-		if (limit2k)
-			li = lf->filter_link_by_length(li,2);
+        all_fields = ff->make_fields_from_double_links(li2, li1);
+    } else if (ag.argument_size() == 3) {
+        vector<line> li1 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit2k, percentile);
+        cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-		//if (avoid_single.size() > 0)
-		//	li = lf->filter_link_by_portal(li,avoid_single); // this really should be in portal factory
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[1], clusters[2]), links, tc, avoid_double, limit2k, percentile);
+        cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
-		if (percentile < 100)
-			li = lf->percentile_lines(li,percentile);
-					
-		cerr << "purged links: " << li.size() << endl;
-		cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
-		cerr << "== Generating fields ==" << endl;
+        vector<line> li3 = filter_lines(lf->make_lines_from_double_cluster(clusters[2], clusters[0]), links, tc, avoid_double, limit2k, percentile);
+        cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
-		af = ff->make_fields_from_single_links(li);
-		all_fields = ff->filter_fields(af,links,tc);
-		all_fields = ff->filter_existing_fields(all_fields,links);
-		cerr << "fields: " << all_fields.size() << endl;
+        all_fields = ff->make_fields_from_triple_links(li1, li2, li3);
+    }
 
-	} else if (ag.argument_size() == 2) {
-		// 2 portals from first cluster, 1 portal from second cluster
-		vector<portal> portals1;
-		vector<portal> portals2;
+    // Common field processing
+    all_fields = ff->filter_existing_fields(all_fields, links);
+    all_fields = ff->filter_fields(all_fields, links, tc);
+    
+    cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
 
-		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
-		if (avoid_single.size() > 0)
-			portals1 = pf->remove_portals(portals1,avoid_single); // moved to portal factory
-		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
-		if (avoid_single.size() > 0)
-			portals2 = pf->remove_portals(portals2,avoid_single); // moved to portal factory
-		vector<portal> all_portals;
 
-		all_portals.insert( all_portals.end(), portals1.begin(), portals1.end() );
-		all_portals.insert( all_portals.end(), portals2.begin(), portals2.end() );
-
-		cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
-		cerr << "== getting links ==" << endl;
-                                
-		links = lf->get_purged_links(all_portals);
-                                
-        cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
-		cerr << "== generating potential links ==" << endl;
-
-		vector<line> li1 = lf->make_lines_from_single_cluster(portals1);
-		if (limit2k)
-			li1 = lf->filter_link_by_length(li1,2000);
-
-		li1 = lf->filter_links(li1,links,tc);
-		if (avoid_double.size() > 0)
-			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
-
-		// not sure if I should use this with multiple portal clusters
-		if (percentile < 100)
-			li1 = lf->percentile_lines(li1,percentile);
-
-		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
-
-		vector<line> li2 = lf->make_lines_from_double_cluster(portals1,portals2);
-		if (limit2k)
-			li2 = lf->filter_link_by_length(li2,2000);
-
-		li2 = lf->filter_links(li2,links,tc);
-
-		if (avoid_double.size() > 0)
-			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
-
-		if (percentile < 100)
-			li2 = lf->percentile_lines(li2,percentile);
-
-		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
-
-		cerr << "== links generated " << rt.split() << " seconds. Generating fields ==" << endl;
-
-		all_fields = ff->make_fields_from_double_links(li2,li1);
-		all_fields = ff->filter_existing_fields(all_fields,links);
-		all_fields = ff->filter_fields(all_fields,links,tc);
-
-		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
 	
-	} else if (ag.argument_size() == 3) {
-		vector<portal> portals1;
-		vector<portal> portals2;
-		vector<portal> portals3;
-
-		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
-		if (avoid_single.size() > 0)
-			portals1 = pf->remove_portals(portals1,avoid_single); // moved to portal factory
-
-		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
-		if (avoid_single.size() > 0)
-			portals2 = pf->remove_portals(portals2,avoid_single); // moved to portal factory
-
-		portals3 = pf->cluster_from_description(ag.get_argument_at(2));
-		if (avoid_single.size() > 0)
-			portals3 = pf->remove_portals(portals3,avoid_single); // moved to portal factory
-
-		vector<portal> all_portals;
-		all_portals.insert(all_portals.end(), portals1.begin(), portals1.end());
-		all_portals.insert(all_portals.end(), portals2.begin(), portals2.end());
-		all_portals.insert(all_portals.end(), portals3.begin(), portals3.end());
-
-		cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
-		cerr << "== getting links ==" << endl;
-                                
-		links = lf->get_purged_links(all_portals);
-                                
-        cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
-		cerr << "== generating potential links ==" << endl;
-
-		vector<line> li1 = lf->make_lines_from_double_cluster(portals1,portals2);
-
-		if (limit2k)
-			li1 = lf->filter_link_by_length(li1,2000);
-
-		li1 = lf->filter_links(li1,links,tc);
-
-		if (avoid_double.size() > 0)
-			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
-
-		if (percentile < 100)
-			li1 = lf->percentile_lines(li1,percentile);
-		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
-
-		vector<line> li2 = lf->make_lines_from_double_cluster(portals2,portals3);
-
-		if (limit2k)
-			li2 = lf->filter_link_by_length(li2,2000);
-		
-		li2 = lf->filter_links(li2,links,tc);
-
-		if (avoid_double.size() > 0)
-			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
-
-		if (percentile < 100)
-			li2 = lf->percentile_lines(li2,percentile);
-		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
-
-		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
-
-		if (limit2k)
-			li3 = lf->filter_link_by_length(li3,2000);
-
-		li3 = lf->filter_links(li3,links,tc);
-
-		if (avoid_double.size() > 0)
-			li3 = lf->filter_link_by_blocker(li3,links,avoid_double);
-
-
-		if (percentile < 100)
-			li3 = lf->percentile_lines(li3,percentile);
-		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
-
-		all_fields = ff->make_fields_from_triple_links(li1,li2,li3);
-		all_fields = ff->filter_existing_fields(all_fields,links);
-
-		all_fields = ff->filter_fields(all_fields,links,tc);
-		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
-
-	} else {
-		print_usage();
-		exit(1);
-	}
 	cerr << "==  fields generated " << rt.split() << " seconds ==" << endl;
 
 	if (target.size()>0)
@@ -595,7 +506,7 @@ int main (int argc, char* argv[])
 
 	sort(all_fields.begin(),all_fields.end(),geo_comparison);
 
-	cerr << "==  fields sortered " << rt.split() << " ==" << endl;
+	cerr << "==  fields sorted " << rt.split() << " ==" << endl;
 	cerr << "== show matches ==" << endl;
 
 	maxlayers ml = maxlayers(dt, all_fields, calc, mlayers, rt, threshold,mlinks,splits);
