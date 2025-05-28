@@ -29,12 +29,14 @@ int main (int argc, char* argv[])
 	}
 
 	draw_tools dtp = draw_tools(ag.get_argument_at(0));
+    draw_tools otp;
 
     vector<field> fields = dtp.get_fields();
 
     field_factory* ff = field_factory::get_instance();
 
     uniform_distribution total(0,0);
+    cout << endl;
     for (field f : fields)
     {
         unordered_map<string,double> intersections = ff->cell_intersection(f);
@@ -43,13 +45,18 @@ int main (int argc, char* argv[])
 
         uniform_distribution ftotal(0,0);
 
+        otp.erase();
+        otp.add(f);
+
+        cout << f.geo_area() << " " << otp.to_string() << endl;
+
         for (string ctok : cells)
         {
             uniform_distribution tud = cellmu[ctok] * intersections[ctok];
             ftotal = ftotal + tud;
             cout << ctok << " " << cellmu[ctok] << " x " << intersections[ctok] << " = " << tud << endl;
         }
-        cout << ftotal << endl;
+        cout << ftotal << " " << ftotal.range() << endl;
         total = total + ftotal;
 
     }
