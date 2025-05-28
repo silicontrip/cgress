@@ -539,6 +539,36 @@ vector<point> draw_tools::get_points() const
     return result;
 }
 
+vector<field> draw_tools::get_fields() const
+{
+    unordered_set<field> field_set;
+    Json::Value pos = as_polygon();
+    for (Json::Value dto1: pos) 
+    {
+        if (dto1["type"] == "polygon")
+        {
+            Json::Value ll = dto1["latLngs"];
+            // no crazy shit with polygons more than 3 sides. okay?
+            double lat1 = ll[0]["lat"].asDouble();
+            double lng1 = ll[0]["lng"].asDouble();
+            double lat2 = ll[1]["lat"].asDouble();
+            double lng2 = ll[1]["lng"].asDouble();
+            double lat3 = ll[2]["lat"].asDouble();
+            double lng3 = ll[2]["lng"].asDouble();  
+
+            point p1 = point(lat1,lng1);
+            point p2 = point(lat2,lng2);
+            point p3 = point(lat3,lng3);
+
+            field f = field (p1,p2,p3);
+            field_set.insert(f);
+        }
+    }
+    vector<field> result;
+    result.assign(field_set.begin(),field_set.end());
+    return result;
+}
+
 }
 
 std::ostream& operator<<(std::ostream& os, const silicontrip::draw_tools& l)

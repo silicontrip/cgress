@@ -16,9 +16,9 @@ OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 
 EXEOBJ=test_run_timer.o test_point.o test_point.o test_point.o test_factory.o \
 	test_team_count.o test_field.o test_arguments.o maxlayers.o maxfields.o \
-	cyclonefields.o planner.o exofields.o cellfields.o
+	cyclonefields.o planner.o exofields.o cellfields.o mu.o
 
-all: maxlayers maxfields cyclonefields planner portallist cellfields
+all: maxlayers maxfields cyclonefields planner portallist cellfields mu
 
 tests: test_run_timer test_point test_line test_factory test_team_count test_field
 
@@ -66,6 +66,9 @@ exofields: $(OBJ) exofields.o
 
 cellfields: $(OBJ) cellfields.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o cellfields cellfields.o
+
+mu: $(OBJ) mu.o 
+	$(CC)  $(LDFLAGS) $(OBJ) -o mu mu.o
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^

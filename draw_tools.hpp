@@ -59,6 +59,8 @@ class draw_tools {
 
         std::vector<line> get_lines() const;
         std::vector<point> get_points() const;
+        std::vector<field> get_fields() const;
+
         std::vector<point> get_unique_points() const; //fixed return type
 
 };
