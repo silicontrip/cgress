@@ -9,7 +9,12 @@ uniform_distribution::uniform_distribution(const uniform_distribution& u) { lowe
 
 double uniform_distribution::mean() const { return ( lower + upper ) / 2.0; }
 double uniform_distribution::range() const { return upper - lower; }
-double uniform_distribution::rounded_range() const { return round(upper) - round(lower); }
+double uniform_distribution::rounded_range() const { 
+  //  std::cerr.precision(100);
+  //  cerr << "[" << lower << " - " << upper <<"]" << endl;
+  //  cerr << "(" << round(lower+0.00000000001) << " - " << round(upper) <<")" << endl;
+    return round(upper+0.000000001) - round(lower+0.000000001); 
+}
 
 double uniform_distribution::perror() const { return 100 * (upper - lower) / ((lower + upper) / 2.0 ); }
 uniform_distribution uniform_distribution::inverse() const 
