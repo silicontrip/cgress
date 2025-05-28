@@ -385,8 +385,10 @@ int main (int argc, char* argv[])
 		search_cells.insert(s2cellid);
 		double best = 0;
 		int old_fields = -1;
+		int iteration = 1;
 		while (true) // whats a good value here...
 		{
+			cerr << "search iteration: " << iteration++ << endl;
 			stringstream cluster_desc;
 
 			//cluster_desc << cell_centre.lat() << "," << cell_centre.lng() << ":" << range;
@@ -412,7 +414,7 @@ int main (int argc, char* argv[])
 				li = lf->filter_links(li,links,tc);
 							
 				//cerr << "purged links: " << li.size() << endl;
-				cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
+				cerr << "==  "  << li.size() << " links generated " << rt.split() <<  " seconds ==" << endl;
 				if (li.size() > 2)
 				{
 					//cerr << "== Generating fields ==" << endl;

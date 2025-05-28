@@ -434,6 +434,8 @@ bool portal_factory::json_matches(Json::Value jv, std::string desc) const
 
 bool portal_factory::is_point(string p) const
 {
+    vector<string> comment_desc = split_str(p,'#'); // optional comment
+    p = comment_desc[0];
     vector<string> point_desc = split_str(p,',');
     if (point_desc.size() != 2)
         return false;
@@ -458,6 +460,8 @@ point portal_factory::point_from(string p) const
     point po;
     if (is_point(p))
     {
+        vector<string> comment_desc = split_str(p,'#'); // optional comment
+        p = comment_desc[0];
         vector<string> point_desc = split_str(p,',');
 
         double lat = stod(point_desc.at(0));
