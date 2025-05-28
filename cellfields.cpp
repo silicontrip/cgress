@@ -62,9 +62,14 @@ string cellfields::draw_fields(const vector<field>& f)
 
 double cellfields::calc_score(const field& f) const
 {
+	// Calculate intersections of field with each cell
 	unordered_map<string,double> intersections = ff->cell_intersection(f);
+
+	// Extract relevant cells
 	vector<string> cells = ff->celltokens(f);
-	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);  // caching handled by field_factory
+
+	// Query the uniform distributions for these cells (we don't need to cache this)
+	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
 
 	double farea = f.geo_area();
 	double area = intersections[cell_token];	
@@ -75,6 +80,8 @@ double cellfields::calc_score(const field& f) const
 	{
 		if (ii.first != cell_token)
 		{
+			if (cellmu.count(ii.first) == 0)
+				return 0.0;
 			uniform_distribution this_cell = cellmu[ii.first]; // handle undefined
 			//cerr << ii.first.ToToken() << ": " << this_cell << endl;
 			uniform_distribution mu_intersection = this_cell * ii.second;
@@ -83,9 +90,19 @@ double cellfields::calc_score(const field& f) const
 		}
 	}
 
+	if (other_range > 1.0)
+		other_range -= 1.0;
+
+	uniform_distribution target(0,1000000);
+	if (cellmu.count(cell_token)!=0)
+		target =cellmu[cell_token];
 
 	// not sure about this method
-	uniform_distribution fieldmu = cellmu[cell_token] * area;
+	// I've been looking at it for several days and it keeps coming out as the best.
+	uniform_distribution fieldmu = target * area;
+	double murange = fieldmu.range();
+	if (murange < 1.0)
+		murange = max (murange,fieldmu.rounded_range());
 
 	//uniform_distribution inverse = others.inverse();
 	//uniform_distribution score = fieldmu - others.inverse();
