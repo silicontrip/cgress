@@ -17,7 +17,8 @@ using namespace silicontrip;
 class cellfields {
 
 private:
-	unordered_map<field,int> mucache;
+	unordered_set<field> precision_field;
+	double precision_best;
 	draw_tools dt;
 	run_timer rt;
 	vector<field> all;
@@ -47,6 +48,7 @@ cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l)
 	//cellid = S2CellId::FromToken(tok);
 	ff = field_factory::get_instance();
 	limit_layers = l;
+	precision_best = 0;
 }
 
 string cellfields::draw_fields(const vector<field>& f)
@@ -101,8 +103,8 @@ double cellfields::calc_score(const field& f) const
 	// I've been looking at it for several days and it keeps coming out as the best.
 	uniform_distribution fieldmu = target * area;
 	double murange = fieldmu.range();
-	if (murange < 1.0)
-		murange = max (murange,fieldmu.rounded_range());
+	if (murange < 1.5)
+		murange = fieldmu.rounded_range();
 
 	//uniform_distribution inverse = others.inverse();
 	//uniform_distribution score = fieldmu - others.inverse();
@@ -129,7 +131,20 @@ double cellfields::start_search(double best, const vector<field>& af)
 
 double cellfields::search_fields(vector<field> current, const field& f, int start, double best)
 {
-	if (calc_score(f) > 0.0)
+	double fscore = calc_score(f);
+	if (fscore == 1.0)
+	{
+		if (f.geo_area() > precision_best)
+		{
+			vector<field> temp;
+			temp.push_back(f);
+			cerr << fscore << " : " << f.geo_area() << " : " << rt.split() << " seconds." << endl;
+			cout << draw_fields(temp) << endl; 
+			cerr << endl;
+			precision_best = f.geo_area();
+		}
+	}
+	if ( fscore > 0.0)
 		current.push_back(f);
 	else
 		return best;
@@ -160,9 +175,6 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 		field thisField = all.at(i);
 		if (!thisField.intersects(current))
 		{
-			//vector<field> newList;
-			//newList.insert(newList.end(), current.begin(), current.end());
-			//newList.push_back(thisField);
 
 			double res = search_fields(current, thisField, i+1, best);
 			if (res > best)
