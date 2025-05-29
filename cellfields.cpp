@@ -50,7 +50,7 @@ cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l, bool p)
 	ff = field_factory::get_instance();
 	limit_layers = l;
 	show_precision = p;
-	precision_best = 0;
+	precision_best = DBL_MAX;
 }
 
 string cellfields::draw_fields(const vector<field>& f)
@@ -105,7 +105,7 @@ double cellfields::calc_score(const field& f) const
 	// I've been looking at it for several days and it keeps coming out as the best.
 	uniform_distribution fieldmu = target * area;
 	double murange = fieldmu.range();
-	if (murange < 1.5)
+	if (murange < 1.0)
 		murange = fieldmu.rounded_range();
 
 	//uniform_distribution inverse = others.inverse();
@@ -137,14 +137,15 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 	if (show_precision && fscore == 1.0)
 	{
 		// currently not sure what the best precision field is.
-		if (f.geo_area() > precision_best)
+		// it should be the smallest error range.
+		if (ff->get_cache_ud_mu(f).range() < precision_best)
 		{
 			vector<field> temp;
 			temp.push_back(f);
 			cerr << fscore << " : " << f.geo_area() << " : " << rt.split() << " seconds." << endl;
 			cout << draw_fields(temp) << endl; 
 			cerr << endl;
-			precision_best = f.geo_area();
+			precision_best = ff->get_cache_ud_mu(f).range();
 		}
 	}
 	if ( fscore > 0.0)
