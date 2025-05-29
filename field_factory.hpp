@@ -25,7 +25,7 @@ class field_factory {
     private:
         std::string cell_api;
         std::unordered_map<std::string, uniform_distribution> mu_cache; // cell mu cache
-        std::unordered_map<field,int> field_mu_cache;
+        std::unordered_map<field,uniform_distribution> field_mu_cache;
 
         field_factory();  // no one else can create one
   		~field_factory(); // prevent accidental deletion
@@ -36,7 +36,8 @@ class field_factory {
         std::unordered_map<std::string, uniform_distribution>query_mu_from_servlet(const std::vector<std::string>& cell_tokens) const;
         bool link_exists(const std::vector<line>&l, int j, point p1, point p2) const;
         bool share_line_index(const std::unordered_map<point, std::unordered_set<size_t>>& point_exists, const point& p1, const point& p2) const;
-        int calculate_mu(const S2Polygon& p);
+        uniform_distribution calculate_mu(const S2Polygon& p);
+        uniform_distribution get_ud_mu(const field& f);
         int get_est_mu(const field& f);  // use get_cache_mu instead
         S2Polygon s2polygon(const field& f) const;
         S2CellUnion cells(const S2Polygon& p) const;
@@ -62,6 +63,8 @@ class field_factory {
         std::vector<std::string> celltokens(const field& f) const; // prefered for cellfields
         std::unordered_map<std::string, uniform_distribution>query_mu(const std::vector<std::string>& cells); // used by cellfields
         int get_cache_mu(const field& f);
+        uniform_distribution get_cache_ud_mu(const field& f);
+
 
         std::vector<field> make_fields_from_single_links(const std::vector<line>&l) const;
 

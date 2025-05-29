@@ -19,6 +19,7 @@ class uniform_distribution {
 		uniform_distribution(const uniform_distribution& u);
 
 		double mean() const;
+		double rounded_mean() const;
 		double range() const;
 		double rounded_range() const;
 		double perror() const;
