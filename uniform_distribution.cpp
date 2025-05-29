@@ -8,6 +8,8 @@ uniform_distribution::uniform_distribution(double a, double b) { lower = a; uppe
 uniform_distribution::uniform_distribution(const uniform_distribution& u) { lower = u.lower; upper = u.upper; }
 
 double uniform_distribution::mean() const { return ( lower + upper ) / 2.0; }
+double uniform_distribution::rounded_mean() const { return round(( lower + upper ) / 2.0); }
+
 double uniform_distribution::range() const { return upper - lower; }
 double uniform_distribution::rounded_range() const { 
   //  std::cerr.precision(100);

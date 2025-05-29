@@ -19,6 +19,7 @@ class cellfields {
 private:
 	unordered_set<field> precision_field;
 	double precision_best;
+	bool show_precision;
 	draw_tools dt;
 	run_timer rt;
 	vector<field> all;
@@ -32,13 +33,13 @@ private:
 	double search_fields(vector<field> current, const field& f, int start, double best);
 
 public:
-	cellfields(draw_tools dts, run_timer rtm, string tok, int l);
+	cellfields(draw_tools dts, run_timer rtm, string tok, int l, bool p);
 	double start_search(double best, const vector<field>&af);
 
 
 };
 
-cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l)
+cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l, bool p)
 {
 	dt = dts;
 	rt = rtm;
@@ -48,7 +49,8 @@ cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l)
 	//cellid = S2CellId::FromToken(tok);
 	ff = field_factory::get_instance();
 	limit_layers = l;
-	precision_best = 0;
+	show_precision = p;
+	precision_best = DBL_MAX;
 }
 
 string cellfields::draw_fields(const vector<field>& f)
@@ -103,7 +105,7 @@ double cellfields::calc_score(const field& f) const
 	// I've been looking at it for several days and it keeps coming out as the best.
 	uniform_distribution fieldmu = target * area;
 	double murange = fieldmu.range();
-	if (murange < 1.5)
+	if (murange < 1.0)
 		murange = fieldmu.rounded_range();
 
 	//uniform_distribution inverse = others.inverse();
@@ -132,16 +134,18 @@ double cellfields::start_search(double best, const vector<field>& af)
 double cellfields::search_fields(vector<field> current, const field& f, int start, double best)
 {
 	double fscore = calc_score(f);
-	if (fscore == 1.0)
+	if (show_precision && fscore == 1.0)
 	{
-		if (f.geo_area() > precision_best)
+		// currently not sure what the best precision field is.
+		// it should be the smallest error range.
+		if (ff->get_cache_ud_mu(f).range() < precision_best)
 		{
 			vector<field> temp;
 			temp.push_back(f);
 			cerr << fscore << " : " << f.geo_area() << " : " << rt.split() << " seconds." << endl;
 			cout << draw_fields(temp) << endl; 
 			cerr << endl;
-			precision_best = f.geo_area();
+			precision_best = ff->get_cache_ud_mu(f).range();
 		}
 	}
 	if ( fscore > 0.0)
@@ -207,9 +211,9 @@ void print_usage()
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
 		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
 		cerr << " -S <cluster>      Avoid linking to these portals" << endl;
-		cerr << " -f <number>       Make this many fields." << endl;
 		cerr << " -c <cell id>      Use this cell. Required." << endl;
 		cerr << " -l <number>       limit fields to no more than this." << endl;
+		cerr << " -p                Display precision fields regardless." << endl;
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
 		cerr << " -I                Output as Intel Link" << endl;
@@ -304,7 +308,7 @@ int main (int argc, char* argv[])
 	vector<portal>avoid_single;
 	string cellid;
 	int limit=0;
-	int fields=100;
+	bool showp=false;
 
 	arguments ag(argc,argv);
 
@@ -312,11 +316,11 @@ int main (int argc, char* argv[])
 	ag.add_req("R","resistance",true); // max resistance blockers
 	ag.add_req("N","machina",true); // max machina blockers
 	ag.add_req("S","avoid", true); // avoid using these portals.
-	ag.add_req("f","fields",true); 
 	ag.add_req("C","colour",true); // drawtools colour
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polyline",false); // output as polylines
 	ag.add_req("l","limit",true); // limit layers/fields
+	ag.add_req("p","showprecision",false);
 	ag.add_req("c","cellid",true); // generate plan for this cell
 	ag.add_req("h","help",false);
 
@@ -348,11 +352,11 @@ int main (int argc, char* argv[])
 	if (ag.has_option("l"))
 		limit = ag.get_option_for_key_as_int("l");
 
-	if (ag.has_option("f"))
-		fields = ag.get_option_for_key_as_int("f");
-
 	if (ag.has_option("c"))
 		cellid = ag.get_option_for_key("c");
+
+	if (ag.has_option("p"))
+		showp=true;
 
 	if (cellid.length() == 0)
 	{
@@ -391,7 +395,7 @@ int main (int argc, char* argv[])
 	{
 		// ooo fun
 		//   void GetEdgeNeighbors(S2CellId neighbors[4]) const;
-		cellfields cf = cellfields(dt,rt,cellid,limit);
+		cellfields cf = cellfields(dt,rt,cellid,limit,showp);
 		
 		unordered_set<S2CellId> search_cells;
 		search_cells.insert(s2cellid);
@@ -527,7 +531,7 @@ int main (int argc, char* argv[])
 
 	vector<field> search;
 	//search.push_back(tfi);
-	cellfields cf = cellfields(dt,rt,cellid,limit);
+	cellfields cf = cellfields(dt,rt,cellid,limit,showp);
 	double result = cf.start_search(0.0,all_fields);
 	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 

@@ -274,11 +274,11 @@ unordered_map<string, uniform_distribution>field_factory::query_mu(const vector<
     }
 
 
-int field_factory::calculate_mu(const S2Polygon& p)
+uniform_distribution field_factory::calculate_mu(const S2Polygon& p)
 {
     // keep swapping back and forward between S2CellId and string (s2cellid tokens)
     unordered_map<S2CellId, double> cell_intersections = cell_intersection(p);
-    double total_mu = 0.0;
+    uniform_distribution total_mu(0.0,0.0);
 
     // Prepare a list of S2CellIds to query
     S2CellUnion s2u = cells(p);
@@ -292,17 +292,21 @@ int field_factory::calculate_mu(const S2Polygon& p)
         string cell_id = entry.first.ToToken();
         double intersection_area = entry.second;
         if (mu_values.count(cell_id)) {
-            uniform_distribution muPerKm2 = mu_values[cell_id];
-            double average_mu = muPerKm2.mean();
-            total_mu += intersection_area * average_mu;
+            total_mu += mu_values[cell_id] * intersection_area;
         }
     }
 
-    return (int) round(total_mu);
+    return total_mu;
 
 }
 
 int field_factory::get_est_mu(const field& f) 
+{
+    S2Polygon p = s2polygon(f);
+    return (int) calculate_mu(p).rounded_mean();
+}
+
+uniform_distribution field_factory::get_ud_mu(const field& f) 
 {
     S2Polygon p = s2polygon(f);
     return calculate_mu(p);
@@ -312,9 +316,19 @@ int field_factory::get_est_mu(const field& f)
 int field_factory::get_cache_mu(const field& f)
 {
 	if (field_mu_cache.count(f))
+		return (int)field_mu_cache[f].rounded_mean();
+
+	field_mu_cache[f] = get_ud_mu(f);
+	return (int)field_mu_cache[f].rounded_mean();
+}
+
+uniform_distribution field_factory::get_cache_ud_mu(const field& f)
+{
+
+	if (field_mu_cache.count(f))
 		return field_mu_cache[f];
 
-	field_mu_cache[f] = get_est_mu(f);
+	field_mu_cache[f] = get_ud_mu(f);
 	return field_mu_cache[f];
 }
 
