@@ -24,12 +24,20 @@ class uniform_distribution {
 		double rounded_range() const;
 		double perror() const;
 		uniform_distribution inverse() const; 
+		double get_lower() const;
+		double get_upper() const;
+		bool contains(double d) const;
+
+		uniform_distribution intersection (const uniform_distribution& o) const;
 
 		uniform_distribution operator+(const uniform_distribution& o) const;
 		uniform_distribution& operator+=(const uniform_distribution& o);
 		uniform_distribution operator-(const uniform_distribution& o) const;
+		uniform_distribution operator-=(const uniform_distribution& o);
 
 		uniform_distribution operator*(const double d) const;
+		uniform_distribution operator/(const double d) const;
+
 
 		std::string to_string() const;
 
