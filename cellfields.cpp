@@ -17,9 +17,9 @@ using namespace silicontrip;
 class cellfields {
 
 private:
-	unordered_set<field> precision_field;
-	double precision_best;
-	bool show_precision;
+	//unordered_set<field> precision_field;
+	//double precision_best;
+	//bool show_precision;
 	draw_tools dt;
 	run_timer rt;
 	vector<field> all;
@@ -33,13 +33,13 @@ private:
 	double search_fields(vector<field> current, const field& f, int start, double best);
 
 public:
-	cellfields(draw_tools dts, run_timer rtm, string tok, int l, bool p);
+	cellfields(draw_tools dts, run_timer rtm, string tok, int l);
 	double start_search(double best, const vector<field>&af);
 
 
 };
 
-cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l, bool p)
+cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l)
 {
 	dt = dts;
 	rt = rtm;
@@ -49,8 +49,8 @@ cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l, bool p)
 	//cellid = S2CellId::FromToken(tok);
 	ff = field_factory::get_instance();
 	limit_layers = l;
-	show_precision = p;
-	precision_best = DBL_MAX;
+	//show_precision = p;
+	//precision_best = 0;
 }
 
 string cellfields::draw_fields(const vector<field>& f)
@@ -62,6 +62,139 @@ string cellfields::draw_fields(const vector<field>& f)
 		dt.add(fi);
 
 	return dt.to_string();
+}
+
+uniform_distribution remaining(uniform_distribution v, const field& f, string celltok)
+{
+	field_factory* ff = field_factory::get_instance();
+
+	unordered_map<string,double> intersections = ff->cell_intersection(f);
+	vector<string> cells = ff->celltokens(f);
+	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
+
+	for (pair<string,double> ii : intersections)
+	{
+		if (ii.first != celltok)
+		{
+			uniform_distribution this_mu (0.0,1000000.0);
+			if (cellmu.count(ii.first) != 0)
+				this_mu = cellmu[ii.first];
+			v -= this_mu * ii.second;
+		}
+	}
+	return v;
+}
+
+
+
+double pimprovement(const field& f, string celltok)
+{
+
+	field_factory* ff = field_factory::get_instance();
+
+	unordered_map<string,double> intersections = ff->cell_intersection(f);
+	vector<string> cells = ff->celltokens(f);
+	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
+
+	uniform_distribution totalmu(0.0,0.0);
+	for (pair<string,double> ii : intersections)
+	{
+		uniform_distribution this_mu (0.0,1000000.0);
+		if (cellmu.count(ii.first) != 0)
+			this_mu = cellmu[ii.first];
+		totalmu += this_mu * ii.second;
+	}
+	
+	// cerr << "this field mu est: " << totalmu << endl;
+
+	double totalmax = round(totalmu.get_upper());
+	double totalmin = round(totalmu.get_lower());
+
+    if (totalmin==0)
+        totalmin=1;
+
+    if (totalmax==0)
+        totalmax=1;
+
+    double worst = 0.0;
+    for (int tmu = totalmin; tmu <= totalmax; tmu++)
+    {
+        uniform_distribution mu(tmu-0.5,tmu+0.5);
+        if (tmu==1)
+            mu = uniform_distribution(0.0,1.5);
+        
+        uniform_distribution remain = remaining(mu, f, celltok) / intersections[celltok];
+        uniform_distribution intremain = remain.intersection(cellmu[celltok]);
+
+        if (intremain.range() > worst)
+            worst = intremain.range();
+
+        // cerr << "mu: " << tmu << " rem: " << remain << " range: " << intremain.range() << " imp: " << cellmu[celltok].range() / intremain.range() <<   endl;
+
+    }
+
+	return cellmu[celltok].range() / worst;
+
+}
+
+double re_calc_score(const field& f, string celltok)
+{
+	field_factory* ff = field_factory::get_instance();
+
+	unordered_map<string,double> intersections = ff->cell_intersection(f);
+	vector<string> cells = ff->celltokens(f);
+	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
+
+	uniform_distribution totalmu(0.0,0.0);
+	for (pair<string,double> ii : intersections)
+	{
+		uniform_distribution this_mu (0.0,1000000.0);
+		if (cellmu.count(ii.first) != 0)
+			this_mu = cellmu[ii.first];
+		totalmu += this_mu * ii.second;
+	}
+	
+	// cerr << "this field mu est: " << totalmu << endl;
+
+	double totalmax = ceil(totalmu.get_upper());
+	double totalmin = floor(totalmu.get_lower());
+
+	if (totalmin <= 1.0)
+		totalmin = -0.5;
+	if (totalmax <= 1.0)
+		totalmax = 1.0;
+
+	uniform_distribution upper (totalmin+0.5,totalmax+0.5);
+
+	// calculate remaining
+
+	uniform_distribution rem_upper = remaining(upper, f, celltok) / intersections[celltok];
+
+	// remaining < c_max
+
+	// special ingress case any value less than 1.5 is rounded to (int)1
+	if (totalmin <= 1.0)
+		totalmin = 0.5;
+	if (totalmax <= 1.0)
+		totalmax = 2.0;
+	uniform_distribution lower(totalmin-0.5,totalmax-0.5);
+	uniform_distribution rem_lower = remaining(lower,f,celltok) / intersections[celltok];
+
+	// I don't know what to expect now.
+	// cerr << celltok << " lower test: " << lower << " upper test: " << upper << endl; 
+	// cerr << "cell: " << cellmu[celltok] << " lower remain: " << rem_lower << " upper remain: " << rem_upper << endl;
+
+	// I think the upper bounds of the lower remaining and the lower bounds of the upper remain must lie within the existing cell boundary.
+
+	double lower_imp = cellmu[celltok].get_upper() - rem_lower.get_upper();
+	double upper_imp = rem_upper.get_lower() - cellmu[celltok].get_lower();
+
+	// cerr << "lower improvement: " << lower_imp << " : upper improment: " << upper_imp << " : total improvement: " << lower_imp + upper_imp << endl;
+
+	// both should be positive. larger the better...
+
+	return min(lower_imp,upper_imp);
+
 }
 
 double cellfields::calc_score(const field& f) const
@@ -79,7 +212,7 @@ double cellfields::calc_score(const field& f) const
 	double area = intersections[cell_token];	
 
 	//uniform_distribution others = uniform_distribution(0,0);
-	double other_range = 0.0;
+	double other_range = 1.0;
 	for (pair<string,double> ii : intersections)
 	{
 		if (ii.first != cell_token)
@@ -113,7 +246,7 @@ double cellfields::calc_score(const field& f) const
 
 	//cerr << "others: " << others << " score: " << score << endl;
 	// cerr << "other range: " << other_range <<endl;
-	return murange - other_range;
+	return murange / other_range;
 
 }
 
@@ -133,22 +266,32 @@ double cellfields::start_search(double best, const vector<field>& af)
 
 double cellfields::search_fields(vector<field> current, const field& f, int start, double best)
 {
-	double fscore = calc_score(f);
+	double fscore;
+	//if (show_precision)
+	//	fscore = re_calc_score(f,cell_token);
+	//else
+	//	fscore = calc_score(f);
+
+	fscore = pimprovement(f,cell_token);
+
+	/*
 	if (show_precision && fscore == 1.0)
 	{
 		// currently not sure what the best precision field is.
 		// it should be the smallest error range.
-		if (ff->get_cache_ud_mu(f).range() < precision_best)
+		if (ff->get_cache_ud_mu(f).range() > precision_best)
 		{
 			vector<field> temp;
 			temp.push_back(f);
 			cerr << fscore << " : " << f.geo_area() << " : " << rt.split() << " seconds." << endl;
 			cout << draw_fields(temp) << endl; 
 			cerr << endl;
+			//re_calc_score(f,cell_token);
 			precision_best = ff->get_cache_ud_mu(f).range();
 		}
 	}
-	if ( fscore > 0.0)
+	*/
+	if (fscore > 1.0)
 		current.push_back(f);
 	else
 		return best;
@@ -158,9 +301,14 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 		int newSize = current.size();
 		if (limit_layers > 0 && newSize > limit_layers)
 			return best;
+
 		double total_score = 0;
 		for (field fi : current)
-			total_score += calc_score(fi);
+			total_score += pimprovement(fi,cell_token);  // there should be a better way to calculate total score
+			//if (show_precision)
+			//	total_score += re_calc_score(fi,cell_token);
+		//	else
+		//		total_score += calc_score(fi);
 
 		if (total_score > best) {
 
@@ -168,7 +316,9 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 				cout << draw_fields(current) << endl; 
 				cerr << endl;
 				best = total_score;
-			
+
+				//re_calc_score(f,cell_token);
+
 		}
 	}
 
@@ -308,7 +458,7 @@ int main (int argc, char* argv[])
 	vector<portal>avoid_single;
 	string cellid;
 	int limit=0;
-	bool showp=false;
+	// bool showp=false;
 
 	arguments ag(argc,argv);
 
@@ -320,7 +470,7 @@ int main (int argc, char* argv[])
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polyline",false); // output as polylines
 	ag.add_req("l","limit",true); // limit layers/fields
-	ag.add_req("p","showprecision",false);
+	// ag.add_req("p","showprecision",false);  // new scoring algorithm automatically handles both general improvement and precision improvement.
 	ag.add_req("c","cellid",true); // generate plan for this cell
 	ag.add_req("h","help",false);
 
@@ -355,8 +505,8 @@ int main (int argc, char* argv[])
 	if (ag.has_option("c"))
 		cellid = ag.get_option_for_key("c");
 
-	if (ag.has_option("p"))
-		showp=true;
+	//if (ag.has_option("p"))
+	//	showp=true;
 
 	if (cellid.length() == 0)
 	{
@@ -395,7 +545,7 @@ int main (int argc, char* argv[])
 	{
 		// ooo fun
 		//   void GetEdgeNeighbors(S2CellId neighbors[4]) const;
-		cellfields cf = cellfields(dt,rt,cellid,limit,showp);
+		cellfields cf = cellfields(dt,rt,cellid,limit);
 		
 		unordered_set<S2CellId> search_cells;
 		search_cells.insert(s2cellid);
@@ -404,7 +554,7 @@ int main (int argc, char* argv[])
 		int iteration = 1;
 		while (true) // whats a good value here...
 		{
-			cerr << "search iteration: " << iteration++ << endl;
+			cerr << "search iteration: " << iteration++  << endl;
 			stringstream cluster_desc;
 
 			//cluster_desc << cell_centre.lat() << "," << cell_centre.lng() << ":" << range;
@@ -444,14 +594,15 @@ int main (int argc, char* argv[])
 					if (all_fields.size()>0)
 					{
 						best = cf.start_search(best,all_fields);
+						double sec = rt.split();
+						double fps = all_fields.size() / sec;
+						cerr << "== search complete " << sec << " seconds (" << fps << " fields per second) ==" << endl;
 					}
 				}
 			}
 			search_cells = expand_cells(search_cells,s2cellid);
 
 		}
-
-		// cerr << "Found threshold fields." << endl;
 
 	}	
 	else if (ag.argument_size() == 1) {
@@ -531,7 +682,7 @@ int main (int argc, char* argv[])
 
 	vector<field> search;
 	//search.push_back(tfi);
-	cellfields cf = cellfields(dt,rt,cellid,limit,showp);
+	cellfields cf = cellfields(dt,rt,cellid,limit);
 	double result = cf.start_search(0.0,all_fields);
 	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 
