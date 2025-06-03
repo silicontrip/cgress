@@ -115,14 +115,9 @@ double pimprovement(const field& f, string celltok)
 	vector<string> cells = ff->celltokens(f);
 	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
 
-	uniform_distribution totalmu(0.0,0.0);
-	for (pair<string,double> ii : intersections)
-	{
-		uniform_distribution this_mu (0.0,1000000.0);
-		if (cellmu.count(ii.first) != 0)
-			this_mu = cellmu[ii.first];
-		totalmu += this_mu * ii.second;
-	}
+	uniform_distribution othermu = other_contribution(f,celltok,intersections,cellmu);
+
+	uniform_distribution totalmu = othermu + cellmu[celltok] * intersections[celltok];
 	
 	// cerr << "this field mu est: " << totalmu << endl;
 
@@ -135,8 +130,11 @@ double pimprovement(const field& f, string celltok)
     if (totalmax==0)
         totalmax=1;
 
+	if (totalmin == totalmax)
+		return 1.0;
+
+	double current = cellmu[celltok].range();
     double worst = 0.0;
-	uniform_distribution othermu = other_contribution(f,celltok,intersections,cellmu);
     for (int tmu = totalmin; tmu <= totalmax; tmu++)
     {
         uniform_distribution mu(tmu-0.5,tmu+0.5);
@@ -146,7 +144,11 @@ double pimprovement(const field& f, string celltok)
         uniform_distribution remain = (mu - othermu) / intersections[celltok]; //remaining(mu, f, celltok) / intersections[celltok];
         uniform_distribution intremain = remain.intersection(cellmu[celltok]);
 
-        if (intremain.range() > worst)
+		double intremainrange = intremain.range();
+		
+		if (intremainrange >= current) // might need to epsilon this
+			return 1.0;
+        if (intremainrange > worst)
             worst = intremain.range();
 
         // cerr << "mu: " << tmu << " rem: " << remain << " range: " << intremain.range() << " imp: " << cellmu[celltok].range() / intremain.range() <<   endl;
