@@ -85,7 +85,26 @@ uniform_distribution remaining(uniform_distribution v, const field& f, string ce
 	return v;
 }
 
+uniform_distribution other_contribution(const field& f, string celltok, const unordered_map<string,double>& intersections,const unordered_map<string,uniform_distribution>& cellmu)
+{
+	//field_factory* ff = field_factory::get_instance();
+	//unordered_map<string,double> intersections = ff->cell_intersection(f);
+	//vector<string> cells = ff->celltokens(f);
+	//unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
 
+	uniform_distribution othermu(0.0,0.0);
+	for (pair<string,double> ii : intersections)
+	{
+		if (ii.first != celltok)
+		{
+			uniform_distribution this_mu (0.0,1000000.0);
+			if (cellmu.count(ii.first) != 0)
+				this_mu = cellmu.at(ii.first);
+			othermu += this_mu * ii.second;
+		}
+	}
+	return othermu;
+}
 
 double pimprovement(const field& f, string celltok)
 {
@@ -117,13 +136,14 @@ double pimprovement(const field& f, string celltok)
         totalmax=1;
 
     double worst = 0.0;
+	uniform_distribution othermu = other_contribution(f,celltok,intersections,cellmu);
     for (int tmu = totalmin; tmu <= totalmax; tmu++)
     {
         uniform_distribution mu(tmu-0.5,tmu+0.5);
         if (tmu==1)
             mu = uniform_distribution(0.0,1.5);
         
-        uniform_distribution remain = remaining(mu, f, celltok) / intersections[celltok];
+        uniform_distribution remain = (mu - othermu) / intersections[celltok]; //remaining(mu, f, celltok) / intersections[celltok];
         uniform_distribution intremain = remain.intersection(cellmu[celltok]);
 
         if (intremain.range() > worst)
