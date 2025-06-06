@@ -354,37 +354,29 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 
 	current.push_back(f);
 	
-	if (current.size() > 0)
+	int newSize = current.size();
+
+	double total_score = multi_improvement(current,cell_token);
+	if (best >= total_score)
+		return best;
+	/*
+	for (field fi : current)
+		total_score += pimprovement(fi,cell_token);  // there should be a better way to calculate total score
+
+	if (current.size() == 2)
 	{
-		int newSize = current.size();
-		if (limit_layers > 0 && newSize > limit_layers)
-			return best;
-
-		double total_score = multi_improvement(current,cell_token);
-		/*
-		for (field fi : current)
-			total_score += pimprovement(fi,cell_token);  // there should be a better way to calculate total score
-
-		if (current.size() == 2)
-		{
-			compare_improvement(current.at(0),current.at(1),cell_token);
-			cout << endl;
-			compare_improvement(current.at(1),current.at(0),cell_token);
-			cout << "==" << endl;
-		}
-		*/
-		if (total_score > best) {
-
-			cerr << total_score << " : " << newSize << " : " << rt.split() << " seconds." << endl;
-			cout << draw_fields(current) << endl; 
-			cerr << endl;
-			best = total_score;
-		} else {
-				return best;
-		}
+		compare_improvement(current.at(0),current.at(1),cell_token);
+		cout << endl;
+		compare_improvement(current.at(1),current.at(0),cell_token);
+		cout << "==" << endl;
 	}
+	*/
 
-	// area required cell / sum(mu other cells)
+	cerr << total_score << " : " << newSize << " : " << rt.split() << " seconds." << endl;
+	cout << draw_fields(current) << endl; 
+	cerr << endl;
+	best = total_score;
+
 	if (limit_layers == 0 || current.size() < limit_layers) {
 		for (int i=start; i<all.size(); i++)
 		{
