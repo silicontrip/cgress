@@ -607,7 +607,7 @@ int main (int argc, char* argv[])
 		int iteration = 1;
 		while (true) // whats a good value here...
 		{
-			cerr << "search iteration: " << iteration++  << endl;
+			cerr << "search iteration: " << iteration++ << ". " << search_cells.size() << " cells." << endl;
 			stringstream cluster_desc;
 
 			//cluster_desc << cell_centre.lat() << "," << cell_centre.lng() << ":" << range;
