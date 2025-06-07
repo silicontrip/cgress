@@ -27,6 +27,7 @@ private:
 	//S2CellId cellid;
 	field_factory* ff;
 	int limit_layers;
+	double epsilon = 1e-6;
 
 	string draw_fields(const vector<field>& f);
 	double calc_score(const field& f) const;
@@ -349,7 +350,7 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 
 	double fscore = pimprovement(f,cell_token);
 
-	if (fscore <= 1.0)
+	if (fscore <= 1.0 + epsilon)
 		return best;
 
 	current.push_back(f);
@@ -359,6 +360,8 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 	double total_score = multi_improvement(current,cell_token);
 	if (best >= total_score)
 		return best;
+
+	//cerr << "fscore: " << setprecision(20) << fscore << endl;
 	/*
 	for (field fi : current)
 		total_score += pimprovement(fi,cell_token);  // there should be a better way to calculate total score
