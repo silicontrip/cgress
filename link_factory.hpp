@@ -44,7 +44,7 @@ class link_factory {
       std::vector<line> percentile_lines(const std::vector<line>& lines, double percentile) const;
       std::vector<line> filter_links(const std::vector<line>& lines, const std::vector<link>& links, team_count max) const;
       std::vector<line> filter_link_by_blocker (const std::vector<line>& lines, const std::vector<link>& links, const std::vector<portal>& portals) const;
-      std::vector<line> filter_link_by_portal (const std::vector<line>& lines, const std::vector<portal>& portals) const;
+      std::vector<silicontrip::link> filter_link_by_portal (const std::vector<silicontrip::link>& lines, const std::vector<portal>& portals) const;
       std::vector<line> filter_link_by_length (const std::vector<line>& lines,double km) const;
 
 };

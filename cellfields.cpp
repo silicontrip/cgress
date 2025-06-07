@@ -417,6 +417,8 @@ void print_usage()
 		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
 		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
 		cerr << " -S <cluster>      Avoid linking to these portals" << endl;
+		cerr << " -i <cluster>      Ignore blocking links from these portals" << endl;
+
 		cerr << " -c <cell id>      Use this cell. Required." << endl;
 		cerr << " -l <number>       limit fields to no more than this." << endl;
 		cerr << " -p                Display precision fields regardless." << endl;
@@ -512,8 +514,11 @@ int main (int argc, char* argv[])
 	vector<point>target;
 
 	vector<portal>avoid_single;
+	vector<portal>ignore_links;
+
 	string cellid;
 	int limit=0;
+	
 	// bool showp=false;
 
 	arguments ag(argc,argv);
@@ -522,6 +527,9 @@ int main (int argc, char* argv[])
 	ag.add_req("R","resistance",true); // max resistance blockers
 	ag.add_req("N","machina",true); // max machina blockers
 	ag.add_req("S","avoid", true); // avoid using these portals.
+	ag.add_req("i","ignore",true); // ignore links from these portals (about to decay or easy to destroy)
+
+
 	ag.add_req("C","colour",true); // drawtools colour
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polyline",false); // output as polylines
@@ -585,6 +593,9 @@ int main (int argc, char* argv[])
 	if (ag.has_option("S"))
 		avoid_single = pf->cluster_from_description(ag.get_option_for_key("S"));
 
+	if (ag.has_option("i"))
+		ignore_links = pf->cluster_from_description(ag.get_option_for_key("i"));
+
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
@@ -625,7 +636,8 @@ int main (int argc, char* argv[])
 				//cerr << "== getting links ==" << endl;
 										
 				links = lf->get_purged_links(portals);
-										
+				if (!ignore_links.empty())
+					links = lf->filter_link_by_portal(links,ignore_links);
 				//cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 
 				//cerr << "== generating potential links ==" << endl;
@@ -685,6 +697,8 @@ int main (int argc, char* argv[])
 
 	    // Get purged links
     vector<silicontrip::link> links = lf->get_purged_links(all_portals);
+	if (!ignore_links.empty())
+		links = lf->filter_link_by_portal(links,ignore_links);
     cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
     cerr << "== generating potential links ==" << endl;
 

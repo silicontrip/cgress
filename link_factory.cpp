@@ -222,10 +222,10 @@ vector<line> link_factory::filter_link_by_blocker (const vector<line>& lines, co
 }
 
 // this should probably be added to portal_factory, avoid adding these portals altogether
-vector<line> link_factory::filter_link_by_portal (const vector<line>& lines, const vector<portal>& portals) const
+vector<silicontrip::link> link_factory::filter_link_by_portal (const vector<silicontrip::link>& lines, const vector<portal>& portals) const
 {
-    vector<line> la;
-    for (line l: lines)
+    vector<silicontrip::link> la;
+    for (silicontrip::link l: lines)
     {
         bool unblocked =true;
         for (portal pp: portals)
