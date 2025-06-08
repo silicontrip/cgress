@@ -31,7 +31,13 @@ private:
 
 	string draw_fields(const vector<field>& f);
 	double calc_score(const field& f) const;
-	double search_fields(vector<field> current, const field& f, int start, double best);
+	double search_fields(vector<field> current, const field& f, int start, double best) const;
+	uniform_distribution uniform_improvement(const field& f, uniform_distribution mucell) const;
+	double multi_improvement(const vector<field>& vf, const field& fi) const;
+	bool compare_improvement(const field& f1, const field& f2) const;
+	vector<field> new_fields(vector<field>& current, const field& f) const;
+	double pimprovement(const field& f) const;
+
 
 public:
 	cellfields(draw_tools dts, run_timer rtm, string tok, int l);
@@ -65,33 +71,8 @@ string cellfields::draw_fields(const vector<field>& f)
 	return dt.to_string();
 }
 
-uniform_distribution remaining(uniform_distribution v, const field& f, string celltok)
-{
-	field_factory* ff = field_factory::get_instance();
-
-	unordered_map<string,double> intersections = ff->cell_intersection(f);
-	vector<string> cells = ff->celltokens(f);
-	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
-
-	for (pair<string,double> ii : intersections)
-	{
-		if (ii.first != celltok)
-		{
-			uniform_distribution this_mu (0.0,1000000.0);
-			if (cellmu.count(ii.first) != 0)
-				this_mu = cellmu[ii.first];
-			v -= this_mu * ii.second;
-		}
-	}
-	return v;
-}
-
 uniform_distribution other_contribution(const field& f, string celltok, const unordered_map<string,double>& intersections,const unordered_map<string,uniform_distribution>& cellmu)
 {
-	//field_factory* ff = field_factory::get_instance();
-	//unordered_map<string,double> intersections = ff->cell_intersection(f);
-	//vector<string> cells = ff->celltokens(f);
-	//unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
 
 	uniform_distribution othermu(0.0,0.0);
 	for (pair<string,double> ii : intersections)
@@ -107,17 +88,16 @@ uniform_distribution other_contribution(const field& f, string celltok, const un
 	return othermu;
 }
 
-uniform_distribution uniform_improvement(const field& f, uniform_distribution remain, string celltok)
+uniform_distribution cellfields::uniform_improvement(const field& f, uniform_distribution mucell) const
 {
-	field_factory* ff = field_factory::get_instance();
 
 	unordered_map<string,double> intersections = ff->cell_intersection(f);
 	vector<string> cells = ff->celltokens(f);
 	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
 
-	uniform_distribution othermu = other_contribution(f,celltok,intersections,cellmu);
+	uniform_distribution othermu = other_contribution(f,cell_token,intersections,cellmu);
 
-	uniform_distribution totalmu = othermu + cellmu[celltok] * intersections[celltok];
+	uniform_distribution totalmu = othermu + mucell * intersections[cell_token];
 	
 	// cerr << "this field mu est: " << totalmu << endl;
 
@@ -131,9 +111,9 @@ uniform_distribution uniform_improvement(const field& f, uniform_distribution re
         totalmax=1;
 
 	if (totalmin == totalmax)
-		return remain;
+		return mucell;
 
-	double current = cellmu[celltok].range();
+	double current = mucell.range();
     double worst = 0.0;
 	uniform_distribution worst_dist;
     for (int tmu = totalmin; tmu <= totalmax; tmu++)
@@ -142,8 +122,8 @@ uniform_distribution uniform_improvement(const field& f, uniform_distribution re
         if (tmu==1)
             mu = uniform_distribution(0.0,1.5);
         
-        uniform_distribution remain = (mu - othermu) / intersections[celltok]; //remaining(mu, f, celltok) / intersections[celltok];
-        uniform_distribution intremain = remain.intersection(cellmu[celltok]);
+        uniform_distribution remain = (mu - othermu) / intersections[cell_token]; //remaining(mu, f, celltok) / intersections[celltok];
+        uniform_distribution intremain = remain.intersection(mucell);
 
 		double intremainrange = intremain.range();
 		
@@ -161,45 +141,48 @@ uniform_distribution uniform_improvement(const field& f, uniform_distribution re
 	return worst_dist;
 }
 
-double multi_improvement(const vector<field>& vf, string celltok)
+double cellfields::multi_improvement(const vector<field>& vf, const field& fi) const
 {
 	double imp = 1.0;
-	if (vf.size() > 0)
-	{
-		field_factory* ff = field_factory::get_instance();
 
-		vector<string> cells = ff->celltokens(vf.at(0));
-		unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
+	vector<string> cells = ff->celltokens(fi);
+	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
 
-		uniform_distribution current = cellmu[celltok];
+	uniform_distribution current = cellmu[cell_token];
+	//if (vf.size() > 0)
+	//{
 		for (const field& f : vf)
 		{
-			uniform_distribution uimp = uniform_improvement(f,current,celltok);
+			uniform_distribution uimp = uniform_improvement(f,current);
+			// cerr << imp << " * " << current.range() / uimp.range() << " " << current << " * " << uimp << endl;
 			imp = imp * current.range() / uimp.range();
 			current = uimp;
 		}
-	}
+	//}
+	uniform_distribution cimp = uniform_improvement(fi,current);
+	// cerr << imp << " * " << current.range() / cimp.range() << " " << current << " * " << cimp << endl;
+
+	imp = imp * current.range() / cimp.range();
+
 	return imp;
 }
 
-void compare_improvement(const field& f1, const field& f2, string celltok)
+bool cellfields::compare_improvement(const field& f1, const field& f2) const
 {
-
-	field_factory* ff = field_factory::get_instance();
 
 	unordered_map<string,double> intersections1 = ff->cell_intersection(f1);
 	vector<string> cells1 = ff->celltokens(f1);
 	unordered_map<string,uniform_distribution> cellmu1 = ff->query_mu(cells1);
 
-	uniform_distribution othermu1 = other_contribution(f1,celltok,intersections1,cellmu1);
+	uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
 
-	uniform_distribution totalmu1 = othermu1 + cellmu1[celltok] * intersections1[celltok];
+	uniform_distribution totalmu1 = othermu1 + cellmu1[cell_token] * intersections1[cell_token];
 
 	unordered_map<string,double> intersections2 = ff->cell_intersection(f2);
 	vector<string> cells2 = ff->celltokens(f2);
 	unordered_map<string,uniform_distribution> cellmu2 = ff->query_mu(cells2);
 
-	uniform_distribution othermu2 = other_contribution(f2,celltok,intersections2,cellmu2);
+	uniform_distribution othermu2 = other_contribution(f2,cell_token,intersections2,cellmu2);
 
 	// cerr << "this field mu est: " << totalmu << endl;
 
@@ -215,19 +198,20 @@ void compare_improvement(const field& f1, const field& f2, string celltok)
 	//if (totalmin1 == totalmax1)
 	//	return 1.0;
 
-	double current = cellmu1[celltok].range();
+	double current = cellmu1[cell_token].range();
     double worst = DBL_MAX;
+	double worst1 = 0.0;
     for (int tmu1 = totalmin1; tmu1 <= totalmax1; tmu1++)
     {
         uniform_distribution mu1(tmu1-0.5,tmu1+0.5);
         if (tmu1==1)
             mu1 = uniform_distribution(0.0,1.5);
         
-        uniform_distribution remain1 = (mu1 - othermu1) / intersections1[celltok]; //remaining(mu, f, celltok) / intersections[celltok];
-        uniform_distribution intremain1 = remain1.intersection(cellmu1[celltok]);
+        uniform_distribution remain1 = (mu1 - othermu1) / intersections1[cell_token]; //remaining(mu, f, celltok) / intersections[celltok];
+        uniform_distribution intremain1 = remain1.intersection(cellmu1[cell_token]);
 
 
-		uniform_distribution totalmu2 = othermu2 + intremain1 * intersections2[celltok];
+		uniform_distribution totalmu2 = othermu2 + intremain1 * intersections2[cell_token];
 
 		double totalmax2 = round(totalmu2.get_upper());
 		double totalmin2 = round(totalmu2.get_lower());
@@ -238,8 +222,11 @@ void compare_improvement(const field& f1, const field& f2, string celltok)
     	if (totalmax2==0)
         	totalmax2=1;
 
-		double imp1 = cellmu1[celltok].range() / intremain1.range();
-		cout << "f1: [" << tmu1 << ":" << imp1 << "] f2:";
+		if (intremain1.range() > worst1)
+			worst1 = intremain1.range();
+
+		double imp1 = cellmu1[cell_token].range() / intremain1.range();
+		//cerr << "f1: [" << tmu1 << ":" << imp1 << "] f2:";
 
 		bool first = true;
 		double worst2 = 0.0;
@@ -249,7 +236,7 @@ void compare_improvement(const field& f1, const field& f2, string celltok)
         	if (tmu2==1)
             	mu2 = uniform_distribution(0.0,1.5);
         
-        	uniform_distribution remain2 = (mu2 - othermu2) / intersections2[celltok]; //remaining(mu, f, celltok) / intersections[celltok];
+        	uniform_distribution remain2 = (mu2 - othermu2) / intersections2[cell_token]; //remaining(mu, f, celltok) / intersections[celltok];
         	uniform_distribution intremain2 = remain2.intersection(intremain1);
 
 			// intremain2 field2 improvement combined field1
@@ -259,35 +246,37 @@ void compare_improvement(const field& f1, const field& f2, string celltok)
 
 			double imp2 = intremain1.range() / intremain2.range();
 
-			cout << " [" << tmu2 << ":" << imp2 << "]";
+			//cerr << " [" << tmu2 << ":" << imp2 << "]";
 
 		}
 
 		double cimp = imp1 * intremain1.range() / worst2;
 		
-		cout << " (" << cimp << ")" << endl;
+		//cerr << " (" << cimp << ")" << endl;
 
 		if (cimp < worst)
 			worst = cimp;
 
     }
 
+	//cerr << cellmu1[cell_token].range() / worst1 << " == " << worst << endl;
+	
+	return (abs (cellmu1[cell_token].range() / worst1 - worst) > epsilon);
+
 	//return cellmu[celltok].range() / worst;
 
 }
 
-double pimprovement(const field& f, string celltok)
+double cellfields::pimprovement(const field& f) const
 {
-
-	field_factory* ff = field_factory::get_instance();
 
 	unordered_map<string,double> intersections = ff->cell_intersection(f);
 	vector<string> cells = ff->celltokens(f);
 	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
 
-	uniform_distribution othermu = other_contribution(f,celltok,intersections,cellmu);
+	uniform_distribution othermu = other_contribution(f,cell_token,intersections,cellmu);
 
-	uniform_distribution totalmu = othermu + cellmu[celltok] * intersections[celltok];
+	uniform_distribution totalmu = othermu + cellmu[cell_token] * intersections[cell_token];
 	
 	// cerr << "this field mu est: " << totalmu << endl;
 
@@ -303,7 +292,7 @@ double pimprovement(const field& f, string celltok)
 	if (totalmin == totalmax)
 		return 1.0;
 
-	double current = cellmu[celltok].range();
+	double current = cellmu[cell_token].range();
     double worst = 0.0;
     for (int tmu = totalmin; tmu <= totalmax; tmu++)
     {
@@ -311,8 +300,8 @@ double pimprovement(const field& f, string celltok)
         if (tmu==1)
             mu = uniform_distribution(0.0,1.5);
         
-        uniform_distribution remain = (mu - othermu) / intersections[celltok]; //remaining(mu, f, celltok) / intersections[celltok];
-        uniform_distribution intremain = remain.intersection(cellmu[celltok]);
+        uniform_distribution remain = (mu - othermu) / intersections[cell_token]; //remaining(mu, f, celltok) / intersections[celltok];
+        uniform_distribution intremain = remain.intersection(cellmu[cell_token]);
 
 		double intremainrange = intremain.range();
 		
@@ -325,11 +314,37 @@ double pimprovement(const field& f, string celltok)
 
     }
 
-	return cellmu[celltok].range() / worst;
+	return cellmu[cell_token].range() / worst;
 
 }
 
+vector<field> cellfields::new_fields(vector<field>& current, const field& f) const
+{
+	bool all_improve = true;
+	for (field fi : current)
+	{
+		//compare_improvement(f,fi,cell_token); 
+		if(!compare_improvement(f,fi))
+		{
+			all_improve = false;
+			break;
+		}
+	}
+	if (all_improve) {
+		current.push_back(f);
+		return current;
+	}
 
+	vector<field> new_current;
+	for (field fi : current)
+	{
+		//compare_improvement(f,fi,cell_token); 
+		if(compare_improvement(f,fi))
+			new_current.push_back(fi);
+	}
+	new_current.push_back(f);
+	return new_current;
+}
 
 double cellfields::start_search(double best, const vector<field>& af)
 {
@@ -345,21 +360,23 @@ double cellfields::start_search(double best, const vector<field>& af)
 	return best;
 }
 
-double cellfields::search_fields(vector<field> current, const field& f, int start, double best)
+double cellfields::search_fields(vector<field> current, const field& f, int start, double best) const
 {
 
-	double fscore = pimprovement(f,cell_token);
+	double fscore = pimprovement(f);
 
 	if (fscore <= 1.0 + epsilon)
 		return best;
 
-	current.push_back(f);
-	
-	int newSize = current.size();
 
-	double total_score = multi_improvement(current,cell_token);
+	double total_score = multi_improvement(current,f,cell_token);
 	if (best >= total_score)
 		return best;
+
+	current = new_fields(current,f);
+
+	int newSize = current.size();
+
 
 	//cerr << "fscore: " << setprecision(20) << fscore << endl;
 	/*
