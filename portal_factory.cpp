@@ -205,9 +205,12 @@ vector<portal> portal_factory::cluster_from_description(const string desc) const
         //S2Builder* builder = new S2Builder(opt);
 
         vector<S2Point> ppo = { ploc.at(0).s2latlng().ToPoint(), ploc.at(1).s2latlng().ToPoint(), ploc.at(2).s2latlng().ToPoint()};
-        search_region = new S2Loop(ppo);
+        S2Loop* search_loop = new S2Loop(ppo);
+        search_loop->Normalize();
+        search_region = search_loop;
 
         return cluster_from_region(search_region);
+        delete(search_loop);
 
     }
 	vector<portal> map;
