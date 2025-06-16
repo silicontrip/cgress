@@ -259,7 +259,7 @@ vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::lin
         la = lf->filter_link_by_blocker(la, links, avoid_double);
 
     if (limit2k)
-        la = lf->filter_link_by_length(la, 2000);
+        la = lf->filter_link_by_length(la, 2);  // but handle using existing links.  I'll need a bit more thinking time.
 
     if (percentile < 100)
         la = lf->percentile_lines(la, percentile);
@@ -467,7 +467,7 @@ int main (int argc, char* argv[])
         
         li = filter_lines(li, links, tc, avoid_double, limit2k, percentile);
         
-        cerr << "== links generated " << rt.split() << " seconds. Generating fields ==" << endl;
+        cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
         all_fields = ff->make_fields_from_single_links(li);
     } else if (ag.argument_size() == 2) {
