@@ -31,7 +31,7 @@ private:
 
 	string draw_fields(const vector<field>& f);
 	double calc_score(const field& f) const;
-	double search_fields(vector<field> current, const field& f, int start, double best) const;
+	double search_fields(vector<field> current, const field& f, int start, double best);
 	uniform_distribution uniform_improvement(const field& f, uniform_distribution mucell) const;
 	double multi_improvement(const vector<field>& vf, const field& fi) const;
 	bool compare_improvement(const field& f1, const field& f2) const;
@@ -360,7 +360,7 @@ double cellfields::start_search(double best, const vector<field>& af)
 	return best;
 }
 
-double cellfields::search_fields(vector<field> current, const field& f, int start, double best) const
+double cellfields::search_fields(vector<field> current, const field& f, int start, double best) 
 {
 
 	double fscore = pimprovement(f);
@@ -369,7 +369,7 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 		return best;
 
 
-	double total_score = multi_improvement(current,f,cell_token);
+	double total_score = multi_improvement(current,f);
 	if (best >= total_score)
 		return best;
 
@@ -725,7 +725,7 @@ int main (int argc, char* argv[])
         
         li = filter_lines(li, links, tc);
         
-        cerr << "== links generated " << rt.split() << " seconds. Generating fields ==" << endl;
+        cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
         all_fields = ff->make_fields_from_single_links(li);
     } else if (ag.argument_size() == 2) {
