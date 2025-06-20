@@ -45,6 +45,8 @@ class draw_tools {
         void add(field f);
         void add(point p);
         void add(point p, double r);
+        void add(std::vector<point> pp);
+
 
         Json::Value as_polygon() const;
         Json::Value as_polyline() const;

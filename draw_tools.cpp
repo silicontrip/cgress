@@ -42,12 +42,13 @@ Json::Value draw_tools::line_from_intel_string(string pline) const
     double lo1;
     istringstream(pline.substr(0,co)) >> lo1;
     pline = pline.substr(co+1,pline.length()-(co+1));
+    co = pline.find(",",0);
+
     double la2;
     istringstream(pline.substr(0,co)) >> la2;
     double lo2;
+    co = pline.find(",",0);
     istringstream(pline.substr(co+1,pline.length()-(co+1))) >> lo2;
-
-    //cerr << setprecision(9) << la1 << ", " << lo1 << " - " << la2 << ", " << lo2 << endl;
 
     Json::Value latLngs;
     Json::Value ll;
@@ -66,6 +67,7 @@ Json::Value draw_tools::line_from_intel_string(string pline) const
     obj["type"] = "polyline";
     obj["color"] = colour;
     obj["latLngs"] = latLngs;
+
 
     return obj;
 }
@@ -89,17 +91,13 @@ void draw_tools::from_intel(string intel)
     size_t inext = idesc.find("_",0);
     while (inext != string::npos)
     {
-        //cerr << inext << endl;
         string pline = idesc.substr(0,inext);
-        // cerr << pline << endl;
-
-
-
         entities.append(line_from_intel_string(pline));
 
         idesc = idesc.substr(inext+1,idesc.length()-(inext+1));
         inext = idesc.find("_",0);
     }
+
     entities.append(line_from_intel_string(idesc));
 
 }
@@ -254,6 +252,26 @@ void draw_tools::add(point p,double r)
     entities.append(obj);
 }
 
+void draw_tools::add(vector<point> pp)
+{
+    Json::Value latLngs;
+    Json::Value ll;
+
+    for (point p : pp)
+    {
+        ll["lat"] = p.s2latlng().lat().e6() / 1000000.0;
+        ll["lng"] = p.s2latlng().lng().e6() / 1000000.0;
+
+        latLngs.append(ll);
+    }
+    Json::Value obj;
+    obj["type"] = "polygon";
+    obj["color"] = colour;
+    obj["latLngs"] = latLngs;
+
+    entities.append(obj);
+}
+
 int draw_tools::size() const { return entities.size(); }
 
 Json::Value draw_tools::make_polygon (Json::Value ll1, Json::Value ll2, Json::Value ll3) const
@@ -322,19 +340,22 @@ Json::Value draw_tools::as_polygon() const
     Json::Value out;
     unordered_set<Json::Value> temp;
 
-    for (Json::Value dto1: entities) 
+    for (int i=0; i < entities.size(); i++) 
     {
+        Json::Value dto1 = entities[i];
         if (dto1["type"] == "polyline")
         {
             bool insert = false;
-            for (Json::Value dto2: entities)
+            for (int j=i+1; j < entities.size(); j++)
             {
+                Json::Value dto2 = entities[j];
                 if (dto2["type"] == "polyline")
                 {
                     if (dto1["latLngs"][0] == dto2["latLngs"][0])
                     {
-                        for (Json::Value dto3: entities)
+                        for (int k=j+1; k < entities.size(); k++)
                         {
+                            Json::Value dto3 = entities[k];
                             if (dto3["type"] == "polyline")
                             {
                                 if (((dto1["latLngs"][1] == dto3["latLngs"][0]) && 
@@ -343,13 +364,14 @@ Json::Value draw_tools::as_polygon() const
                                 (dto2["latLngs"][1] == dto3["latLngs"][0]) )) 
                                 {
                                     insert = true;
-                                    temp.insert(make_polygon(dto1["latLngs"][0],dto1["latLngs"][1],dto2["latLngs"][0]));
+                                    temp.insert(make_polygon(dto1["latLngs"][0],dto3["latLngs"][0],dto3["latLngs"][1]));
                                 }
                             }
                         }
                     } else if (dto1["latLngs"][0] == dto2["latLngs"][1]) {
-                        for (Json::Value dto3: entities)
+                        for (int k=j+1; k < entities.size(); k++)
                         {
+                            Json::Value dto3 = entities[k];
                             if (dto3["type"] == "polyline")
                             {
                                 if (((dto1["latLngs"][1] == dto3["latLngs"][0]) && 
@@ -358,7 +380,7 @@ Json::Value draw_tools::as_polygon() const
                                 (dto2["latLngs"][0] == dto3["latLngs"][0]) )) 
                                 {
                                     insert = true;
-                                    temp.insert(make_polygon(dto1["latLngs"][0],dto1["latLngs"][1],dto2["latLngs"][0]));
+                                    temp.insert(make_polygon(dto1["latLngs"][0],dto3["latLngs"][0],dto3["latLngs"][1]));
                                 }
                             }
                         }   
@@ -543,6 +565,7 @@ vector<field> draw_tools::get_fields() const
 {
     unordered_set<field> field_set;
     Json::Value pos = as_polygon();
+
     for (Json::Value dto1: pos) 
     {
         if (dto1["type"] == "polygon")
