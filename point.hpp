@@ -36,7 +36,9 @@ namespace silicontrip {
 			point inverse() const;
 			double geo_distance_to(const point& p) const;
 			//S1Angle getAngle(point p1, point p2);
-			//S1Angle getBearing(point p);
+			S1Angle bearing_to(point p) const;
+			point project_to(S1Angle distance, S1Angle bearing) const;
+
 
 			int count_links(std::vector<line> l) const;
 			int count_dlinks(std::vector<line> l) const;
