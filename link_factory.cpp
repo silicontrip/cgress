@@ -33,7 +33,12 @@ vector<link> link_factory::purge_links(const vector<portal>& portals, const unor
         bound.AddPoint(po.s2latlng());
     }
 
+    return links_in_rect(bound,links);
 
+}
+
+vector<link> link_factory::links_in_rect(S2LatLngRect bound, const unordered_map<string,link>& links) const
+{
     S2Point p1 = bound.GetVertex(0).ToPoint();
     S2Point p2 = bound.GetVertex(1).ToPoint();
     S2Point p3 = bound.GetVertex(2).ToPoint();

@@ -36,6 +36,7 @@ class link_factory {
           
       std::vector<link> purge_links(const std::vector<portal>& portals, const std::unordered_map<std::string,link>& links) const;
       std::vector<link> get_purged_links (const std::vector<portal>& portals) const;
+      std::vector<link> links_in_rect(S2LatLngRect bound, const std::unordered_map<std::string,link>& links) const;
       std::unordered_map<std::string,link> get_all_links() const;
 
       std::vector<line> make_lines_from_single_cluster(const std::vector<portal>& portals) const;
