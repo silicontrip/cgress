@@ -370,7 +370,7 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 
 
 	double total_score = multi_improvement(current,f);
-	if (best >= total_score)
+	if (best >= total_score && current.size() > 0)
 		return best;
 
 	current = new_fields(current,f);
@@ -392,11 +392,14 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 	}
 	*/
 
-	cerr << total_score << " : " << newSize << " : " << rt.split() << " seconds." << endl;
-	cout << draw_fields(current) << endl; 
-	cerr << endl;
-	best = total_score;
-
+	if (total_score > best)
+	{
+		cerr << total_score << " : " << newSize << " : " << rt.split() << " seconds." << endl;
+		cout << draw_fields(current) << endl; 
+		cerr << endl;
+		best = total_score;
+	}
+	
 	if (limit_layers == 0 || current.size() < limit_layers) {
 		for (int i=start; i<all.size(); i++)
 		{
