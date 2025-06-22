@@ -346,14 +346,14 @@ Json::Value draw_tools::as_polygon() const
         if (dto1["type"] == "polyline")
         {
             bool insert = false;
-            for (int j=i+1; j < entities.size(); j++)
+            for (int j=0; j < entities.size(); j++)
             {
                 Json::Value dto2 = entities[j];
                 if (dto2["type"] == "polyline")
                 {
                     if (dto1["latLngs"][0] == dto2["latLngs"][0])
                     {
-                        for (int k=j+1; k < entities.size(); k++)
+                        for (int k=0; k < entities.size(); k++)
                         {
                             Json::Value dto3 = entities[k];
                             if (dto3["type"] == "polyline")
@@ -369,7 +369,7 @@ Json::Value draw_tools::as_polygon() const
                             }
                         }
                     } else if (dto1["latLngs"][0] == dto2["latLngs"][1]) {
-                        for (int k=j+1; k < entities.size(); k++)
+                        for (int k=0; k < entities.size(); k++)
                         {
                             Json::Value dto3 = entities[k];
                             if (dto3["type"] == "polyline")
@@ -572,19 +572,23 @@ vector<field> draw_tools::get_fields() const
         {
             Json::Value ll = dto1["latLngs"];
             // no crazy shit with polygons more than 3 sides. okay?
-            double lat1 = ll[0]["lat"].asDouble();
-            double lng1 = ll[0]["lng"].asDouble();
-            double lat2 = ll[1]["lat"].asDouble();
-            double lng2 = ll[1]["lng"].asDouble();
-            double lat3 = ll[2]["lat"].asDouble();
-            double lng3 = ll[2]["lng"].asDouble();  
+            if (ll.size() == 3)
+            {
+                // crazy shit avoided.
+                double lat1 = ll[0]["lat"].asDouble();
+                double lng1 = ll[0]["lng"].asDouble();
+                double lat2 = ll[1]["lat"].asDouble();
+                double lng2 = ll[1]["lng"].asDouble();
+                double lat3 = ll[2]["lat"].asDouble();
+                double lng3 = ll[2]["lng"].asDouble();  
 
-            point p1 = point(lat1,lng1);
-            point p2 = point(lat2,lng2);
-            point p3 = point(lat3,lng3);
+                point p1 = point(lat1,lng1);
+                point p2 = point(lat2,lng2);
+                point p3 = point(lat3,lng3);
 
-            field f = field (p1,p2,p3);
-            field_set.insert(f);
+                field f = field (p1,p2,p3);
+                field_set.insert(f);
+            }
         }
     }
     vector<field> result;
