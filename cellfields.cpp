@@ -282,7 +282,6 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 		//	return best;
 	}
 
-	current.push_back(f);
 	//current = new_fields(current,f);
 
 //	int newSize = current.size();
@@ -314,7 +313,8 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 			best = total_score;
 		}
 	}
-	
+	current.push_back(f);
+
 	if (limit_layers == 0 || current.size() < limit_layers) {
 		for (int i=start; i<all.size(); i++)
 		{
