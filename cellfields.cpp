@@ -40,7 +40,7 @@ private:
 	vector<field> new_fields(vector<field>& current, const field& f) const;
 	double pimprovement(const field& f) const;
 	vector<uniform_distribution> ranges(const field& f1, uniform_distribution mucell) const;
-	pair<int,int> range(const field& f1, unordered_map<string,double> intersections1, unordered_map<string,uniform_distribution> cellmu1, uniform_distribution mucell) const;
+	pair<int,int> range(const field& f1, double area, uniform_distribution mucell, uniform_distribution othermu) const;
 
 
 public:
@@ -98,11 +98,11 @@ uniform_distribution other_contribution(const field& f, string celltok, const un
 	return othermu;
 }
 
-pair<int,int> cellfields::range(const field& f1, unordered_map<string,double> intersections1, unordered_map<string, uniform_distribution> cellmu1, uniform_distribution mucell) const
+pair<int,int> cellfields::range(const field& f1, double area, uniform_distribution mucell, uniform_distribution othermu) const
 {
 
-	uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
-	uniform_distribution totalmu1 = othermu1 + mucell * intersections1[cell_token];
+	//uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
+	uniform_distribution totalmu1 = othermu + mucell * area;
 	
 	double totalmax1 = round(totalmu1.get_upper());
 	double totalmin1 = round(totalmu1.get_lower());
@@ -125,7 +125,7 @@ vector<uniform_distribution> cellfields::ranges(const field& f1, uniform_distrib
 	unordered_map<string,uniform_distribution> cellmu1 = ff->query_mu(cells1);
 
 	uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
-	pair<int,int> murange = range(f1,intersections1, cellmu1, mucell);
+	pair<int,int> murange = range(f1,intersections1[cell_token], mucell,othermu1);
 
 	vector<uniform_distribution> res;
 	for (int tmu1 = murange.first; tmu1 <= murange.second; tmu1++)
