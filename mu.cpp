@@ -94,7 +94,7 @@ vector<uniform_distribution> ranges(const field& f1, uniform_distribution mucell
 	return res;
 }
 
-uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distribution>> r, uniform_distribution c, size_t index)
+uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distribution>> r, uniform_distribution c, size_t index, string ss)
 {
 
 	if (index >= r.size())
@@ -104,27 +104,16 @@ uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distri
 	uniform_distribution worst (0.0,0.0);
 	for (uniform_distribution u : r[index])
 	{
-		/*
-		for (int i=0; i< index; i++)
-		{
-			cerr << "f" << i+1 << ": ";
-
-			uniform_distribution ut = i];
-			uniform_distribution t = c.intersection(u);
-			if (t.range() == 0)
-				t = c;
-
-			cerr << c.range()/t.range() << " "; 
-
-		}
-		*/
 
 		uniform_distribution t = o.intersection(u);
 		if (t.range() == 0)
 			t = o;
 
-		cerr << "f" << index+1 << ": ";
-		cerr << o.range()/t.range() << " "; 
+		stringstream iss;
+
+		iss << ss;
+		iss << "f" << index+1 << ": ";
+		iss << o.range()/t.range() << " "; 
 
 		t = c.intersection(u);
 		if (t.range() == 0)
@@ -132,7 +121,7 @@ uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distri
 
 		uniform_distribution next_rd;
 		if (index +1 < r.size())
-			next_rd = lowest(o,r,t,index+1);
+			next_rd = lowest(o,r,t,index+1,iss.str());
 		else
 			next_rd = u;
 
@@ -143,7 +132,10 @@ uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distri
 			worst = id;
 
 		if (index+1 == r.size())
-			cerr << "(" << o.range() / id.range() << ")" << endl;
+		{
+			iss << "(" << o.range() / id.range() << ")";
+			cerr << iss.str() << endl;
+		}
 
 	}
 	return worst;
@@ -205,7 +197,8 @@ void show_matrix_improvements(const vector<field>& f, string celltok)
 
 	vector<vector<uniform_distribution>> field_ranges = multi_ranges(f, cellmu[celltok], celltok);
 
-	lowest(cellmu[celltok],field_ranges,cellmu[celltok],0);
+	string ss;
+	lowest(cellmu[celltok],field_ranges,cellmu[celltok],0,ss);
 }
 
 vector<string> intcells (vector<field> f)
@@ -299,7 +292,7 @@ int main (int argc, char* argv[])
         total = total + ftotal;
 
     }
-	if (ag.has_option("i")) {
+	if (ag.has_option("i") && fields.size() > 1) {
 		vector<string>cc = intcells(fields);
 		for (string ctok : cc)
 		{
