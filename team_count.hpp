@@ -43,13 +43,18 @@ class team_count {
         bool no_enlightened() const;
         bool no_neutral() const;
 
-        bool operator>(team_count tc) const;
+        bool operator>(const team_count& tc) const;
+        bool operator<=(const team_count& tc) const;
 
         bool any_resistance_blockers() const;
         bool any_enlightened_blockers() const;
         bool any_neutral_blockers() const;
         bool any_blockers() const;
         bool dont_care() const;
+
+        int max() const;
+        int min() const;
+
 
         std::string to_string() const;
 };
