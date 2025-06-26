@@ -92,7 +92,7 @@ namespace silicontrip {
     bool team_count::no_enlightened() const { return enlightened == -1; }
     bool team_count::no_neutral() const { return neutral == -1; }
 
-    bool team_count::operator> (team_count tc) const
+    bool team_count::operator> (const team_count& tc) const
     {
         bool res = false;
         bool enl = false;
@@ -109,6 +109,21 @@ namespace silicontrip {
 
     }
 
+    bool team_count::operator<= (const team_count& tc) const
+    {
+        bool res = true;
+        bool enl = true;
+        bool neu = true;
+
+        if (!tc.no_enlightened() && !no_enlightened())
+            enl = get_enlightened() <= tc.get_enlightened();
+        if (!tc.no_resistance() && !no_resistance())
+            res = get_resistance() <= tc.get_resistance();
+        if (!tc.no_neutral() && !no_neutral())
+            neu = get_neutral() <= tc.get_neutral();
+
+        return res && enl && neu;
+    }
 
     bool team_count::any_resistance_blockers() const { return resistance > 0; }
     bool team_count::any_enlightened_blockers() const { return enlightened > 0; }
@@ -116,6 +131,12 @@ namespace silicontrip {
 
     bool team_count::any_blockers() const { return resistance > 0 || enlightened > 0 || neutral > 0; }
     bool team_count::dont_care() const { return resistance == -1 && enlightened == -1 && neutral == -1; }
+
+    int team_count::max() const { return std::max(resistance,std::max(enlightened,neutral)); }
+    int team_count::min() const { 
+        if (dont_care()) return 0;
+        return std::min (resistance==-1?INT_MAX:resistance,std::min(enlightened==-1?INT_MAX:enlightened,neutral==-1?INT_MAX:neutral));
+    }
 
     string team_count::to_string() const {
         return "ENL: " + std::to_string(enlightened) + " RES: "+ std::to_string(resistance)+ " NEU: " + std::to_string(neutral);
