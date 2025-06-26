@@ -77,7 +77,7 @@ int shadow::count_links(point p) const
 	int count = 0;
 	for (silicontrip::link li : links)
 	{
-		// cerr << "  o: " << li.get_o_point() << " d: " << li.get_d_point() << endl;
+	// cerr << "  o: " << li.get_o_point() << " d: " << li.get_d_point() << endl;
 		if (li.get_o_point() == p || li.get_d_point() == p)
 			count ++;
 	}
