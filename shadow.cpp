@@ -492,7 +492,6 @@ int main (int argc, char* argv[])
 		
 		
 	}
-	//dt = ss.make_layer(1,"#888888");
 
 	if (!sep)
 		cout << dt.to_string() << endl;
