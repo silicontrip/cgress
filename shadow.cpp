@@ -306,8 +306,6 @@ int shadow::max()
 draw_tools shadow::make_layer (draw_tools d, team_count layer, string colour)
 {
 
-	//draw_tools d;
-
 	vector<point> loop;
 	for (double deg : intervals)
 	{
