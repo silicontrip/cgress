@@ -383,9 +383,6 @@ int main (int argc, char* argv[])
 	ag.add_req("h","help",false);
 	ag.add_req("C","colour",true); // drawtools colour
 
-
-
-
 	if (!ag.parse() || ag.has_option("h"))
 	{
 		print_usage();
