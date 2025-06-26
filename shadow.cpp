@@ -415,9 +415,6 @@ int main (int argc, char* argv[])
 		autocolour = false;
 	}
 
-	//if (ag.has_option("s")) 
-	//	str = ag.get_option_for_key_as_int("s");
-
 	if (ag.argument_size() != 1) {
 		cerr << "Must specify one portal." << endl;
 		exit(1);
