@@ -13,7 +13,7 @@ using namespace silicontrip;
 
 struct layer {
 	S1Angle angle;
-	int level;
+	team_count level;
 	int start; 
 	int end;
 	vector<point> points;
@@ -44,23 +44,24 @@ private:
 	vector<double> intervals;
 	portal pp;
 	S1Angle radius;
-	int strength;
+	//int strength;
+	team_count strength;
 
-	struct layer make_seg(S1Angle a, int s, bool se, point l) const;
+	struct layer make_seg(S1Angle a, team_count s, bool se, point l) const;
 	int count_links(point p) const;
 	vector<point> get_intersections(const vector<silicontrip::link>& a, line l) const;
-	int count_intersections(const vector<silicontrip::link>& a, line l) const;
-
+	team_count count_intersections(const vector<silicontrip::link>& a, line l) const;
 
 public:
-	shadow(const vector<silicontrip::link>& a, const portal& p, double r, int s, run_timer& run);
+	shadow(const vector<silicontrip::link>& a, const portal& p, double r, team_count s, run_timer& run);
 	void prep();
-	draw_tools make_layer(draw_tools d, int layer, string colour);
+	draw_tools make_layer(draw_tools d, team_count layer, string colour);
+	int max();
 	//bool dist_compare(const point& a, const point& b);
 
 };
 
-shadow::shadow(const vector<silicontrip::link>& a, const portal& p, double r, int s, run_timer& run)
+shadow::shadow(const vector<silicontrip::link>& a, const portal& p, double r, team_count s, run_timer& run)
 {
 	links = a;
 	pp = p;
@@ -111,9 +112,10 @@ vector<point> shadow::get_intersections(const vector<silicontrip::link>& a, line
 	return r;
 }
 
-int shadow::count_intersections(const vector<silicontrip::link>& a, line l) const
+team_count shadow::count_intersections(const vector<silicontrip::link>& a, line l) const
 {
-	int count = 0;
+	team_count tc(0,0,0);
+	//int count = 0;
 	S2Point al = l.o_s2point();
 	S2Point bl = l.d_s2point();
 	S2EdgeCrosser ec(&al, &bl);
@@ -124,13 +126,16 @@ int shadow::count_intersections(const vector<silicontrip::link>& a, line l) cons
 			S2Point cl = li.o_s2point();
 			S2Point dl = li.d_s2point();
 			if (ec.CrossingSign(&cl,&dl) == 1)
-				count++;
+			{
+				//count++;
+				tc.inc_team_enum(li.get_team_enum());
+			}
 		}
 	}
-	return count;
+	return tc;
 }
 
-struct layer shadow::make_seg(S1Angle a, int s, bool se, point l) const
+struct layer shadow::make_seg(S1Angle a, team_count s, bool se, point l) const
 {
 	struct layer tl;
 
@@ -172,10 +177,10 @@ void shadow::prep()
 			line ld = line(pp,li.get_d_point());
 
 			//
-			int seco = count_intersections(links,lo);
-			int secd = count_intersections(links,ld);
+			team_count seco = count_intersections(links,lo);
+			team_count secd = count_intersections(links,ld);
 
-			// cerr << "o links: " << seco << " d links: " << secd << endl;
+			// cerr << "str: " << strength << " o links: " << seco << " d links: " << secd << endl;
 
 			if (seco <= strength || secd <= strength) 
 			{
@@ -199,7 +204,7 @@ void shadow::prep()
 				//check if o_point less than radius
 				if (seco <= strength)
 				{
-					//cerr << "== seco " << o.degrees() << " ==" << endl;
+					// cerr << "== seco " << o.degrees() << " " << seco << " ==" << endl;
 
 					if (layers.count(o.degrees())==0)
 					{
@@ -221,7 +226,7 @@ void shadow::prep()
 				//check if d_point less than radius
 				if (secd <= strength)
 				{
-					//cerr << "== secd " << d.degrees() << " ==" << endl;
+					// cerr << "== secd " << d.degrees() << " " << secd << " ==" << endl;
 					if (layers.count(d.degrees())==0)
 					{
 						struct layer tl = make_seg(d,secd,!ostart,li.get_d_point());
@@ -250,7 +255,7 @@ void shadow::prep()
 			S1Angle a = S1Angle::Degrees(deg);
 			point epoint = pp.project_to(radius,a);
 			line l =line(pp,epoint);
-			int str = count_intersections(links,l);
+			team_count str = count_intersections(links,l);
 
 			if (str <= strength)
 			{
@@ -286,7 +291,19 @@ void shadow::prep()
 
 }
 
-draw_tools shadow::make_layer (draw_tools d, int layer, string colour)
+int shadow::max()
+{
+	int lmax = 0;
+	for (double deg : intervals)
+	{
+		struct layer tl = layers[deg];
+		if (tl.level.max() > lmax)
+			lmax = tl.level.max();
+	}
+	return lmax;
+}
+
+draw_tools shadow::make_layer (draw_tools d, team_count layer, string colour)
 {
 
 	//draw_tools d;
@@ -298,7 +315,9 @@ draw_tools shadow::make_layer (draw_tools d, int layer, string colour)
 
 		if (tl.level <= layer)
 		{
-			int thislayer = (layer + 1) - tl.level;
+		//cerr << "layer: " << layer << " " << deg << " : " << tl.level << endl;
+
+			int thislayer = (layer.min() + 1) - tl.level.min();
 			int endpoints = tl.points.size() -1;
 
 			int thisstart = thislayer - tl.start;
@@ -333,7 +352,9 @@ void print_usage()
 		cerr << "shadow -r <range km> [options] <portal>" << endl;
 		cerr << endl;
 		cerr << "Options:" << endl;
-		cerr << " -s <number>       Limit number of Blockers." << endl;
+		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
+		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
+		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
 		cerr << " -r <number>       Extend range of links to this distance km." << endl;
 		cerr << " -S                Output each level shadow as separate drawtools." << endl;
 		cerr << " -C <#colour>      Drawtools colour." << endl;
@@ -343,7 +364,7 @@ int main (int argc, char* argv[])
 {
 	run_timer rt;
 
-	int str = 0;
+	//int str = 0;
 	double rad = 0.0;
 	vector<silicontrip::link> links;
 	portal pp;
@@ -354,10 +375,15 @@ int main (int argc, char* argv[])
 
 	arguments ag(argc,argv);
 	ag.add_req("r","radius",true); // maximum links
-	ag.add_req("s","strength",true); // number of links to cross (may extend this to faction)
+	// ag.add_req("s","strength",true); // number of links to cross (may extend this to faction)
+	ag.add_req("E","enlightened",true); // max enlightened blockers
+	ag.add_req("R","resistance",true); // max resistance blockers
+	ag.add_req("N","machina",true); // max machina blockers
 	ag.add_req("S","separate",false);
 	ag.add_req("h","help",false);
 	ag.add_req("C","colour",true); // drawtools colour
+
+
 
 
 	if (!ag.parse() || ag.has_option("h"))
@@ -365,6 +391,11 @@ int main (int argc, char* argv[])
 		print_usage();
 		exit(1);
 	}
+
+	team_count tc = team_count(ag.get_option_for_key("E"),ag.get_option_for_key("R"),ag.get_option_for_key("N"));
+
+	if (tc.dont_care())
+		tc = team_count(0,0,0);
 
 	if (ag.has_option("r"))
 		rad = ag.get_option_for_key_as_double("r");
@@ -384,8 +415,8 @@ int main (int argc, char* argv[])
 		autocolour = false;
 	}
 
-	if (ag.has_option("s")) 
-		str = ag.get_option_for_key_as_int("s");
+	//if (ag.has_option("s")) 
+	//	str = ag.get_option_for_key_as_int("s");
 
 	if (ag.argument_size() != 1) {
 		cerr << "Must specify one portal." << endl;
@@ -416,17 +447,34 @@ int main (int argc, char* argv[])
 	unordered_map<string,silicontrip::link> ll = lf->get_all_links();
 	links = lf->links_in_rect(bound,ll);
 
-	shadow ss(links,pp,rad,str,rt);
+	shadow ss(links,pp,rad,tc,rt);
 
 	cerr << "preparing segments." << endl;
 	ss.prep();
 
 	cerr << "segments prepared in " << rt.split() << " seconds." << endl; 
 
+	cerr << "layers generated: " << ss.max() << endl;
+
 	draw_tools dt;
 
-	for (int l=0; l <= str; l++ )
+	for (int l=0; l <= ss.max(); l++ )
 	{
+		// make a count up to the max tc specified.
+		int enl = l;
+		if (!tc.no_enlightened() && tc.get_enlightened() < enl)
+			enl = tc.get_enlightened();
+
+		int res = l;
+		if (!tc.no_resistance() && tc.get_resistance() < enl)
+			res = tc.get_resistance();
+
+		int neu = l;
+		if (!tc.no_neutral() && tc.get_neutral() < enl)
+			neu = tc.get_neutral();
+
+		team_count layertc(enl,res,neu);
+
 		if (sep) {
 			dt.erase();
 			cout << l << ": " << endl;
@@ -437,10 +485,10 @@ int main (int argc, char* argv[])
 			stream << std::hex << hexcolour;
 			colour = "#" + stream.str();
 		}
-		dt = ss.make_layer(dt,l,colour);
+		dt = ss.make_layer(dt,layertc,colour);
 
 		if (autocolour)
-			hexcolour -= 1118481 * 2;
+			hexcolour -= 1118481 ;
 
 		if (sep)
 				cout << dt.to_string() << endl << endl;
