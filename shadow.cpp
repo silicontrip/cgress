@@ -48,7 +48,6 @@ private:
 	team_count strength;
 
 	struct layer make_seg(S1Angle a, team_count s, bool se, point l) const;
-	int count_links(point p) const;
 	vector<point> get_intersections(const vector<silicontrip::link>& a, line l) const;
 	team_count count_intersections(const vector<silicontrip::link>& a, line l) const;
 
@@ -70,18 +69,6 @@ shadow::shadow(const vector<silicontrip::link>& a, const portal& p, double r, te
 	strength = s;
 
 	rt = run;
-}
-
-int shadow::count_links(point p) const
-{
-	int count = 0;
-	for (silicontrip::link li : links)
-	{
-	// cerr << "  o: " << li.get_o_point() << " d: " << li.get_d_point() << endl;
-		if (li.get_o_point() == p || li.get_d_point() == p)
-			count ++;
-	}
-	return count;
 }
 
 vector<point> shadow::get_intersections(const vector<silicontrip::link>& a, line l) const
@@ -204,7 +191,7 @@ void shadow::prep()
 				//check if o_point less than radius
 				if (seco <= strength)
 				{
-					// cerr << "== seco " << o.degrees() << " " << seco << " ==" << endl;
+					//cerr << "== seco " << o.degrees() << " " << seco << " ==" << endl;
 
 					if (layers.count(o.degrees())==0)
 					{
@@ -226,7 +213,7 @@ void shadow::prep()
 				//check if d_point less than radius
 				if (secd <= strength)
 				{
-					// cerr << "== secd " << d.degrees() << " " << secd << " ==" << endl;
+					//cerr << "== secd " << d.degrees() << " " << secd << " ==" << endl;
 					if (layers.count(d.degrees())==0)
 					{
 						struct layer tl = make_seg(d,secd,!ostart,li.get_d_point());
@@ -264,8 +251,8 @@ void shadow::prep()
 				tl.angle = a;
 				tl.level = str;
 
-				tl.start = true;
-				tl.end = true;
+				tl.start = 1;
+				tl.end = 1;
 
 				vector<point> po;
 
@@ -333,8 +320,11 @@ draw_tools shadow::make_layer (draw_tools d, team_count layer, string colour)
 			if (thisend> endpoints)
 				thisend = endpoints;
 
-			loop.push_back(tl.points[thisend]);
-			loop.push_back(tl.points[thisstart]);
+			// check that point isn't further than radius.
+			if (pp.ang_distance_to(tl.points[thisend]) <= radius)
+				loop.push_back(tl.points[thisend]);
+			if (pp.ang_distance_to(tl.points[thisstart]) <= radius)
+				loop.push_back(tl.points[thisstart]);
 		}
 
 	}
