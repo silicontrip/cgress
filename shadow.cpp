@@ -363,8 +363,6 @@ void print_usage()
 int main (int argc, char* argv[])
 {
 	run_timer rt;
-
-	//int str = 0;
 	double rad = 0.0;
 	vector<silicontrip::link> links;
 	portal pp;
