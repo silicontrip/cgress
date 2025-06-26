@@ -43,6 +43,8 @@ point point::inverse() const {
 }
 // S2Library changed its Earth radius value
 double point::geo_distance_to(const point& p) const { return latlng.GetDistance(p.s2latlng()).radians() * earth_radius; }
+S1Angle point::ang_distance_to(const point& p) const { return latlng.GetDistance(p.s2latlng()); }
+
 //S1Angle point::angle_between(point& p1, point& p2) 
 //S1Angle point::bearing_to(point& p) 
 
