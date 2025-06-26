@@ -1,6 +1,6 @@
-#OPTFLAGS=-O2
+OPTFLAGS=-O3
 #OPTFLAGS=-g -fsanitize=address
-OPTFLAGS=-g
+#OPTFLAGS=-g
 CC=clang++
 #CC=/usr/local/Cellar/llvm/19.1.4/bin/clang++
 CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
@@ -16,9 +16,9 @@ OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 
 EXEOBJ=test_run_timer.o test_point.o test_point.o test_point.o test_factory.o \
 	test_team_count.o test_field.o test_arguments.o maxlayers.o maxfields.o \
-	cyclonefields.o planner.o exofields.o cellfields.o mu.o
+	cyclonefields.o planner.o exofields.o cellfields.o mu.o shadow.o
 
-all: maxlayers maxfields cyclonefields planner portallist cellfields mu
+all: maxlayers maxfields cyclonefields cellfields planner portallist mu shadow
 
 tests: test_run_timer test_point test_line test_factory test_team_count test_field
 
@@ -69,6 +69,9 @@ cellfields: $(OBJ) cellfields.o
 
 mu: $(OBJ) mu.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o mu mu.o
+
+shadow: $(OBJ) shadow.o 
+	$(CC)  $(LDFLAGS) $(OBJ) -o shadow shadow.o
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
