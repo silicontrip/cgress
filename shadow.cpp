@@ -23,10 +23,10 @@ struct dist_compare
 {
     dist_compare(const point& _p) : pp(_p) {}
 
-    bool operator()(const point& a, const point& b) const
+    bool operator()(const pair<point,enum ingressteam>& a, const pair<point, enum ingressteam>& b) const
     {
         //return dist(p, lhs) < dist(p, rhs);
-		return a.s2latlng().GetDistance(pp.s2latlng()) < b.s2latlng().GetDistance(pp.s2latlng());
+		return a.first.s2latlng().GetDistance(pp.s2latlng()) < b.first.s2latlng().GetDistance(pp.s2latlng());
 
     }
 
@@ -47,8 +47,8 @@ private:
 	//int strength;
 	team_count strength;
 
-	struct layer make_seg(S1Angle a, team_count s, bool se, point l) const;
-	vector<point> get_intersections(const vector<silicontrip::link>& a, line l) const;
+	struct layer make_seg(S1Angle a, team_count s, bool se, point l, team_count limit, enum ingressteam originteam) const;
+	vector<pair<point,enum ingressteam>> get_intersections(const vector<silicontrip::link>& a, line l, enum ingressteam originteam) const;
 	team_count count_intersections(const vector<silicontrip::link>& a, line l) const;
 
 public:
@@ -71,11 +71,13 @@ shadow::shadow(const vector<silicontrip::link>& a, const portal& p, double r, te
 	rt = run;
 }
 
-vector<point> shadow::get_intersections(const vector<silicontrip::link>& a, line l) const
+vector<pair<point,enum ingressteam>> shadow::get_intersections(const vector<silicontrip::link>& a, line l, enum ingressteam originteam) const
 {
-	vector<point> r;
+	vector<pair<point,enum ingressteam>> r;
 	// we assume o_point is at a portal
-	r.push_back(l.get_o_point());
+	pair<point,enum ingressteam>opit (l.get_o_point(),originteam);
+
+	r.push_back(opit);
 	S2Point al = l.o_s2point();
 	S2Point bl = l.d_s2point();
 	S2EdgeCrosser ec(&al, &bl);
@@ -90,11 +92,15 @@ vector<point> shadow::get_intersections(const vector<silicontrip::link>& a, line
 			{
 				S2Point c = S2::GetIntersection(al,bl,cl,dl);
 				point p =point(c);
-				r.push_back(p);
+				enum ingressteam it = li.get_team_enum();
+				pair<point,enum ingressteam>pit (p,it);
+				r.push_back(pit);  // need to add team.
 			}
 		}
 	}
-	r.push_back(l.get_d_point());
+	pair<point,enum ingressteam>upit (l.get_d_point(),UNKNOWN);
+
+	r.push_back(upit);
 
 	return r;
 }
@@ -122,7 +128,21 @@ team_count shadow::count_intersections(const vector<silicontrip::link>& a, line 
 	return tc;
 }
 
-struct layer shadow::make_seg(S1Angle a, team_count s, bool se, point l) const
+vector<point> filter_points(vector<pair<point,enum ingressteam>> pts, team_count limit)
+{
+	team_count count(0,0,0);
+	vector<point> result;
+	for (pair<point,enum ingressteam> pi : pts)
+	{
+		result.push_back(pi.first);
+		count.inc_team_enum(pi.second);
+		if (count > limit)
+			break;
+	}
+	return result;
+}
+
+struct layer shadow::make_seg(S1Angle a, team_count s, bool se, point l, team_count limit, enum ingressteam originteam) const
 {
 	struct layer tl;
 
@@ -143,13 +163,14 @@ struct layer shadow::make_seg(S1Angle a, team_count s, bool se, point l) const
 	line coli = line (epoint,l);
 	// find all intersections 
 	// inter.push_back()
-	vector<point> inter = get_intersections(links,coli);
+	vector<pair<point,enum ingressteam>> inter = get_intersections(links,coli,originteam);
 	// sort by distance from centre
+	// and filter after max team_count crossings.
 
 	sort(inter.begin(), inter.end(), dist_compare(pp));
 
 	// inter.push_back(epoint);
-	tl.points = inter;
+	tl.points = filter_points(inter,limit);
 
 	return tl;
 }
@@ -195,7 +216,7 @@ void shadow::prep()
 
 					if (layers.count(o.degrees())==0)
 					{
-						struct layer tl = make_seg(o,seco,ostart,li.get_o_point());
+						struct layer tl = make_seg(o,seco,ostart,li.get_o_point(),strength,li.get_team_enum());
 						layers[o.degrees()]=tl;
 					} else {
 
@@ -216,7 +237,7 @@ void shadow::prep()
 					//cerr << "== secd " << d.degrees() << " " << secd << " ==" << endl;
 					if (layers.count(d.degrees())==0)
 					{
-						struct layer tl = make_seg(d,secd,!ostart,li.get_d_point());
+						struct layer tl = make_seg(d,secd,!ostart,li.get_d_point(),strength,li.get_team_enum());
 						layers[d.degrees()]=tl;
 					} else {
 						if (!ostart)
@@ -241,7 +262,7 @@ void shadow::prep()
 		{
 			S1Angle a = S1Angle::Degrees(deg);
 			point epoint = pp.project_to(radius,a);
-			line l =line(pp,epoint);
+			line l =line(epoint,pp); // dumb I made the constructor d_point, o_point.
 			team_count str = count_intersections(links,l);
 
 			if (str <= strength)
@@ -302,7 +323,7 @@ draw_tools shadow::make_layer (draw_tools d, team_count layer, string colour)
 		{
 		//cerr << "layer: " << layer << " " << deg << " : " << tl.level << endl;
 
-			int thislayer = (layer.min() + 1) - tl.level.min();
+			int thislayer = (layer.max() + 1) - tl.level.max();
 			int endpoints = tl.points.size() -1;
 
 			int thisstart = thislayer - tl.start;
