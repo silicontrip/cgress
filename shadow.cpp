@@ -302,7 +302,7 @@ draw_tools shadow::make_layer (draw_tools d, team_count layer, string colour)
 		{
 		//cerr << "layer: " << layer << " " << deg << " : " << tl.level << endl;
 
-			int thislayer = (layer.min() + 1) - tl.level.min();
+			int thislayer = (layer.max() + 1) - tl.level.max();
 			int endpoints = tl.points.size() -1;
 
 			int thisstart = thislayer - tl.start;
