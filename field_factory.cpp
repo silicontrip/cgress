@@ -665,5 +665,46 @@ vector<field> field_factory::add_splits(const vector<field>& fields) const
     return splits_fields;
 }
 
+std::vector<field> field_factory::make_fields_from_single_links_v2(const std::vector<line>& l) const
+{
+    // 1. Build adjacency list using unordered_set for fast lookups.
+    std::unordered_map<point, std::unordered_set<point>> adj_list;
+    for (const auto& li : l) {
+        adj_list[li.get_o_point()].insert(li.get_d_point());
+        adj_list[li.get_d_point()].insert(li.get_o_point());
+    }
+
+    std::unordered_set<field> fields;
+
+    // 2. Iterate through points and their neighbors
+    for (const auto& pair : adj_list) {
+        const point& p1 = pair.first;
+        const std::unordered_set<point>& neighbors_set = pair.second;
+        
+        // Convert set to vector to iterate with indices
+        std::vector<point> neighbors(neighbors_set.begin(), neighbors_set.end());
+
+        if (neighbors.size() < 2) {
+            continue;
+        }
+
+        for (size_t i = 0; i < neighbors.size(); ++i) {
+            for (size_t j = i + 1; j < neighbors.size(); ++j) {
+                const point& p2 = neighbors[i];
+                const point& p3 = neighbors[j];
+
+                // We have links (p1, p2) and (p1, p3).
+                // Check for the closing link (p2, p3).
+                auto it = adj_list.find(p2);
+                if (it != adj_list.end() && it->second.count(p3)) {
+                    fields.insert(field(p1, p2, p3));
+                }
+            }
+        }
+    }
+
+    return std::vector<field>(fields.begin(), fields.end());
+}
+
 
 }
