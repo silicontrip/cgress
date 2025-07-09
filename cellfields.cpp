@@ -588,7 +588,7 @@ int main (int argc, char* argv[])
 				{
 					//cerr << "== Generating fields ==" << endl;
 
-					all_fields = ff->make_fields_from_single_links(li);
+					all_fields = ff->make_fields_from_single_links_v2(li);
 					all_fields = ff->filter_existing_fields(all_fields,links);
 					all_fields = ff->filter_fields_with_cell(all_fields,cellid);
 

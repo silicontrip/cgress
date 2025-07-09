@@ -43,6 +43,8 @@ class team_count {
         bool no_enlightened() const;
         bool no_neutral() const;
 
+        // the logic for these operators is inconsistent. However makes sense for our use case.
+        // Any are greater than.  All must be less than.
         bool operator>(const team_count& tc) const;
         bool operator<=(const team_count& tc) const;
 

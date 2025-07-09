@@ -67,6 +67,7 @@ class field_factory {
 
 
         std::vector<field> make_fields_from_single_links(const std::vector<line>&l) const;
+        std::vector<field> make_fields_from_single_links_v2(const std::vector<line>&l) const;
 
         // the argument order is important.
         // two from lines1 and 1 from lines2
