@@ -9,7 +9,10 @@ using namespace silicontrip;
 void print_usage()
 {
 		cerr << "Usage:" << endl;
-		cerr << "mu <draw tools json> " << endl;
+		cerr << "mu [-i] <draw tools/intel json> " << endl;
+		cerr << "Shows mu for field plan gives breakdown of cell contributions." << endl;
+		cerr << "Options:" << endl;
+		cerr << " -i          Show potential improvements to the cells if this field is made." << endl;
 }
 
 uniform_distribution remaining(uniform_distribution v, const field& f, string celltok)
@@ -298,15 +301,6 @@ int main (int argc, char* argv[])
 		{
 			cerr << "[" << ctok << "]" <<endl;
 			show_matrix_improvements (fields,ctok);
-			/*
-			for (int i=0; i<fields.size(); i++)
-			{
-				for (int j=i+1; j<fields.size(); j++)
-				{
-					// compare_improvement(fields[i],fields[j],ctok);
-				}
-			}
-			*/
 		}
 	}
     cout << total << endl;
