@@ -141,7 +141,7 @@ vector<uniform_distribution> cellfields::ranges(const field& f1, uniform_distrib
 	return res;
 }
 
-uniform_distribution lowest(vector<vector<uniform_distribution>> r, uniform_distribution c, size_t index)
+uniform_distribution lowest(const vector<vector<uniform_distribution>>& r, uniform_distribution c, size_t index)
 {
 
 	if (index >= r.size())
@@ -150,13 +150,20 @@ uniform_distribution lowest(vector<vector<uniform_distribution>> r, uniform_dist
 	uniform_distribution worst (0.0,0.0);
 	for (uniform_distribution u : r[index])
 	{
+
+		uniform_distribution t = c.intersection(u);
+		if (t.range() == 0)
+			t = c;
+
 		uniform_distribution next_rd;
 		if (index +1 < r.size())
-			next_rd = lowest(r,u,index+1);
+			next_rd = lowest(r,t,index+1);
 		else
-			next_rd = u;
+			next_rd = t;
 
 		uniform_distribution id = c.intersection(next_rd);
+		if (id.range() == 0)
+			id = c;
 		if (id.range() > worst.range())
 			worst = id;
 	}
@@ -409,11 +416,14 @@ unordered_set<S2CellId> expand_cells(unordered_set<S2CellId> cellids, S2CellId c
 	return new_cells;
 }
 
-vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc) 
+vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, bool limit2k) 
 {
 	link_factory* lf = link_factory::get_instance();
     vector<line> la = lf->filter_links(li, links, tc);
     
+	if (limit2k)
+        la = lf->filter_link_by_length(la, 2);  
+
     return la;
 }
 
@@ -454,7 +464,7 @@ int main (int argc, char* argv[])
 	string cellid;
 	int limit=0;
 	
-	// bool showp=false;
+	bool limit2k = false;
 
 	arguments ag(argc,argv);
 
@@ -469,6 +479,7 @@ int main (int argc, char* argv[])
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polyline",false); // output as polylines
 	ag.add_req("l","limit",true); // limit layers/fields
+	ag.add_req("k","limit2k",false); // limit link length to that can be made under fields.
 	// ag.add_req("p","showprecision",false);  // new scoring algorithm automatically handles both general improvement and precision improvement.
 	ag.add_req("c","cellid",true); // generate plan for this cell
 	ag.add_req("h","help",false);
@@ -504,8 +515,8 @@ int main (int argc, char* argv[])
 	if (ag.has_option("c"))
 		cellid = ag.get_option_for_key("c");
 
-	//if (ag.has_option("p"))
-	//	showp=true;
+	if (ag.has_option("k"))
+		limit2k=true;
 
 	if (cellid.length() == 0)
 	{
@@ -526,11 +537,15 @@ int main (int argc, char* argv[])
 	field_factory* ff = field_factory::get_instance();
 
 	if (ag.has_option("S"))
+	{
+		cerr << "== Reading Avoid Portals ==" << endl;
 		avoid_single = pf->cluster_from_description(ag.get_option_for_key("S"));
-
+	}
 	if (ag.has_option("i"))
+	{
+		cerr << "== Reading Ignore Links Portals ==" << endl;
 		ignore_links = pf->cluster_from_description(ag.get_option_for_key("i"));
-
+	}
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
@@ -581,7 +596,8 @@ int main (int argc, char* argv[])
 				//cerr << "all links: " << li.size() << endl;
 
 				li = lf->filter_links(li,links,tc);
-							
+				if (limit2k)
+        			li = lf->filter_link_by_length(li, 2);  
 				//cerr << "purged links: " << li.size() << endl;
 				cerr << "==  "  << li.size() << " links generated " << rt.split() <<  " seconds ==" << endl;
 				if (li.size() > 2)
@@ -641,27 +657,27 @@ int main (int argc, char* argv[])
         vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
         cerr << "all links: " << li.size() << endl;
         
-        li = filter_lines(li, links, tc);
+        li = filter_lines(li, links, tc, limit2k);
         
         cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
         all_fields = ff->make_fields_from_single_links(li);
     } else if (ag.argument_size() == 2) {
-        vector<line> li1 = filter_lines(lf->make_lines_from_single_cluster(clusters[0]), links, tc);
+        vector<line> li1 = filter_lines(lf->make_lines_from_single_cluster(clusters[0]), links, tc, limit2k);
         cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc);
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, limit2k);
         cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
         all_fields = ff->make_fields_from_double_links(li2, li1);
     } else if (ag.argument_size() == 3) {
-        vector<line> li1 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc);
+        vector<line> li1 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, limit2k);
         cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[1], clusters[2]), links, tc);
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[1], clusters[2]), links, tc, limit2k);
         cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
-        vector<line> li3 = filter_lines(lf->make_lines_from_double_cluster(clusters[2], clusters[0]), links, tc);
+        vector<line> li3 = filter_lines(lf->make_lines_from_double_cluster(clusters[2], clusters[0]), links, tc, limit2k);
         cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
         all_fields = ff->make_fields_from_triple_links(li1, li2, li3);
