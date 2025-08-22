@@ -128,6 +128,20 @@ double field::geo_perimeter() const {
     return field_lines[0].geo_distance() + field_lines[1].geo_distance() + field_lines[2].geo_distance();
 
 }
+
+double field::equilateral_percentage() const
+{
+    double area = geo_area();
+    double perimeter = geo_perimeter();
+
+    if (perimeter == 0.0) {
+        return 0.0;
+    } 
+    double ratio = area / std::pow(perimeter, 2);
+    const double MAX_RATIO_EQUILATERAL = 0.04811252243246881370; // std::sqrt(3.0) / 36.0;
+
+    return max (0.0,  min(100.0, ((ratio / MAX_RATIO_EQUILATERAL) * 100.0)));
+}
 std::vector<line> field::get_lines() const 
 {
     std::vector<line> res = std::vector<line>(field_lines,field_lines+3);

@@ -98,8 +98,10 @@ double maxlayers::get_value (vector<field> fd)
 	for (field f : fd)
 		if (calculation_type == 0)
 			total += f.geo_area();
-		else
+		else if (calculation_type ==1)
 			total += ff->get_cache_mu(f);
+		else
+			total += f.equilateral_percentage();
 
 	return total;
 }
@@ -303,6 +305,7 @@ void print_usage()
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
 		cerr << " -I                Output as Intel Link" << endl;
 		cerr << " -M                Use MU calculation" << endl;
+		cerr << " -Q                Use equilateral percentage calculation" << endl;
 		cerr << " -t <number>       Threshold for similar fields (larger less similar)" << endl;
 		cerr << " -l <number>       Maximum number of layers in plan" << endl;
 		cerr << " -P <number>       Maximum number of links from a single portal" << endl;
@@ -343,6 +346,7 @@ int main (int argc, char* argv[])
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polylines",false); // output as polylines
 	ag.add_req("M","MU",false); // calculate as MU
+	ag.add_req("Q","equilateral",false); 
 	//ag.add_req("m","",true); // maximum size
 	ag.add_req("t","threshold",true); // field similar threshold
 	ag.add_req("p","lpercent",true); // use percentile longest links
@@ -391,6 +395,17 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("M"))
 		calc = 1;
+
+	if (ag.has_option("Q"))
+	{
+		if (calc == 1)
+		{	
+			cerr <<"Cannot have -M and -Q" << endl;
+			exit(1);
+		} else {
+			calc = 2;
+		}  
+	}
 
 	if (ag.has_option("s"))
 		splits = true;

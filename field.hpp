@@ -54,6 +54,8 @@ namespace silicontrip {
             long lng_at(int i) const;
             double geo_area() const;
             double geo_perimeter() const;
+            double equilateral_percentage() const;
+
             std::vector<line> get_lines() const;
             line line_at(int i) const;
 
