@@ -47,10 +47,10 @@ int agentassign::score(vector<int>assign)
 	for (array<int,3> ft : field_lines)
 	{
 		int score = 0;
-		if (ft[0]!=ft[1] && ft[1]!=ft[2] && ft[2]!=ft[0])
+		if (assign[ft[0]]!=assign[ft[1]] && assign[ft[1]]!=assign[ft[2]] && assign[ft[2]]!=assign[ft[0]])
 		{
 			score = 2;
-		} else if (ft[0]!=ft[1] || ft[1]!=ft[2] || ft[2]!=ft[0]) {
+		} else if (assign[ft[0]]!=assign[ft[1]] || assign[ft[1]]!=assign[ft[2]] || assign[ft[2]]!=assign[ft[0]]) {
 			score = 1;
 		}
 		total += score;
