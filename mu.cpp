@@ -126,7 +126,7 @@ uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distri
 		if (index +1 < r.size())
 			next_rd = lowest(o,r,t,index+1,iss.str());
 		else
-			next_rd = u;
+			next_rd = t;
 
 		uniform_distribution id = c.intersection(next_rd);
 		if (id.range() == 0)
@@ -136,7 +136,7 @@ uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distri
 
 		if (index+1 == r.size())
 		{
-			iss << "(" << o.range() / id.range() << ")";
+			iss << "(" << o.range() / worst.range() << ")";
 			cerr << iss.str() << endl;
 		}
 
@@ -202,6 +202,7 @@ void show_matrix_improvements(const vector<field>& f, string celltok)
 
 	string ss;
 	lowest(cellmu[celltok],field_ranges,cellmu[celltok],0,ss);
+
 }
 
 vector<string> intcells (vector<field> f)
@@ -240,6 +241,16 @@ vector<string> intcells (vector<field> f)
 	return vcells;
 }
 
+uniform_distribution muround(const uniform_distribution& ud)
+{
+	double l = round(ud.get_lower());
+	if (l<1) 
+		l=1;
+	double u = round(ud.get_upper());
+	if (u<1)
+		u=1;
+	return uniform_distribution(l,u);
+}
 int main (int argc, char* argv[])
 {
     arguments ag(argc,argv);
@@ -292,7 +303,7 @@ int main (int argc, char* argv[])
             //predict(ctok);
         }
         cout << ftotal << " " << ftotal.range() << endl;
-        total = total + ftotal;
+        total = total + muround(ftotal);
 
     }
 	if (ag.has_option("i") && fields.size() > 1) {
