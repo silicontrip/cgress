@@ -85,3 +85,28 @@ template<> struct std::hash<silicontrip::line> {
 
 
 #endif
+
+/*
+    1 // A common hash combine function (often found in boost::hash_combine)
+    2 inline void hash_combine(std::size_t& seed, std::size_t hash_value) {
+    3     seed ^= hash_value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    4 }
+    5 
+    6 template<> struct std::hash<silicontrip::line> {
+    7     std::size_t operator()(silicontrip::line const& s) const noexcept {
+    8         std::size_t h1 = std::hash<silicontrip::point>{}(s.get_o_point());
+    9         std::size_t h2 = std::hash<silicontrip::point>{}(s.get_d_point());
+   10 
+   11         // Ensure order-independent hashing for lines (A,B) and (B,A)
+   12         // by sorting the hashes before combining them.
+   13         std::array<std::size_t, 2> hashes = {h1, h2};
+   14         std::sort(hashes.begin(), hashes.end()); // Sort to make (A,B) and (B,A) hash the same
+   15 
+   16         std::size_t seed = 0;
+   17         hash_combine(seed, hashes[0]);
+   18         hash_combine(seed, hashes[1]);
+   19         return seed;
+   20     }
+   21 };
+
+*/
