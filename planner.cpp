@@ -727,7 +727,7 @@ int main (int argc, char* argv[])
 
 	//	planner::planner (int k, int s, draw_tools d, vector<point> din, vector<line>p, bool a2k)
 
-	planner p =  planner(cost_percentage, sbul_count, dt, combination, poly_lines, allow2km, rev);
+	planner p(cost_percentage, sbul_count, dt, combination, poly_lines, allow2km, rev);
 
 	p.simulated_annealing(combination, initial_temperature, 0.95, iterations);
 
