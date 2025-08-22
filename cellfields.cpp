@@ -341,7 +341,7 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 
 bool geo_comparison(const field& a, const field& b)
 {
-    return a.geo_area() > b.geo_area();
+    return a.geo_perimeter() < b.geo_perimeter();
 }
 
 bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
@@ -416,11 +416,14 @@ unordered_set<S2CellId> expand_cells(unordered_set<S2CellId> cellids, S2CellId c
 	return new_cells;
 }
 
-vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, bool limit2k) 
+vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit2k) 
 {
 	link_factory* lf = link_factory::get_instance();
     vector<line> la = lf->filter_links(li, links, tc);
     
+	if (avoid_double.size() > 0)
+        la = lf->filter_link_by_blocker(la, links, avoid_double);
+
 	if (limit2k)
         la = lf->filter_link_by_length(la, 2);  
 
@@ -459,6 +462,7 @@ int main (int argc, char* argv[])
 	vector<point>target;
 
 	vector<portal>avoid_single;
+	vector<portal>avoid_double;
 	vector<portal>ignore_links;
 
 	string cellid;
@@ -473,6 +477,7 @@ int main (int argc, char* argv[])
 	ag.add_req("N","machina",true); // max machina blockers
 	ag.add_req("S","avoid", true); // avoid using these portals.
 	ag.add_req("i","ignore",true); // ignore links from these portals (about to decay or easy to destroy)
+	ag.add_req("D","blockers",true); // remove links with blocker using these portals.
 
 
 	ag.add_req("C","colour",true); // drawtools colour
@@ -518,6 +523,8 @@ int main (int argc, char* argv[])
 	if (ag.has_option("k"))
 		limit2k=true;
 
+
+
 	if (cellid.length() == 0)
 	{
 		print_usage();
@@ -546,6 +553,14 @@ int main (int argc, char* argv[])
 		cerr << "== Reading Ignore Links Portals ==" << endl;
 		ignore_links = pf->cluster_from_description(ag.get_option_for_key("i"));
 	}
+
+	if (ag.has_option("D"))
+	{
+		avoid_double = pf->cluster_from_description(ag.get_option_for_key("D"));
+		// for (portal p: avoid_double)
+		//	cerr << "avoid: " << p << endl;
+	}
+
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
@@ -594,10 +609,11 @@ int main (int argc, char* argv[])
 
 				vector<line> li = lf->make_lines_from_single_cluster(portals);
 				//cerr << "all links: " << li.size() << endl;
+		        li = filter_lines(li, links, tc, avoid_double, limit2k);
 
-				li = lf->filter_links(li,links,tc);
-				if (limit2k)
-        			li = lf->filter_link_by_length(li, 2);  
+				//li = lf->filter_links(li,links,tc);
+				//if (limit2k)
+        		//	li = lf->filter_link_by_length(li, 2);  
 				//cerr << "purged links: " << li.size() << endl;
 				cerr << "==  "  << li.size() << " links generated " << rt.split() <<  " seconds ==" << endl;
 				if (li.size() > 2)
@@ -657,27 +673,27 @@ int main (int argc, char* argv[])
         vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
         cerr << "all links: " << li.size() << endl;
         
-        li = filter_lines(li, links, tc, limit2k);
+        li = filter_lines(li, links, tc, avoid_double, limit2k);
         
         cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
         all_fields = ff->make_fields_from_single_links(li);
     } else if (ag.argument_size() == 2) {
-        vector<line> li1 = filter_lines(lf->make_lines_from_single_cluster(clusters[0]), links, tc, limit2k);
+        vector<line> li1 = filter_lines(lf->make_lines_from_single_cluster(clusters[0]), links, tc, avoid_double, limit2k);
         cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, limit2k);
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit2k);
         cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
         all_fields = ff->make_fields_from_double_links(li2, li1);
     } else if (ag.argument_size() == 3) {
-        vector<line> li1 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, limit2k);
+        vector<line> li1 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit2k);
         cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[1], clusters[2]), links, tc, limit2k);
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[1], clusters[2]), links, tc, avoid_double, limit2k);
         cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
-        vector<line> li3 = filter_lines(lf->make_lines_from_double_cluster(clusters[2], clusters[0]), links, tc, limit2k);
+        vector<line> li3 = filter_lines(lf->make_lines_from_double_cluster(clusters[2], clusters[0]), links, tc, avoid_double, limit2k);
         cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
         all_fields = ff->make_fields_from_triple_links(li1, li2, li3);
