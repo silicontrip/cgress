@@ -4,9 +4,12 @@ using namespace std;
 
 namespace silicontrip {
 
+const std::string draw_tools::colours[] = {"#a24ac3", "#514ac3", "#4aa8c3", "#51c34a", "#c1c34a", "#c38a4a", "#c34a4a", "#c34a6f", "#000000", "#666666", "#bbbbbb", "#ffffff"};
+
+
 draw_tools::draw_tools()
 {
-    colour="#a24ac3";
+    colour=colours[0];
     istringstream init;
     init.str("[]");
     output_type = 0;
@@ -15,7 +18,7 @@ draw_tools::draw_tools()
 
 draw_tools::draw_tools(string description)
 {
-    colour="#a24ac3";
+    colour=colours[0];
     if (description.rfind("http", 0) == 0)
     {
         from_intel(description);
@@ -169,13 +172,33 @@ void draw_tools::set_output_as_polygon() { output_type = 2; }
 void draw_tools::set_output_as_intel() { output_type = 3; }
 void draw_tools::set_output_as_is() { output_type =0; }
 
+// code duplication much?
 void draw_tools::set_colour(string s) 
 {
     // should validate this. 
     if (regex_match(s,regex("^#[0-9a-fA-F]{6}$")))
         colour = s; 
 }
+void draw_tools::set_color(string s) 
+{
+    // should validate this. 
+    if (regex_match(s,regex("^#[0-9a-fA-F]{6}$")))
+        colour = s; 
+}
+void draw_tools::set_colour(size_t i)
+{
+    if (i>=0 && i<12)  
+        colour = colours[i];
+}
+
+void draw_tools::set_color(size_t i)
+{
+    if (i>=0 && i<12)  
+        colour = colours[i];
+}
+
 string draw_tools::get_colour() const { return colour; }
+string draw_tools::get_color() const { return colour; }
 
 void draw_tools::add(line l)
 {

@@ -14,6 +14,8 @@
 
 namespace silicontrip {
 
+
+
 class draw_tools {
     private:
         Json::Value entities;
@@ -26,6 +28,7 @@ class draw_tools {
         void from_intel(std::string intel);
         Json::Value line_from_intel_string(std::string pline) const;
 
+        static const std::string colours[]; 
 
 
     public:
@@ -40,7 +43,14 @@ class draw_tools {
         void set_output_as_is();
 
         void set_colour(std::string s);
+        void set_color(std::string s);
+
+        void set_colour(size_t i);
+        void set_color(size_t i);
+
         std::string get_colour() const;
+        std::string get_color() const;
+
         void add(line l);
         void add(field f);
         void add(point p);
@@ -66,6 +76,8 @@ class draw_tools {
         std::vector<point> get_unique_points() const; //fixed return type
 
 };
+
+
 
 }
 std::ostream& operator<<(std::ostream& os, const silicontrip::draw_tools& l);
