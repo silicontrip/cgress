@@ -246,27 +246,48 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 	return a.first < b.first;
 }
 
+vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc) 
+{
+	portal_factory* pf = portal_factory::get_instance();
+    vector<portal> portals = pf->cluster_from_description(desc);
+    if (remove.size() > 0)
+        portals = pf->remove_portals(portals, remove);
+    return portals;
+}
+
+vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit) 
+{
+	link_factory* lf = link_factory::get_instance();
+    vector<line> la = lf->filter_links(li, links, tc);
+	if (avoid_double.size() > 0)
+		la = lf->filter_link_by_blocker(la,links,avoid_double);
+    if (limit)
+        la = lf->filter_link_by_length(la, 2);
+    
+    return la;
+}
+
 void print_usage()
 {
-		cerr << "Usage:" << endl;
-		cerr << "cyclonefields [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
-		cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
-		cerr << "Options:" << endl;
-		cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
-		cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
-		cerr << " -N <number>       Limit number of Machina Blockers" << endl;
-		cerr << " -D <cluster>      Filter links crossing blockers using these portals." << endl;
-		cerr << " -S <cluster>      Avoid linking to these portals" << endl;
+	cerr << "Usage:" << endl;
+	cerr << "cyclonefields [options] <portal cluster> [<portal cluster> [<portal cluster>]]" << endl;
+	cerr << "    if two clusters are specified, 2 portals are chosen to make links in the first cluster." << endl;
+	cerr << "Options:" << endl;
+	cerr << " -E <number>       Limit number of Enlightened Blockers" << endl;
+	cerr << " -R <number>       Limit number of Resistance Blockers" << endl;
+	cerr << " -N <number>       Limit number of Machina Blockers" << endl;
+	cerr << " -D <cluster>      Filter links crossing blockers using these portals." << endl;
+	cerr << " -S <cluster>      Avoid linking to these portals" << endl;
 
-		cerr << " -s                Add split fields" << endl;
-		cerr << " -M                Use MU calculation" << endl;
-		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
-		cerr << " -e                Draw cyclone edge" << endl;
-		cerr << " -c <#colour>      Cyclone edge path  colour" << endl;
-		cerr << " -L                Set Drawtools to output as polylines" << endl;
-		cerr << " -I                Output as Intel Link" << endl;
-		cerr << " -k                Limit links to 2km" << endl;
-		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
+	cerr << " -s                Add split fields" << endl;
+	cerr << " -M                Use MU calculation" << endl;
+	cerr << " -C <#colour>      Set Drawtools output colour" << endl;
+	cerr << " -e                Draw cyclone edge" << endl;
+	cerr << " -c <#colour>      Cyclone edge path  colour" << endl;
+	cerr << " -L                Set Drawtools to output as polylines" << endl;
+	cerr << " -I                Output as Intel Link" << endl;
+	cerr << " -k                Limit links to 2km" << endl;
+	cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
 }
 
 int main (int argc, char* argv[])
@@ -365,157 +386,73 @@ int main (int argc, char* argv[])
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
-// of course I had to pick a colliding name for my class
 	vector<silicontrip::link> links;
 	vector<field> all_fields;
 	vector<field> af;
+	vector<vector<portal>> clusters;
+	vector<portal> all_portals;
 
 	try {
-	if (ag.argument_size() == 1)
-	{
-		vector<portal> portals;
+		if (ag.argument_size() == 1) {
+			clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
+		} else if (ag.argument_size() == 2) {
+			clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
+			clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(1)));
+		} else if (ag.argument_size() == 3) {
+			clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
+			clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(1)));
+			clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(2)));
+		} else {
+			print_usage();
+			exit(1);
+		}
+
+		for (const vector<portal>& cluster : clusters) {
+			all_portals.insert(all_portals.end(), cluster.begin(), cluster.end());
+		}
 		
-		portals = pf->cluster_from_description(ag.get_argument_at(0));
-		if (avoid_single.size() > 0)
-			portals = pf->remove_portals(portals,avoid_single);
-		cerr << "== " << portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
-
+		cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 		cerr << "== getting links ==" << endl;
-                                
-		links = lf->get_purged_links(portals);
-                                
-		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 
+		links = lf->get_purged_links(all_portals);
+									
+		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 		cerr << "== generating potential links ==" << endl;
 
-		vector<line> li = lf->make_lines_from_single_cluster(portals);
-		cerr << "all links: " << li.size() << endl;
-		if (limit)
-			li = lf->filter_link_by_length(li,2);
+		if (ag.argument_size() == 1) {
+			vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
+			cerr << "all links: " << li.size() << endl;
+			
+			li = filter_lines(li, links, tc, avoid_double, limit);
+			
+			cerr << "purged links: " << li.size() << endl;
+			cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
-		li = lf->filter_links(li,links,tc);
-		if (avoid_double.size() > 0)
-			li = lf->filter_link_by_blocker(li,links,avoid_double);
-					
-		cerr << "purged links: " << li.size() << endl;
-		cerr << "==  links generated " << rt.split() <<  " seconds ==" << endl;
-		cerr << "== Generating fields ==" << endl;
+			af = ff->make_fields_from_single_links(li);
+		} else if (ag.argument_size() == 2) {
+			vector<line> li1 = filter_lines(lf->make_lines_from_single_cluster(clusters[0]), links, tc, avoid_double, limit);
+			cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-		af = ff->make_fields_from_single_links(li);
+			vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit);
+			cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
+
+			af = ff->make_fields_from_double_links(li2, li1);
+		} else if (ag.argument_size() == 3) {
+			vector<line> li1 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit);
+			cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
+
+			vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[1], clusters[2]), links, tc, avoid_double, limit);
+			cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
+
+			vector<line> li3 = filter_lines(lf->make_lines_from_double_cluster(clusters[2], clusters[0]), links, tc, avoid_double, limit);
+			cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
+
+			af = ff->make_fields_from_triple_links(li1, li2, li3);
+		}
+		
 		all_fields = ff->filter_fields(af,links,tc);
 		cerr << "fields: " << all_fields.size() << endl;
-
-	} else if (ag.argument_size() == 2) {
-		// 2 portals from first cluster, 1 portal from second cluster
-		vector<portal> portals1;
-		vector<portal> portals2;
-
-		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
-		if (avoid_single.size() > 0)
-			portals1 = pf->remove_portals(portals1,avoid_single);
-		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
-		if (avoid_single.size() > 0)
-			portals2 = pf->remove_portals(portals2,avoid_single);
-		vector<portal> all_portals;
-
-		all_portals.insert( all_portals.end(), portals1.begin(), portals1.end() );
-		all_portals.insert( all_portals.end(), portals2.begin(), portals2.end() );
-
-		cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
-		cerr << "== getting links ==" << endl;
-                                
-		links = lf->get_purged_links(all_portals);
-                                
-		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
-		cerr << "== generating potential links ==" << endl;
-
-		vector<line> li1 = lf->make_lines_from_single_cluster(portals1);
-		if (limit)
-			li1 = lf->filter_link_by_length(li1,2000);
-		li1 = lf->filter_links(li1,links,tc);
-		if (avoid_double.size() > 0)
-			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
-
-		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
-
-		vector<line> li2 = lf->make_lines_from_double_cluster(portals1,portals2);
-		if (limit)
-			li2 = lf->filter_link_by_length(li2,2000);
-		li2 = lf->filter_links(li2,links,tc);
-		if (avoid_double.size() > 0)
-			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
-
-		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
-
-		all_fields = ff->make_fields_from_double_links(li2,li1);
-		all_fields = ff->filter_fields(all_fields,links,tc);
-
-		cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
-	
-	} else if (ag.argument_size() == 3) {
-		vector<portal> portals1;
-		vector<portal> portals2;
-		vector<portal> portals3;
-
-		portals1 = pf->cluster_from_description(ag.get_argument_at(0));
-		if (avoid_single.size() > 0)
-			portals1 = pf->remove_portals(portals1,avoid_single);
-		portals2 = pf->cluster_from_description(ag.get_argument_at(1));
-		if (avoid_single.size() > 0)
-			portals2 = pf->remove_portals(portals2,avoid_single);
-		portals3 = pf->cluster_from_description(ag.get_argument_at(2));
-		if (avoid_single.size() > 0)
-			portals3 = pf->remove_portals(portals3,avoid_single);
-
-		vector<portal> all_portals;
-		all_portals.insert(all_portals.end(), portals1.begin(), portals1.end());
-		all_portals.insert(all_portals.end(), portals2.begin(), portals2.end());
-		all_portals.insert(all_portals.end(), portals3.begin(), portals3.end());
-
-		cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
-		cerr << "== getting links ==" << endl;
-                                
-		links = lf->get_purged_links(all_portals);
-                                
-		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
-		cerr << "== generating potential links ==" << endl;
-
-		vector<line> li1 = lf->make_lines_from_double_cluster(portals1,portals2);
-		li1 = lf->filter_links(li1,links,tc);
-		if (limit)
-			li1 = lf->filter_link_by_length(li1,2000);
-		if (avoid_double.size() > 0)
-			li1 = lf->filter_link_by_blocker(li1,links,avoid_double);
-
-		cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
-
-		vector<line> li2 = lf->make_lines_from_double_cluster(portals2,portals3);
-		if (limit)
-			li2 = lf->filter_link_by_length(li2,2000);
-		li2 = lf->filter_links(li2,links,tc);
-		if (avoid_double.size() > 0)
-			li2 = lf->filter_link_by_blocker(li2,links,avoid_double);
-
-		cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
-
-		vector<line> li3 = lf->make_lines_from_double_cluster(portals3,portals1);
-		if (limit)
-			li3 = lf->filter_link_by_length(li3,2000);
-		li3 = lf->filter_links(li3,links,tc);
-		if (avoid_double.size() > 0)
-			li3 = lf->filter_link_by_blocker(li3,links,avoid_double);
-
-		cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
-
-		all_fields = ff->make_fields_from_triple_links(li1,li2,li3);
-		all_fields = ff->filter_fields(all_fields,links,tc);
-		cerr << "fields: " << all_fields.size() << endl;
-
-	} else {
-		print_usage();
-		exit(1);
-	}
-	cerr << "==  fields generated " << rt.split() << " seconds ==" << endl;
+		cerr << "==  fields generated " << rt.split() << " seconds ==" << endl;
 
 	if (target.size()>0)
 	{
