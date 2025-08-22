@@ -178,7 +178,7 @@ vector<portal> cluster_and_filter_from_description(const vector<portal>& remove,
     return portals;
 }
 
-vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit2k) 
+vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit2k, double percentile)
 {
 	link_factory* lf = link_factory::get_instance();
     vector<line> la = lf->filter_links(li, links, tc);
@@ -186,8 +186,11 @@ vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::lin
         la = lf->filter_link_by_blocker(la, links, avoid_double);
 
     if (limit2k)
-        la = lf->filter_link_by_length(la, 2000);
+        la = lf->filter_link_by_length(la, 2);
     
+    if (percentile < 100)
+        la = lf->percentile_lines(la, percentile);
+
     return la;
 }
 
@@ -227,6 +230,7 @@ int main (int argc, char* argv[])
 	vector<portal>avoid_single;
 	vector<portal>ignore_links;
 	bool limit2k = false;
+	double percentile = 100;
 
 	arguments ag(argc,argv);
 
@@ -236,6 +240,7 @@ int main (int argc, char* argv[])
 	ag.add_req("i","ignore",true); // ignore links from these portals (about to decay or easy to destroy)
 	ag.add_req("a","avoid", true); // avoid using these portals.  S in other tools
 	ag.add_req("k","limit2k",false); // limit link length to that can be made under fields.
+	ag.add_req("p","lpercent",true); // use percentile longest links
 	ag.add_req("D","blockers",true); // remove links with blocker using these portals.
 
 	
@@ -280,6 +285,9 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("k"))
 		limit2k=true;
+
+	if (ag.has_option("p"))
+		percentile = ag.get_option_for_key_as_double("p");
 
 	portal_factory* pf = portal_factory::get_instance();
 	link_factory* lf = link_factory::get_instance();
@@ -358,27 +366,27 @@ int main (int argc, char* argv[])
         vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
         cerr << "all links: " << li.size() << endl;
         
-        li = filter_lines(li, links, tc, avoid_double, limit2k);
+        li = filter_lines(li, links, tc, avoid_double, limit2k, percentile);
         
         cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
         all_fields = ff->make_fields_from_single_links(li);
     } else if (ag.argument_size() == 2) {
-        vector<line> li1 = filter_lines(lf->make_lines_from_single_cluster(clusters[0]), links, tc, avoid_double, limit2k);
+        vector<line> li1 = filter_lines(lf->make_lines_from_single_cluster(clusters[0]), links, tc, avoid_double, limit2k, percentile);
         cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit2k);
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit2k, percentile);
         cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
         all_fields = ff->make_fields_from_double_links(li2, li1);
     } else if (ag.argument_size() == 3) {
-        vector<line> li1 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit2k);
+        vector<line> li1 = filter_lines(lf->make_lines_from_double_cluster(clusters[0], clusters[1]), links, tc, avoid_double, limit2k, percentile);
         cerr << "== cluster 1 links:  " << li1.size() << " ==" << endl;
 
-        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[1], clusters[2]), links, tc, avoid_double, limit2k);
+        vector<line> li2 = filter_lines(lf->make_lines_from_double_cluster(clusters[1], clusters[2]), links, tc, avoid_double, limit2k, percentile);
         cerr << "== cluster 2 links:  " << li2.size() << " ==" << endl;
 
-        vector<line> li3 = filter_lines(lf->make_lines_from_double_cluster(clusters[2], clusters[0]), links, tc, avoid_double, limit2k);
+        vector<line> li3 = filter_lines(lf->make_lines_from_double_cluster(clusters[2], clusters[0]), links, tc, avoid_double, limit2k, percentile);
         cerr << "== cluster 3 links:  " << li3.size() << " ==" << endl;
 
         all_fields = ff->make_fields_from_triple_links(li1, li2, li3);
