@@ -36,10 +36,10 @@ private:
 	double get_value (vector<field> fd);
 	string draw_fields(const vector<field>& f, const vector<line>& l);
 	int iterate_search(int start, line medge, vector<field>fields_list, int max, point third_point);
-	int count_links (point p, vector<field> flist);
-	vector<field> get_cadence(field outer, line edge, int start);
-	line get_edge(vector<field>plan, field newfield);
-	int next_cadence(int i, line newedge, vector<field>fields_list, field newfield, int max, vector<line>cyc_edges);
+	int count_links (const point& p, const vector<field>& flist);
+	vector<field> get_cadence(const field& outer, const line& edge, int start);
+	line get_edge(const vector<field>&plan, const field& newfield);
+	int next_cadence(int i, const line& newedge, vector<field>&fields_list, const field& newfield, int max, vector<line>&cyc_edges);
 
 
 public:
@@ -48,18 +48,18 @@ public:
 
 };
 
-int cyclonefields::count_links (point p, vector<field> flist)
+int cyclonefields::count_links (const point& p, const vector<field>& flist)
 {
 
 	int count = 0;
 	for (field fi: flist)
 		if (fi.has_point(p))
 			count++;
-				
+
 	return count;
 }
 
-line cyclonefields::get_edge(vector<field>plan, field newfield)
+line cyclonefields::get_edge(const vector<field>&plan, const field& newfield)
 {
 	// determine non shared edges
 
@@ -96,7 +96,7 @@ line cyclonefields::get_edge(vector<field>plan, field newfield)
 	return newfield.line_at(0);
 }
 
-vector<field> cyclonefields::get_cadence (field outer, line edge, int start)
+vector<field> cyclonefields::get_cadence (const field& outer, const line& edge, int start)
 {
 	vector<field> cad_fields;
 	for (int j = start; j < all.size(); j++) {
@@ -109,10 +109,10 @@ vector<field> cyclonefields::get_cadence (field outer, line edge, int start)
 	return cad_fields;
 }
 
-int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, field newfield, int max, vector<line>cyc_edges)
+int cyclonefields::next_cadence(int i, const line& newedge, vector<field>&fields_list, const field& newfield, int max, vector<line>&cyc_edges)
 {
-	fields_list.push_back(newfield);
-	cyc_edges.push_back(newedge);
+	//fields_list.push_back(newfield);
+	//cyc_edges.push_back(newedge);
 
 	if (fields_list.size() > max) {
 		max = fields_list.size();
@@ -126,9 +126,13 @@ int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, f
 
 	vector<field> inner_cad = get_cadence(newfield, newedge, i);
 	for (field cf2 : inner_cad)
-	{		
+	{
 		line newedge = get_edge(fields_list,cf2);
+		fields_list.push_back(cf2);
+		cyc_edges.push_back(newedge);
 		max = next_cadence(i, newedge, fields_list, cf2, max,cyc_edges);
+		cyc_edges.pop_back();
+		fields_list.pop_back();
 	}
 	return max;
 }
@@ -136,6 +140,9 @@ int cyclonefields::next_cadence(int i, line newedge, vector<field>fields_list, f
 void cyclonefields::search_fields()
 {
 	int max = 1;
+	vector<field>fields_list;
+	vector<line>cyclone_edges;
+
 	for (int i = 0; i < all.size(); i++) {
 		field this_field = all[i];
 		vector<line> edges = this_field.get_lines();
@@ -151,14 +158,12 @@ void cyclonefields::search_fields()
 
 						for (field cf2 : inner_cad)
 						{
-							vector<field>fields_list;
-							vector<line>cyclone_edges;
-
 							// we need 3 fields to define the cyclone cadence
 							fields_list.push_back(this_field);
 							fields_list.push_back(cfi);
+							fields_list.push_back(cf2);
 
-							// we should be able to implicitely determine the cadence 
+							// we should be able to implicitely determine the cadence
 							// and therefore the next edge
 							line newedge = get_edge(fields_list,cf2);
 							cyclone_edges.erase(cyclone_edges.begin(),cyclone_edges.end());
@@ -168,12 +173,19 @@ void cyclonefields::search_fields()
 
 							max = next_cadence(i+1, newedge, fields_list, cf2, max,cyclone_edges);
 
+							cyclone_edges.pop_back();
+							cyclone_edges.pop_back();
+							cyclone_edges.pop_back();
+
+                            fields_list.pop_back();
+                            fields_list.pop_back();
+                            fields_list.pop_back();
 						}
 					}
 				}
 			}
 		}
-	}	
+	}
 }
 
 
@@ -246,7 +258,7 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 	return a.first < b.first;
 }
 
-vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc) 
+vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc)
 {
 	portal_factory* pf = portal_factory::get_instance();
     vector<portal> portals = pf->cluster_from_description(desc);
@@ -255,7 +267,7 @@ vector<portal> cluster_and_filter_from_description(const vector<portal>& remove,
     return portals;
 }
 
-vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit) 
+vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit)
 {
 	link_factory* lf = link_factory::get_instance();
     vector<line> la = lf->filter_links(li, links, tc);
@@ -263,7 +275,7 @@ vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::lin
 		la = lf->filter_link_by_blocker(la,links,avoid_double);
     if (limit)
         la = lf->filter_link_by_length(la, 2);
-    
+
     return la;
 }
 
@@ -410,21 +422,21 @@ int main (int argc, char* argv[])
 		for (const vector<portal>& cluster : clusters) {
 			all_portals.insert(all_portals.end(), cluster.begin(), cluster.end());
 		}
-		
+
 		cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
 		cerr << "== getting links ==" << endl;
 
 		links = lf->get_purged_links(all_portals);
-									
+
 		cerr <<  "== " << links.size() << " links read. in " << rt.split() <<  " seconds ==" << endl;
 		cerr << "== generating potential links ==" << endl;
 
 		if (ag.argument_size() == 1) {
 			vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
 			cerr << "all links: " << li.size() << endl;
-			
+
 			li = filter_lines(li, links, tc, avoid_double, limit);
-			
+
 			cerr << "purged links: " << li.size() << endl;
 			cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
@@ -449,7 +461,7 @@ int main (int argc, char* argv[])
 
 			af = ff->make_fields_from_triple_links(li1, li2, li3);
 		}
-		
+
 		all_fields = ff->filter_fields(af,links,tc);
 		cerr << "fields: " << all_fields.size() << endl;
 		cerr << "==  fields generated " << rt.split() << " seconds ==" << endl;
@@ -483,5 +495,5 @@ int main (int argc, char* argv[])
 		cerr << "An Error occured: " << e.what() << endl;
 	}
 
-	return 0;	
+	return 0;
 }
