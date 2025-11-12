@@ -30,7 +30,7 @@ private:
 
 	double get_value (vector<field> fd);
 	string draw_fields(vector<field> f);
-	double search_fields(vector<field>current, const field& new_field, const vector<field>& field_list, int start, double max);
+	double search_fields(vector<field>&current, const vector<field>& field_list, int start, double max);
 	bool add_matching(const field& current, vector<field>& existing);
 	int count_links(const vector<field>& fields);
 
@@ -65,7 +65,7 @@ string maxlayers::draw_fields(vector<field> f)
 	return dt.to_string();
 }
 
-int maxlayers::count_links(const vector<field>& fields) 
+int maxlayers::count_links(const vector<field>& fields)
 {
 	unordered_map<point, int> link_counts;
 
@@ -106,10 +106,9 @@ double maxlayers::get_value (vector<field> fd)
 	return total;
 }
 
-// I should make use of pass by copy and add the new field as an argument
-double maxlayers::search_fields(vector<field>current, const field& new_field, const vector<field>& field_list, int start, double max)
+double maxlayers::search_fields(vector<field>&current, const vector<field>& field_list, int start, double max)
 {
-	current.push_back(new_field);
+	//current.push_back(new_field);
 	if (layer_limit > 0 && current.size() > layer_limit)
 		return max;
 	if (link_limit > 0)
@@ -124,7 +123,7 @@ double maxlayers::search_fields(vector<field>current, const field& new_field, co
 
 		if (newSize > max) {
 			cerr << newSize << " : " << current.size() << " : " << rt.split() << " seconds." << endl;
-			cout << draw_fields(current) << endl << endl; 
+			cout << draw_fields(current) << endl << endl;
 			max = newSize;
 		}
 	}
@@ -133,9 +132,13 @@ double maxlayers::search_fields(vector<field>current, const field& new_field, co
 	{
 		field this_field = field_list.at(i);
 		if (!this_field.intersects(current))
-			max = search_fields(current, this_field, field_list, i+1, max);	
+		{
+		    current.push_back(this_field);
+			max = search_fields(current, field_list, i+1, max);
+			current.pop_back();
+		}
 	}
-		
+
 	return max;
 
 }
@@ -181,21 +184,21 @@ vector<pair<double,string>> maxlayers::start_search ()
 
 
 	list<field>::iterator i=field_list.begin();
-	while (i !=field_list.end()) 
+	while (i !=field_list.end())
 	{
 		field tfi = *i;
 		vector<field> fc;
 
-		//cerr << "== searching for similar fields ==" << endl; 
+		//cerr << "== searching for similar fields ==" << endl;
 		bool added = add_matching(tfi,fc);
-		while (added) 
+		while (added)
 		{
 			added = false;
 			for (field sfi: fc)
 			{
 				if(add_matching(sfi,fc))
 					added = true;
-			}	
+			}
 
 		}
 		//cerr << "== found " << fc.size() << " fields " << rt.split() << " seconds ==" << endl;
@@ -214,14 +217,16 @@ vector<pair<double,string>> maxlayers::start_search ()
 				++j;
 			}
 		}
-		//cerr << "== found " << fc.size() << " fields in " << rt.split() << " seconds. ==" << endl; 
+		//cerr << "== found " << fc.size() << " fields in " << rt.split() << " seconds. ==" << endl;
 
 		vector<field> search;
 		// an unexpected side effect of using pass by copy
 		for (int i=0; i < fc.size(); i++)
 		{
 			field tfi = fc[i];
-			bestbest = search_fields(search,tfi,fc,i+1,bestbest);
+			search.push_back(tfi);
+			bestbest = search_fields(search,fc,i+1,bestbest);
+			search.pop_back();
 		}
 
 		if (search.size() > 0)
@@ -253,7 +258,7 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 	return a.first < b.first;
 }
 
-vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit2k, double percentile) 
+vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit2k, double percentile)
 {
 	link_factory* lf = link_factory::get_instance();
     vector<line> la = lf->filter_links(li, links, tc);
@@ -265,11 +270,11 @@ vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::lin
 
     if (percentile < 100)
         la = lf->percentile_lines(la, percentile);
-    
+
     return la;
 }
 
-vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc) 
+vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc)
 {
 	portal_factory* pf = portal_factory::get_instance();
     vector<portal> portals = pf->cluster_from_description(desc);
@@ -341,12 +346,12 @@ int main (int argc, char* argv[])
 	ag.add_req("D","blockers",true); // remove links with blocker using these portals.
 	ag.add_req("S","avoid", true); // avoid using these portals.
 	ag.add_req("i","ignore",true); // ignore links from these portals (about to decay or easy to destroy)
-	
+
 	ag.add_req("C","colour",true); // drawtools colour
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polylines",false); // output as polylines
 	ag.add_req("M","MU",false); // calculate as MU
-	ag.add_req("Q","equilateral",false); 
+	ag.add_req("Q","equilateral",false);
 	//ag.add_req("m","",true); // maximum size
 	ag.add_req("t","threshold",true); // field similar threshold
 	ag.add_req("p","lpercent",true); // use percentile longest links
@@ -380,7 +385,7 @@ int main (int argc, char* argv[])
 	threshold = 0.2;
 	if (ag.has_option("t"))
 		threshold = ag.get_option_for_key_as_double("t");
-	
+
 	if (ag.has_option("p"))
 		percentile = ag.get_option_for_key_as_double("p");
 
@@ -399,12 +404,12 @@ int main (int argc, char* argv[])
 	if (ag.has_option("Q"))
 	{
 		if (calc == 1)
-		{	
+		{
 			cerr <<"Cannot have -M and -Q" << endl;
 			exit(1);
 		} else {
 			calc = 2;
-		}  
+		}
 	}
 
 	if (ag.has_option("s"))
@@ -431,7 +436,7 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("i"))
 		ignore_links = pf->cluster_from_description(ag.get_option_for_key("i"));
-		 
+
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
@@ -444,7 +449,7 @@ int main (int argc, char* argv[])
 
 	vector<portal> all_portals;
     vector<vector<portal>> clusters;
-    
+
     // Load portals based on argument count
     if (ag.argument_size() == 1) {
         clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
@@ -464,7 +469,7 @@ int main (int argc, char* argv[])
     for (const vector<portal>& cluster : clusters) {
         all_portals.insert(all_portals.end(), cluster.begin(), cluster.end());
     }
-    
+
     cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
     cerr << "== getting links ==" << endl;
 
@@ -479,9 +484,9 @@ int main (int argc, char* argv[])
 	if (ag.argument_size() == 1) {
         vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
         cerr << "all links: " << li.size() << endl;
-        
+
         li = filter_lines(li, links, tc, avoid_double, limit2k, percentile);
-        
+
         cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
         all_fields = ff->make_fields_from_single_links(li);
@@ -509,11 +514,11 @@ int main (int argc, char* argv[])
     // Common field processing
     all_fields = ff->filter_existing_fields(all_fields, links);
     all_fields = ff->filter_fields(all_fields, links, tc);
-    
+
     cerr << "== Fields:  " << all_fields.size() << " ==" << endl;
 
 
-	
+
 	cerr << "==  fields generated " << rt.split() << " seconds ==" << endl;
 
 	if (target.size()>0)
@@ -541,7 +546,7 @@ int main (int argc, char* argv[])
 	cerr <<  "== show all plans ==" << endl;
 
 	sort (plan.begin(), plan.end(), pair_sort);
-	for (pair<double,string> entry: plan) 
+	for (pair<double,string> entry: plan)
 	{
 		cout <<  entry.first << " " << entry.second << endl <<endl;
 	}
@@ -552,5 +557,5 @@ int main (int argc, char* argv[])
 		cerr << "An Error occured: " << e.what() << endl;
 	}
 
-	return 0;	
+	return 0;
 }
