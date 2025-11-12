@@ -25,7 +25,7 @@ bool arguments::parse()
 {
 	try {
 		bool endopt = false;
-		for (int i=1; i<args.size(); i++)
+		for (unsigned long i=1; i<args.size(); i++)
 		{
 			if (!endopt) {
 				string thisArg = args.at(i);
@@ -38,7 +38,7 @@ bool arguments::parse()
 					else 
 					{
 						bool found = false;
-						for (int j=0; j<required_args.size(); j++)
+						for (unsigned long j=0; j<required_args.size(); j++)
 						{
 							struct argsreq sReq = required_args.at(j);
 							if (thisArg.substr(2) == sReq.long_arg)
@@ -65,10 +65,10 @@ bool arguments::parse()
 					bool found = false;
 					if (thisArg.length() > 2) 
 					{
-						for (int j=1; j < thisArg.length(); j++)
+						for (unsigned long j=1; j < thisArg.length(); j++)
 						{
 
-							for (int k=0; k< required_args.size(); k++)
+							for (unsigned long k=0; k< required_args.size(); k++)
 							{
 								struct argsreq sReq = required_args.at(k);
 								if (thisArg.substr(j,1) == sReq.short_arg)
@@ -86,7 +86,7 @@ bool arguments::parse()
 								return false;
 						}
 					} else {
-						for (int j=0; j<required_args.size(); j++)
+						for (unsigned long j=0; j<required_args.size(); j++)
 						{
 							struct argsreq sReq = required_args.at(j);
 							if (thisArg.substr(1) == sReq.short_arg)
