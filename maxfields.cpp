@@ -36,7 +36,7 @@ private:
 
 public:
 	maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss);
-	struct score search_fields(vector<field> current, const field& newField, int start, int max, double balance);
+	struct score search_fields(vector<field>& current, int start, int max, double balance);
 
 };
 
@@ -70,7 +70,7 @@ string maxfields::draw_fields(const vector<field>& f)
 	return dt.to_string();
 }
 
-double maxfields::calculate_balance_score(const vector<field>& fields) 
+double maxfields::calculate_balance_score(const vector<field>& fields)
 {
 	unordered_map<point, int> link_counts;
 
@@ -115,9 +115,8 @@ double maxfields::get_value (vector<field> fd)
 	return total;
 }
 
-struct score maxfields::search_fields(vector<field> current, const field& newField, int start, int max, double balance)
+struct score maxfields::search_fields(vector<field>& current, int start, int max, double balance)
 {
-	current.push_back(newField);
 	if (current.size() > 0)
 	{
 		int newSize = current.size();
@@ -128,11 +127,11 @@ struct score maxfields::search_fields(vector<field> current, const field& newFie
 			double bal = calculate_balance_score (current);
 			if (sameSize == 2)
 				bal = dispSize;
-			// want to maximise geo or mu 
+			// want to maximise geo or mu
 			if (newSize > max || (sameSize == -1 && bal > balance) || ( sameSize == 1 && bal < balance) || (sameSize == 2 && bal > balance))
 			{
 				cerr << bal << " : " << newSize << " : " << dispSize << " : "  << rt.split() << " seconds." << endl;
-				cout << draw_fields(current) << endl; 
+				cout << draw_fields(current) << endl;
 				cerr << endl;
 				max = newSize;
 				balance = bal;
@@ -146,7 +145,9 @@ struct score maxfields::search_fields(vector<field> current, const field& newFie
 		if (!thisField.intersects(current))
 		{
 
-			struct score res = search_fields(current, thisField, i+1, max, balance);
+		    current.push_back(thisField);
+			struct score res = search_fields(current, i+1, max, balance);
+			current.pop_back();
 
 			max = res.count;
 			balance = res.balance;
@@ -169,7 +170,7 @@ bool pair_sort(const pair<double,string>& a, const pair<double,string>& b)
 	return a.first < b.first;
 }
 
-vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc) 
+vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc)
 {
 	portal_factory* pf = portal_factory::get_instance();
     vector<portal> portals = pf->cluster_from_description(desc);
@@ -187,7 +188,7 @@ vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::lin
 
     if (limit2k)
         la = lf->filter_link_by_length(la, 2);
-    
+
     if (percentile < 100)
         la = lf->percentile_lines(la, percentile);
 
@@ -243,7 +244,7 @@ int main (int argc, char* argv[])
 	ag.add_req("p","lpercent",true); // use percentile longest links
 	ag.add_req("D","blockers",true); // remove links with blocker using these portals.
 
-	
+
 	ag.add_req("C","colour",true); // drawtools colour
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polyline",false); // output as polylines
@@ -351,7 +352,7 @@ int main (int argc, char* argv[])
   for (const vector<portal>& cluster : clusters) {
         all_portals.insert(all_portals.end(), cluster.begin(), cluster.end());
     }
-    
+
     cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
     cerr << "== getting links ==" << endl;
 
@@ -365,9 +366,9 @@ int main (int argc, char* argv[])
 	if (ag.argument_size() == 1) {
         vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
         cerr << "all links: " << li.size() << endl;
-        
+
         li = filter_lines(li, links, tc, avoid_double, limit2k, percentile);
-        
+
         cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
         all_fields = ff->make_fields_from_single_links(li);
@@ -429,14 +430,16 @@ int main (int argc, char* argv[])
 		//search.push_back(tfi);
 	maxfields mf = maxfields(dt,rt,calc,all_fields,same_size);
 	field fi = all_fields[0];
-	struct score result = mf.search_fields(search, fi, 1, 0, 0.0);
+	search.push_back(fi);
+	struct score result = mf.search_fields(search, 1, 0, 0.0);
+	search.pop_back();
 	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 
 	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
 	cerr <<  "== show all plans ==" << endl;
 
 	sort (plan.begin(), plan.end(), pair_sort);
-	for (pair<double,string> entry: plan) 
+	for (pair<double,string> entry: plan)
 	{
 		cout <<  entry.first << " " << entry.second << endl <<endl;
 	}
@@ -447,5 +450,5 @@ int main (int argc, char* argv[])
 		cerr << "An Error occured: " << e.what() << endl;
 	}
 
-	return 0;	
+	return 0;
 }
