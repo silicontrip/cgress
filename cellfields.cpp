@@ -34,6 +34,12 @@ private:
 	double calc_score(const field& f) const;
 	double search_fields(vector<field> current, const field& f, int start, double best);
 	vector<vector<uniform_distribution>> multi_ranges(const vector<field>& vf) const;
+
+	void cut_points(vector<float>& cutp, const field& f, uniform_distribution current_mu) const;
+	float worst (vector<float> cuts) const;
+	double opt_improvement(const vector<field>& vf) const;
+	double opt_improvement(const vector<field>& vf, const field& f) const;
+
 	double multi_improvement(const vector<field>& vf, const field& fi) const;
 	double multi_improvement(const vector<field>& vf) const;
 	bool compare_improvement(const field& f1, const field& f2) const;
@@ -103,7 +109,7 @@ pair<int,int> cellfields::range(const field& f1, double area, uniform_distributi
 
 	//uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
 	uniform_distribution totalmu1 = othermu + mucell * area;
-	
+
 	double totalmax1 = round(totalmu1.get_upper());
 	double totalmin1 = round(totalmu1.get_lower());
 
@@ -133,7 +139,7 @@ vector<uniform_distribution> cellfields::ranges(const field& f1, uniform_distrib
         uniform_distribution mu1(tmu1-0.5,tmu1+0.5);
         if (tmu1==1)
             mu1 = uniform_distribution(0.0,1.5);
-        
+
         uniform_distribution remain1 = (mu1 - othermu1) / intersections1[cell_token]; //remaining(mu, f, celltok) / intersections[celltok];
         uniform_distribution intremain1 = remain1.intersection(mucell);
 		res.push_back(intremain1);
@@ -194,14 +200,66 @@ double cellfields::multi_improvement(const vector<field>& vf, const field& fi) c
 	existing.push_back(fd);
 
 	uniform_distribution best = lowest(existing,current_mu,0);
-	
+
 	//uniform_distribution cimp = get_improvement(vf[vf.size()-1],fi,current);
 	// cerr << imp << " * " << current.range() / cimp.range() << " " << current << " * " << cimp << endl;
 
 	//imp = imp * current.range() / cimp.range();
-	
+
 	return current_mu.range() / best.range();
 }
+
+void cellfields::cut_points(vector<float>& cutp, const field& f, uniform_distribution current_mu) const
+{
+    vector<uniform_distribution> fd = ranges(f,current_mu);
+    for (int cc =0; cc < fd.size()-1; cc++)
+    {
+        uniform_distribution ud = fd[cc];
+        //cerr << "cut: " << ud.get_upper() << " ";
+        cutp.push_back(ud.get_upper());
+    }
+    //cerr << endl;
+    //return cutp;
+}
+
+float cellfields::worst (vector<float> cuts) const
+{
+    std::sort(cuts.begin(),cuts.end());
+    float max = 0;
+    for (int cc=1; cc < cuts.size(); cc++)
+    {
+        if (max < cuts[cc] - cuts[cc-1])
+            max = cuts[cc] - cuts[cc-1];
+    }
+    return max;
+}
+
+double cellfields::opt_improvement(const vector<field>& vf) const
+{
+   	vector<float>cuts;
+	cuts.push_back(current_mu.get_lower());
+	for (field fi : vf)
+       	cut_points(cuts,fi, current_mu);
+
+    cuts.push_back(current_mu.get_upper());
+
+    return current_mu.range() / worst(cuts);
+}
+
+double cellfields::opt_improvement(const vector<field>& vf, const field& f) const
+{
+   	vector<float>cuts;
+	cuts.push_back(current_mu.get_lower());
+	for (field fi : vf)
+       	cut_points(cuts,fi, current_mu);
+
+    cut_points(cuts, f, current_mu);
+
+    cuts.push_back(current_mu.get_upper());
+
+    return current_mu.range() / worst(cuts);
+}
+
 
 double cellfields::multi_improvement(const vector<field>& vf) const
 {
@@ -221,7 +279,7 @@ double cellfields::pimprovement(const field& f) const
     {
 
 		double intremainrange = intremain.range();
-		
+
 		if (intremainrange+epsilon >= current_range) // might need to epsilon this
 			return 1.0;
         if (intremainrange > worst)
@@ -240,7 +298,7 @@ vector<field> cellfields::new_fields(vector<field>& current, const field& f) con
 	vector<field> start (current);
 	vector<field> result;
 	start.push_back(f);
-	double original_score = multi_improvement(start);
+	double original_score = opt_improvement(start);
 	for (size_t i=0; i < start.size(); i++)
 	{
 		vector<field> temp;
@@ -249,7 +307,7 @@ vector<field> cellfields::new_fields(vector<field>& current, const field& f) con
 		if (i<start.size()-1)
 			temp.insert(temp.end(),start.begin()+i+1,start.end());
 
-		double test = multi_improvement(temp);
+		double test = opt_improvement(temp);
 
 		if (test < original_score)
 			result.push_back(start[i]);
@@ -272,18 +330,18 @@ double cellfields::start_search(double best, const vector<field>& af)
 	return best;
 }
 
-double cellfields::search_fields(vector<field> current, const field& f, int start, double best) 
+double cellfields::search_fields(vector<field> current, const field& f, int start, double best)
 {
 
 	double fscore = pimprovement(f);
 
 	if (fscore <= 1.0 + epsilon)
 		return best;
-	
+
 	double total_score=fscore;
 	if (current.size() > 0)
 	{
-		total_score = multi_improvement(current,f);  // still not working properly. This function needs to be recursive.
+		total_score = opt_improvement(current,f);  // still not working properly. This function needs to be recursive.
 
 		// if (best >= total_score)
 		//	return best;
@@ -315,7 +373,7 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 		if (limit_layers==0 || newSize <= limit_layers)
 		{
 			cerr << total_score << " : " << newSize << " : " << rt.split() << " seconds." << endl;
-			cout << draw_fields(temp_plan) << endl; 
+			cout << draw_fields(temp_plan) << endl;
 			cerr << endl;
 			best = total_score;
 		}
@@ -329,7 +387,7 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 			if (!thisField.intersects(current))
 			{
 				double res = search_fields(current, thisField, i+1, best);
-				
+
 				if (res > best)
 					best = res;
 			}
@@ -383,7 +441,7 @@ double max_dist (unordered_set<S2CellId> cellids, S2CellId centre)
 			adist = cdist;
 	}
 
-	return adist.radians() * point::earth_radius; 
+	return adist.radians() * point::earth_radius;
 }
 
 unordered_set<S2CellId> expand_cells(unordered_set<S2CellId> cellids, S2CellId centre)
@@ -416,21 +474,21 @@ unordered_set<S2CellId> expand_cells(unordered_set<S2CellId> cellids, S2CellId c
 	return new_cells;
 }
 
-vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit2k) 
+vector<line> filter_lines (const vector<line>& li, const vector<silicontrip::link>& links, const team_count& tc, const vector<portal>& avoid_double, bool limit2k)
 {
 	link_factory* lf = link_factory::get_instance();
     vector<line> la = lf->filter_links(li, links, tc);
-    
+
 	if (avoid_double.size() > 0)
         la = lf->filter_link_by_blocker(la, links, avoid_double);
 
 	if (limit2k)
-        la = lf->filter_link_by_length(la, 2);  
+        la = lf->filter_link_by_length(la, 2);
 
     return la;
 }
 
-vector<portal> cluster_and_filter_from_cell_set(const vector<portal>& remove, const unordered_set<S2CellId>& cellids) 
+vector<portal> cluster_and_filter_from_cell_set(const vector<portal>& remove, const unordered_set<S2CellId>& cellids)
 {
 	portal_factory* pf = portal_factory::get_instance();
 	vector<portal> all_portals;
@@ -446,7 +504,7 @@ vector<portal> cluster_and_filter_from_cell_set(const vector<portal>& remove, co
     return all_portals;
 }
 
-vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc) 
+vector<portal> cluster_and_filter_from_description(const vector<portal>& remove, const string desc)
 {
 	portal_factory* pf = portal_factory::get_instance();
     vector<portal> portals = pf->cluster_from_description(desc);
@@ -467,7 +525,7 @@ int main (int argc, char* argv[])
 
 	string cellid;
 	int limit=0;
-	
+
 	bool limit2k = false;
 
 	arguments ag(argc,argv);
@@ -578,7 +636,7 @@ int main (int argc, char* argv[])
 		// ooo fun
 		//   void GetEdgeNeighbors(S2CellId neighbors[4]) const;
 		cellfields cf = cellfields(dt,rt,cellid,limit);
-		
+
 		unordered_set<S2CellId> search_cells;
 		search_cells.insert(s2cellid);
 		double best = 0;
@@ -599,7 +657,7 @@ int main (int argc, char* argv[])
 			if (portals.size() > 2)
 			{
 				//cerr << "== getting links ==" << endl;
-										
+
 				links = lf->get_purged_links(portals);
 				if (!ignore_links.empty())
 					links = lf->filter_link_by_portal(links,ignore_links);
@@ -613,7 +671,7 @@ int main (int argc, char* argv[])
 
 				//li = lf->filter_links(li,links,tc);
 				//if (limit2k)
-        		//	li = lf->filter_link_by_length(li, 2);  
+        		//	li = lf->filter_link_by_length(li, 2);
 				//cerr << "purged links: " << li.size() << endl;
 				cerr << "==  "  << li.size() << " links generated " << rt.split() <<  " seconds ==" << endl;
 				if (li.size() > 2)
@@ -639,7 +697,7 @@ int main (int argc, char* argv[])
 
 		}
 
-	}	
+	}
 	else if (ag.argument_size() == 1) {
         clusters.push_back(cluster_and_filter_from_description(avoid_single, ag.get_argument_at(0)));
     } else if (ag.argument_size() == 2) {
@@ -658,7 +716,7 @@ int main (int argc, char* argv[])
     for (const vector<portal>& cluster : clusters) {
         all_portals.insert(all_portals.end(), cluster.begin(), cluster.end());
     }
-    
+
     cerr << "== " << all_portals.size() << " portals read. in " << rt.split() << " seconds. ==" << endl;
     cerr << "== getting links ==" << endl;
 
@@ -672,9 +730,9 @@ int main (int argc, char* argv[])
 	if (ag.argument_size() == 1) {
         vector<line> li = lf->make_lines_from_single_cluster(clusters[0]);
         cerr << "all links: " << li.size() << endl;
-        
+
         li = filter_lines(li, links, tc, avoid_double, limit2k);
-        
+
         cerr << "== " << li.size() << " links generated " << rt.split() << " seconds. Generating fields ==" << endl;
 
         all_fields = ff->make_fields_from_single_links(li);
@@ -727,7 +785,7 @@ int main (int argc, char* argv[])
 	cerr <<  "== show all plans ==" << endl;
 
 	//sort (plan.begin(), plan.end(), pair_sort);
-	//for (pair<double,string> entry: plan) 
+	//for (pair<double,string> entry: plan)
 	//{
 	//	cout <<  entry.first << " " << entry.second << endl <<endl;
 	//}
@@ -738,5 +796,5 @@ int main (int argc, char* argv[])
 		cerr << "An Error occured: " << e.what() << endl;
 	}
 
-	return 0;	
+	return 0;
 }

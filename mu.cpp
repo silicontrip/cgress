@@ -1,6 +1,7 @@
 #include "draw_tools.hpp"
 #include "arguments.hpp"
 #include "field_factory.hpp"
+#include "uniform_distribution.hpp"
 
 using namespace std;
 using namespace silicontrip;
@@ -53,11 +54,11 @@ uniform_distribution other_contribution(string celltok, const unordered_map<stri
 	return othermu;
 }
 
-pair<int,int> range(double area, uniform_distribution mucell, uniform_distribution othermu) 
+pair<int,int> range(double area, uniform_distribution mucell, uniform_distribution othermu)
 {
 
 	uniform_distribution totalmu1 = othermu + mucell * area;
-	
+
 	double totalmax1 = round(totalmu1.get_upper());
 	double totalmin1 = round(totalmu1.get_lower());
 
@@ -72,7 +73,7 @@ pair<int,int> range(double area, uniform_distribution mucell, uniform_distributi
 	return res;
 }
 
-vector<uniform_distribution> ranges(const field& f1, uniform_distribution mucell, string cell_token) 
+vector<uniform_distribution> ranges(const field& f1, uniform_distribution mucell, string cell_token)
 {
 	field_factory* ff = field_factory::get_instance();
 
@@ -89,7 +90,7 @@ vector<uniform_distribution> ranges(const field& f1, uniform_distribution mucell
         uniform_distribution mu1(tmu1-0.5,tmu1+0.5);
         if (tmu1==1)
             mu1 = uniform_distribution(0.0,1.5);
-        
+
         uniform_distribution remain1 = (mu1 - othermu1) / intersections1[cell_token]; //remaining(mu, f, celltok) / intersections[celltok];
         uniform_distribution intremain1 = remain1.intersection(mucell);
 		res.push_back(intremain1);
@@ -116,7 +117,7 @@ uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distri
 
 		iss << ss;
 		iss << "f" << index+1 << ": ";
-		iss << o.range()/t.range() << " "; 
+		iss << o.range()/t.range() << " ";
 
 		t = c.intersection(u);
 		if (t.range() == 0)
@@ -144,7 +145,32 @@ uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distri
 	return worst;
 }
 
-vector<vector<uniform_distribution>> multi_ranges(const vector<field>& vf, uniform_distribution current_mu, string cell_token) 
+void cut_points(vector<float>& cutp, const field& f, uniform_distribution current_mu, string cell_token)
+{
+    vector<uniform_distribution> fd = ranges(f,current_mu,cell_token);
+    for (int cc =0; cc < fd.size()-1; cc++)
+    {
+        uniform_distribution ud = fd[cc];
+        //cerr << "cut: " << ud.get_upper() << " ";
+        cutp.push_back(ud.get_upper());
+    }
+    //cerr << endl;
+    //return cutp;
+}
+
+float worst (vector<float> cuts)
+{
+    std::sort(cuts.begin(),cuts.end());
+    float max = 0;
+    for (int cc=1; cc < cuts.size(); cc++)
+    {
+        if (max < cuts[cc] - cuts[cc-1])
+            max = cuts[cc] - cuts[cc-1];
+    }
+    return max;
+}
+
+vector<vector<uniform_distribution>> multi_ranges(const vector<field>& vf, uniform_distribution current_mu, string cell_token)
 {
 	vector<vector<uniform_distribution>> existing;
 	if (vf.size() > 0)
@@ -178,7 +204,7 @@ void pimprovement(const field& f, string celltok)
         uniform_distribution mu(tmu-0.5,tmu+0.5);
         if (tmu==1)
             mu = uniform_distribution(0.0,1.5);
-        
+
         uniform_distribution remain = remaining(mu, f, celltok) / intersections[celltok];
         uniform_distribution intremain = remain.intersection(cellmu[celltok]);
 
@@ -198,10 +224,25 @@ void show_matrix_improvements(const vector<field>& f, string celltok)
 	cells.push_back(celltok);
 	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
 
+	uniform_distribution current_mu = cellmu[celltok];
+
+	vector<float>cuts;
+	cuts.push_back(current_mu.get_lower());
+	for (field fi : f)
+    	cut_points(cuts,fi, current_mu, celltok);
+
+     cuts.push_back(current_mu.get_upper());
+     float max = worst(cuts);
+     float worst = current_mu.range() / max;
+
+     cerr << "worst: " << worst << endl;
+
 	vector<vector<uniform_distribution>> field_ranges = multi_ranges(f, cellmu[celltok], celltok);
 
 	string ss;
 	lowest(cellmu[celltok],field_ranges,cellmu[celltok],0,ss);
+
+
 
 }
 
@@ -225,7 +266,7 @@ vector<string> intcells (vector<field> f)
 					{
 						ifound = true;
 						break;
-					}	
+					}
 				}
 				if (!ifound)
 				{
@@ -244,7 +285,7 @@ vector<string> intcells (vector<field> f)
 uniform_distribution muround(const uniform_distribution& ud)
 {
 	double l = round(ud.get_lower());
-	if (l<1) 
+	if (l<1)
 		l=1;
 	double u = round(ud.get_upper());
 	if (u<1)
@@ -261,7 +302,7 @@ int main (int argc, char* argv[])
     {
         print_usage();
         exit(1);
-    } 
+    }
 
 	if (ag.argument_size() != 1)
 	{
