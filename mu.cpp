@@ -73,6 +73,30 @@ pair<int,int> range(double area, uniform_distribution mucell, uniform_distributi
 	return res;
 }
 
+vector<uniform_distribution> cranges(const field& f1, uniform_distribution mucell, string cell_token)
+{
+	field_factory* ff = field_factory::get_instance();
+
+	unordered_map<string,double> intersections1 = ff->cell_intersection(f1);
+	vector<string> cells1 = ff->celltokens(f1);
+	unordered_map<string,uniform_distribution> cellmu1 = ff->query_mu(cells1);
+
+	uniform_distribution othermu1 = other_contribution(cell_token,intersections1,cellmu1);
+	pair<int,int> murange = range(intersections1[cell_token], mucell,othermu1);
+
+	vector<uniform_distribution> res;
+	for (int tmu1 = murange.first; tmu1 <= murange.second; tmu1++)
+    {
+        uniform_distribution mu1(tmu1-0.5,tmu1+0.5);
+        if (tmu1==1)
+            mu1 = uniform_distribution(0.0,1.5);
+
+        uniform_distribution remain1 = (mu1 - othermu1) / intersections1[cell_token]; //remaining(mu, f, celltok) / intersections[celltok];
+		res.push_back(remain1);
+	}
+	return res;
+}
+
 vector<uniform_distribution> ranges(const field& f1, uniform_distribution mucell, string cell_token)
 {
 	field_factory* ff = field_factory::get_instance();
@@ -145,31 +169,6 @@ uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distri
 	return worst;
 }
 
-void cut_points(vector<float>& cutp, const field& f, uniform_distribution current_mu, string cell_token)
-{
-    vector<uniform_distribution> fd = ranges(f,current_mu,cell_token);
-    for (int cc =0; cc < fd.size()-1; cc++)
-    {
-        uniform_distribution ud = fd[cc];
-        //cerr << "cut: " << ud.get_upper() << " ";
-        cutp.push_back(ud.get_upper());
-    }
-    //cerr << endl;
-    //return cutp;
-}
-
-float worst (vector<float> cuts)
-{
-    std::sort(cuts.begin(),cuts.end());
-    float max = 0;
-    for (int cc=1; cc < cuts.size(); cc++)
-    {
-        if (max < cuts[cc] - cuts[cc-1])
-            max = cuts[cc] - cuts[cc-1];
-    }
-    return max;
-}
-
 vector<vector<uniform_distribution>> multi_ranges(const vector<field>& vf, uniform_distribution current_mu, string cell_token)
 {
 	vector<vector<uniform_distribution>> existing;
@@ -223,19 +222,6 @@ void show_matrix_improvements(const vector<field>& f, string celltok)
 	vector<string> cells;
 	cells.push_back(celltok);
 	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
-
-	uniform_distribution current_mu = cellmu[celltok];
-
-	vector<float>cuts;
-	cuts.push_back(current_mu.get_lower());
-	for (field fi : f)
-    	cut_points(cuts,fi, current_mu, celltok);
-
-     cuts.push_back(current_mu.get_upper());
-     float max = worst(cuts);
-     float worst = current_mu.range() / max;
-
-     cerr << "worst: " << worst << endl;
 
 	vector<vector<uniform_distribution>> field_ranges = multi_ranges(f, cellmu[celltok], celltok);
 
@@ -347,7 +333,7 @@ int main (int argc, char* argv[])
         total = total + muround(ftotal);
 
     }
-	if (ag.has_option("i") && fields.size() > 1) {
+	if (ag.has_option("i") && fields.size() > 0) {
 		vector<string>cc = intcells(fields);
 		for (string ctok : cc)
 		{

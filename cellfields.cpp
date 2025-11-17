@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -39,6 +40,8 @@ private:
 	float worst (vector<float> cuts) const;
 	double opt_improvement(const vector<field>& vf) const;
 	double opt_improvement(const vector<field>& vf, const field& f) const;
+	double opt_improvement(const field& f) const;
+
 
 	double multi_improvement(const vector<field>& vf, const field& fi) const;
 	double multi_improvement(const vector<field>& vf) const;
@@ -212,10 +215,12 @@ double cellfields::multi_improvement(const vector<field>& vf, const field& fi) c
 void cellfields::cut_points(vector<float>& cutp, const field& f, uniform_distribution current_mu) const
 {
     vector<uniform_distribution> fd = ranges(f,current_mu);
+    if (fd.size()==1)
+        return;
     for (int cc =0; cc < fd.size()-1; cc++)
     {
         uniform_distribution ud = fd[cc];
-        //cerr << "cut: " << ud.get_upper() << " ";
+        //cerr << "cut: " << std::setprecision(8)  << ud.get_upper() << " ";
         cutp.push_back(ud.get_upper());
     }
     //cerr << endl;
@@ -226,23 +231,31 @@ float cellfields::worst (vector<float> cuts) const
 {
     std::sort(cuts.begin(),cuts.end());
     float max = 0;
+    cerr<< setprecision(8) << cuts[0] << " ";
     for (int cc=1; cc < cuts.size(); cc++)
     {
+        cerr<< setprecision(8) << cuts[cc] << " ";
         if (max < cuts[cc] - cuts[cc-1])
             max = cuts[cc] - cuts[cc-1];
     }
+    cerr << endl;
     return max;
 }
 
 double cellfields::opt_improvement(const vector<field>& vf) const
 {
+    if (vf.size()==0)
+        return 1.0;
    	vector<float>cuts;
 	cuts.push_back(current_mu.get_lower());
 	for (field fi : vf)
        	cut_points(cuts,fi, current_mu);
 
     cuts.push_back(current_mu.get_upper());
+    if (cuts.size() == 2)
+        return 1.0;
 
+    cerr << "vector" << endl;
     return current_mu.range() / worst(cuts);
 }
 
@@ -256,10 +269,27 @@ double cellfields::opt_improvement(const vector<field>& vf, const field& f) cons
     cut_points(cuts, f, current_mu);
 
     cuts.push_back(current_mu.get_upper());
+    if (cuts.size() == 2)
+        return 1.0;
+
+    cerr << "vector+" << endl;
 
     return current_mu.range() / worst(cuts);
 }
 
+double cellfields::opt_improvement(const field& f) const
+{
+   	vector<float>cuts;
+	cuts.push_back(current_mu.get_lower());
+
+    cut_points(cuts, f, current_mu);
+
+    cuts.push_back(current_mu.get_upper());
+    if (cuts.size() == 2)
+        return 1.0;
+    cerr << "single " << current_mu << endl;
+    return current_mu.range() / worst(cuts);
+}
 
 double cellfields::multi_improvement(const vector<field>& vf) const
 {
@@ -277,7 +307,6 @@ double cellfields::pimprovement(const field& f) const
 	double worst = 0.0;
     for (uniform_distribution intremain : field_improvements)
     {
-
 		double intremainrange = intremain.range();
 
 		if (intremainrange+epsilon >= current_range) // might need to epsilon this
@@ -288,7 +317,6 @@ double cellfields::pimprovement(const field& f) const
         // cerr << "mu: " << tmu << " rem: " << remain << " range: " << intremain.range() << " imp: " << cellmu[celltok].range() / intremain.range() <<   endl;
 
     }
-
 	return current_range / worst;
 
 }
@@ -298,7 +326,7 @@ vector<field> cellfields::new_fields(vector<field>& current, const field& f) con
 	vector<field> start (current);
 	vector<field> result;
 	start.push_back(f);
-	double original_score = opt_improvement(start);
+	double original_score = multi_improvement(start);
 	for (size_t i=0; i < start.size(); i++)
 	{
 		vector<field> temp;
@@ -307,7 +335,7 @@ vector<field> cellfields::new_fields(vector<field>& current, const field& f) con
 		if (i<start.size()-1)
 			temp.insert(temp.end(),start.begin()+i+1,start.end());
 
-		double test = opt_improvement(temp);
+		double test = multi_improvement(temp);
 
 		if (test < original_score)
 			result.push_back(start[i]);
@@ -334,6 +362,8 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 {
 
 	double fscore = pimprovement(f);
+	//double fscore = multi_improvement(f);
+	//pimprovement(f);
 
 	if (fscore <= 1.0 + epsilon)
 		return best;
@@ -341,7 +371,7 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 	double total_score=fscore;
 	if (current.size() > 0)
 	{
-		total_score = opt_improvement(current,f);  // still not working properly. This function needs to be recursive.
+		total_score = multi_improvement(current,f);  // still not working properly. This function needs to be recursive.
 
 		// if (best >= total_score)
 		//	return best;
@@ -614,6 +644,7 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("D"))
 	{
+    	cerr << "== Reading Avoid Portals ==" << endl;
 		avoid_double = pf->cluster_from_description(ag.get_option_for_key("D"));
 		// for (portal p: avoid_double)
 		//	cerr << "avoid: " << p << endl;
