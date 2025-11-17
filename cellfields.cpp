@@ -11,6 +11,7 @@
 #include "draw_tools.hpp"
 #include "link.hpp"
 #include "field.hpp"
+#include "uniform_distribution.hpp"
 
 using namespace std;
 using namespace silicontrip;
@@ -34,14 +35,11 @@ private:
 	string draw_fields(const vector<field>& f);
 	double calc_score(const field& f) const;
 	double search_fields(vector<field> current, const field& f, int start, double best);
-	vector<vector<uniform_distribution>> multi_ranges(const vector<field>& vf) const;
+	vector<vector<uniform_distribution> > multi_ranges(const vector<field>& vf) const;
 
-	void cut_points(vector<float>& cutp, const field& f, uniform_distribution current_mu) const;
-	float worst (vector<float> cuts) const;
-	double opt_improvement(const vector<field>& vf) const;
-	double opt_improvement(const vector<field>& vf, const field& f) const;
-	double opt_improvement(const field& f) const;
-
+	uniform_distribution lowest(const vector<vector<uniform_distribution> >& r, uniform_distribution c, size_t index) const;
+	vector<int> decomb(const vector<int>& outcomes_per_field, int current_index) const;
+	uniform_distribution opt_lowest(const vector<vector<uniform_distribution> >& r,uniform_distribution c) const;
 
 	double multi_improvement(const vector<field>& vf, const field& fi) const;
 	double multi_improvement(const vector<field>& vf) const;
@@ -150,7 +148,7 @@ vector<uniform_distribution> cellfields::ranges(const field& f1, uniform_distrib
 	return res;
 }
 
-uniform_distribution lowest(const vector<vector<uniform_distribution>>& r, uniform_distribution c, size_t index)
+uniform_distribution cellfields::lowest(const vector<vector<uniform_distribution> >& r, uniform_distribution c, size_t index) const
 {
 
 	if (index >= r.size())
@@ -179,9 +177,52 @@ uniform_distribution lowest(const vector<vector<uniform_distribution>>& r, unifo
 	return worst;
 }
 
-vector<vector<uniform_distribution>> cellfields::multi_ranges(const vector<field>& vf) const
+vector<int> cellfields::decomb(const vector<int>& outcomes_per_field, int current_index) const
 {
-	vector<vector<uniform_distribution>> existing;
+    vector<int> result_indices(outcomes_per_field.size());
+
+    // Iterate from the last field to the first (or first to last, depending on convention)
+    // Let's assume we fill result_indices from right to left (least significant "digit" first)
+    for (int i = outcomes_per_field.size() - 1; i >= 0; --i) {
+        result_indices[i] = current_index % outcomes_per_field[i];
+        current_index /= outcomes_per_field[i];
+    }
+    return result_indices;
+}
+
+uniform_distribution cellfields::opt_lowest(const vector<vector<uniform_distribution> >& r,uniform_distribution c) const
+{
+    vector<int> fval;
+    int all = 1;
+    int field_length = r.size();
+    for (vector<uniform_distribution> vud : r)
+    {
+        all *= vud.size();
+        fval.push_back(vud.size());
+    }
+
+    uniform_distribution worst(0.0,0.0);
+    for (int cc =0; cc< all; cc++)
+    {
+        uniform_distribution itworst = c;
+        vector<int>current = decomb(fval,cc);
+        for(int icc=0; icc<field_length; icc++)
+        {
+            uniform_distribution field_int = r[icc][current[icc]];
+            itworst = itworst.intersection(field_int);
+        }
+        // not sure if I can directly compare them
+        if (itworst.range() >= c.range())
+            return c;
+        if (itworst.range() > worst.range())
+            worst = itworst;
+    }
+    return worst;
+}
+
+vector<vector<uniform_distribution> > cellfields::multi_ranges(const vector<field>& vf) const
+{
+	vector<vector<uniform_distribution> > existing;
 	if (vf.size() > 0)
 	{
 		for (int j =0; j < vf.size(); j++)
@@ -196,105 +237,20 @@ vector<vector<uniform_distribution>> cellfields::multi_ranges(const vector<field
 
 double cellfields::multi_improvement(const vector<field>& vf, const field& fi) const
 {
-
-	vector<vector<uniform_distribution>> existing = multi_ranges(vf);
+	vector<vector<uniform_distribution> > existing = multi_ranges(vf);
 
 	vector<uniform_distribution> fd = ranges(fi,current_mu);
 	existing.push_back(fd);
 
-	uniform_distribution best = lowest(existing,current_mu,0);
-
-	//uniform_distribution cimp = get_improvement(vf[vf.size()-1],fi,current);
-	// cerr << imp << " * " << current.range() / cimp.range() << " " << current << " * " << cimp << endl;
-
-	//imp = imp * current.range() / cimp.range();
+	uniform_distribution best = opt_lowest(existing,current_mu);
 
 	return current_mu.range() / best.range();
-}
-
-void cellfields::cut_points(vector<float>& cutp, const field& f, uniform_distribution current_mu) const
-{
-    vector<uniform_distribution> fd = ranges(f,current_mu);
-    if (fd.size()==1)
-        return;
-    for (int cc =0; cc < fd.size()-1; cc++)
-    {
-        uniform_distribution ud = fd[cc];
-        //cerr << "cut: " << std::setprecision(8)  << ud.get_upper() << " ";
-        cutp.push_back(ud.get_upper());
-    }
-    //cerr << endl;
-    //return cutp;
-}
-
-float cellfields::worst (vector<float> cuts) const
-{
-    std::sort(cuts.begin(),cuts.end());
-    float max = 0;
-    cerr<< setprecision(8) << cuts[0] << " ";
-    for (int cc=1; cc < cuts.size(); cc++)
-    {
-        cerr<< setprecision(8) << cuts[cc] << " ";
-        if (max < cuts[cc] - cuts[cc-1])
-            max = cuts[cc] - cuts[cc-1];
-    }
-    cerr << endl;
-    return max;
-}
-
-double cellfields::opt_improvement(const vector<field>& vf) const
-{
-    if (vf.size()==0)
-        return 1.0;
-   	vector<float>cuts;
-	cuts.push_back(current_mu.get_lower());
-	for (field fi : vf)
-       	cut_points(cuts,fi, current_mu);
-
-    cuts.push_back(current_mu.get_upper());
-    if (cuts.size() == 2)
-        return 1.0;
-
-    cerr << "vector" << endl;
-    return current_mu.range() / worst(cuts);
-}
-
-double cellfields::opt_improvement(const vector<field>& vf, const field& f) const
-{
-   	vector<float>cuts;
-	cuts.push_back(current_mu.get_lower());
-	for (field fi : vf)
-       	cut_points(cuts,fi, current_mu);
-
-    cut_points(cuts, f, current_mu);
-
-    cuts.push_back(current_mu.get_upper());
-    if (cuts.size() == 2)
-        return 1.0;
-
-    cerr << "vector+" << endl;
-
-    return current_mu.range() / worst(cuts);
-}
-
-double cellfields::opt_improvement(const field& f) const
-{
-   	vector<float>cuts;
-	cuts.push_back(current_mu.get_lower());
-
-    cut_points(cuts, f, current_mu);
-
-    cuts.push_back(current_mu.get_upper());
-    if (cuts.size() == 2)
-        return 1.0;
-    cerr << "single " << current_mu << endl;
-    return current_mu.range() / worst(cuts);
 }
 
 double cellfields::multi_improvement(const vector<field>& vf) const
 {
 	vector<vector<uniform_distribution>> existing = multi_ranges(vf);
-	uniform_distribution best = lowest(existing,current_mu,0);
+	uniform_distribution best = opt_lowest(existing,current_mu);
 	return current_mu.range() / best.range();
 }
 
