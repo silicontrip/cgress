@@ -73,30 +73,6 @@ pair<int,int> range(double area, uniform_distribution mucell, uniform_distributi
 	return res;
 }
 
-vector<uniform_distribution> cranges(const field& f1, uniform_distribution mucell, string cell_token)
-{
-	field_factory* ff = field_factory::get_instance();
-
-	unordered_map<string,double> intersections1 = ff->cell_intersection(f1);
-	vector<string> cells1 = ff->celltokens(f1);
-	unordered_map<string,uniform_distribution> cellmu1 = ff->query_mu(cells1);
-
-	uniform_distribution othermu1 = other_contribution(cell_token,intersections1,cellmu1);
-	pair<int,int> murange = range(intersections1[cell_token], mucell,othermu1);
-
-	vector<uniform_distribution> res;
-	for (int tmu1 = murange.first; tmu1 <= murange.second; tmu1++)
-    {
-        uniform_distribution mu1(tmu1-0.5,tmu1+0.5);
-        if (tmu1==1)
-            mu1 = uniform_distribution(0.0,1.5);
-
-        uniform_distribution remain1 = (mu1 - othermu1) / intersections1[cell_token]; //remaining(mu, f, celltok) / intersections[celltok];
-		res.push_back(remain1);
-	}
-	return res;
-}
-
 vector<uniform_distribution> ranges(const field& f1, uniform_distribution mucell, string cell_token)
 {
 	field_factory* ff = field_factory::get_instance();
@@ -219,16 +195,19 @@ void pimprovement(const field& f, string celltok)
 void show_matrix_improvements(const vector<field>& f, string celltok)
 {
 	field_factory* ff = field_factory::get_instance();
-	vector<string> cells;
-	cells.push_back(celltok);
-	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
+	//vector<string> cells;
+	//cells.push_back(celltok);
+	//unordered_map<string,uniform_distribution> cellmu = ff->query_mu(celltok);
+	uniform_distribution cellmu = ff->query_mu(celltok);
 
-	vector<vector<uniform_distribution>> field_ranges = multi_ranges(f, cellmu[celltok], celltok);
+	vector<vector<uniform_distribution>> field_ranges = multi_ranges(f, cellmu, celltok);
 
 	string ss;
-	lowest(cellmu[celltok],field_ranges,cellmu[celltok],0,ss);
+	lowest(cellmu,field_ranges,cellmu,0,ss);
+}
 
-
+void show_field_invalidation(const vector<field>& f, string celltok)
+{
 
 }
 
@@ -333,7 +312,7 @@ int main (int argc, char* argv[])
         total = total + muround(ftotal);
 
     }
-	if (ag.has_option("i") && fields.size() > 0) {
+	if (ag.has_option("i") && fields.size() > 1) {
 		vector<string>cc = intcells(fields);
 		for (string ctok : cc)
 		{
