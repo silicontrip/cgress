@@ -62,6 +62,7 @@ class field_factory {
         std::unordered_map<std::string,double> cell_intersection(const field& f) const; // prefered for cellfields
         std::vector<std::string> celltokens(const field& f) const; // prefered for cellfields
         std::unordered_map<std::string, uniform_distribution>query_mu(const std::vector<std::string>& cells); // used by cellfields
+        uniform_distribution query_mu(const std::string token);
         int get_cache_mu(const field& f);
         uniform_distribution get_cache_ud_mu(const field& f);
 
@@ -83,7 +84,7 @@ class field_factory {
 template<> struct std::hash<S2CellId> {
     std::size_t operator()(S2CellId const& s) const noexcept {
         std::size_t h1 = std::hash<uint64_t>{}(s.id());
-        return h1; 
+        return h1;
     }
 };
 

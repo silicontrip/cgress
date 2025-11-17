@@ -1,11 +1,12 @@
 #include "field_factory.hpp"
+#include "uniform_distribution.hpp"
 
 using namespace std;
 
 namespace silicontrip {
 field_factory* field_factory::ptr = 0;
 
-field_factory::field_factory() 
+field_factory::field_factory()
 {
     ifstream file_properties("portal_factory_properties.json");
     Json::Value properties;
@@ -81,8 +82,8 @@ vector<field> field_factory::filter_fields(const vector<field>&f, const vector<l
         }
         if (!(bb > tc))
             fa.push_back(fi);
-                        
-                
+
+
     }
     return fa;
 }
@@ -137,7 +138,7 @@ vector<field> field_factory::filter_fields_with_cell(const vector<field>&f,strin
 
 // generates a s2polygon from a field
 S2Polygon field_factory::s2polygon(const field& f) const
-{ 
+{
     vector<S2Point> loop_points;
     loop_points.push_back(f.point_at(0).s2latlng().ToPoint());
     loop_points.push_back(f.point_at(1).s2latlng().ToPoint());
@@ -162,7 +163,7 @@ S2CellUnion field_factory::cells(const S2Polygon& p) const
 }
 
 // calculates the area a polygon overlaps a cell
-std::unordered_map<S2CellId,double> field_factory::cell_intersection(const S2Polygon& p) const 
+std::unordered_map<S2CellId,double> field_factory::cell_intersection(const S2Polygon& p) const
 {
     unordered_map<S2CellId,double> area;
     S2CellUnion cell_union = cells(p);
@@ -239,40 +240,51 @@ unordered_map<string, uniform_distribution>field_factory::query_mu_from_servlet(
 // uses a cell token cache to limit calls to web api
 unordered_map<string, uniform_distribution>field_factory::query_mu(const vector<string>& cell_tokens)
 {
-    unordered_map<std::string, uniform_distribution> result; // = new unordered_map<std::string, uniform_distribution>();
+unordered_map<std::string, uniform_distribution> result; // = new unordered_map<std::string, uniform_distribution>();
 
-        // List to collect tokens that need to be queried from servlet
-        vector<string> tokens_to_query;
+    // List to collect tokens that need to be queried from servlet
+    vector<string> tokens_to_query;
 
-        // Step 1: Retrieve cached MU values
-        for (string token : cell_tokens) {
-            if (mu_cache.count(token)) {
-                // If value exists in cache, retrieve it
-                result[token] = mu_cache.at(token);
-            } else {
-                // If not in cache, add to tokensToQuery list
-                tokens_to_query.push_back(token);
-            }
+    // Step 1: Retrieve cached MU values
+    for (string token : cell_tokens) {
+        if (mu_cache.count(token)) {
+            // If value exists in cache, retrieve it
+            result[token] = mu_cache.at(token);
+        } else {
+            // If not in cache, add to tokensToQuery list
+            tokens_to_query.push_back(token);
         }
-        if (tokens_to_query.size()) {
-            unordered_map<string, uniform_distribution> servlet_mu_values = query_mu_from_servlet(tokens_to_query);
+    }
+    if (tokens_to_query.size()) {
+        unordered_map<string, uniform_distribution> servlet_mu_values = query_mu_from_servlet(tokens_to_query);
 
-            // Step 3: Cache retrieved MU values
-            for (pair<string, uniform_distribution> entry : servlet_mu_values) {
-                string token = entry.first;;
-                uniform_distribution mu_value = entry.second;
+        // Step 3: Cache retrieved MU values
+        for (pair<string, uniform_distribution> entry : servlet_mu_values) {
+            string token = entry.first;;
+            uniform_distribution mu_value = entry.second;
 
-                // Cache the retrieved value
-                mu_cache[token]= mu_value;
+            // Cache the retrieved value
+            mu_cache[token]= mu_value;
 
-                // Add to the result map
-                result[token]= mu_value;
-            }
+            // Add to the result map
+            result[token]= mu_value;
         }
-
-        return result;
     }
 
+    return result;
+}
+
+uniform_distribution field_factory::query_mu(string token)
+{
+    if (mu_cache.count(token))
+        return mu_cache.at(token);
+
+    vector<string> tokens_to_query;
+    tokens_to_query.push_back(token);
+    unordered_map<string, uniform_distribution> servlet_mu_values = query_mu_from_servlet(tokens_to_query);
+    mu_cache[token] = servlet_mu_values[token];
+    return servlet_mu_values[token];
+}
 
 uniform_distribution field_factory::calculate_mu(const S2Polygon& p)
 {
@@ -300,13 +312,13 @@ uniform_distribution field_factory::calculate_mu(const S2Polygon& p)
 
 }
 
-int field_factory::get_est_mu(const field& f) 
+int field_factory::get_est_mu(const field& f)
 {
     S2Polygon p = s2polygon(f);
     return (int) calculate_mu(p).rounded_mean();
 }
 
-uniform_distribution field_factory::get_ud_mu(const field& f) 
+uniform_distribution field_factory::get_ud_mu(const field& f)
 {
     S2Polygon p = s2polygon(f);
     return calculate_mu(p);
@@ -376,7 +388,7 @@ vector<field> field_factory::make_fields_from_single_links(const vector<line>&l)
         for (int j=i+1; j<l.size(); j++)
         {
             line l2 = l.at(j);
-            
+
             // point l1.o == point l2.o
             if (l1.get_o_point() == l2.get_o_point()) {
                 if (link_exists(l,j,l1.get_d_point(),l2.get_d_point()))
@@ -440,7 +452,7 @@ bool field_factory::share_line_index(const unordered_map<point, unordered_set<si
   return false; // No common index found.
 }
 
-vector<field> field_factory::make_fields_from_single_links(const vector<line>& l) const 
+vector<field> field_factory::make_fields_from_single_links(const vector<line>& l) const
 {
     unordered_map<point,unordered_set<size_t>> point_exists;
 
@@ -494,7 +506,7 @@ vector<field> field_factory::make_fields_from_double_links(const vector<line>&lk
         for (int j=i+1; j<lk1.size(); j++)
         {
             line l2 = lk1.at(j);
-            
+
             // point l1.o == point l2.o
             if (l1.get_o_point() == l2.get_o_point()) {
                 if (link_exists(lk2,-1,l1.get_d_point(),l2.get_d_point()))
@@ -510,7 +522,7 @@ vector<field> field_factory::make_fields_from_double_links(const vector<line>&lk
                     fa.push_back(field(l1.get_o_point(),l1.get_d_point(),l2.get_o_point()));
             }
         }
-    }   
+    }
     return fa;
 }
 */
@@ -572,7 +584,7 @@ std::vector<field> field_factory::make_fields_from_triple_links(const vector<lin
         for (int j=0; j<lk2.size(); j++)
         {
             line l2 = lk2.at(j);
-            
+
             // point l1.o == point l2.o
             if (l1.get_o_point() == l2.get_o_point()) {
                 if (link_exists(lk3,-1,l1.get_d_point(),l2.get_d_point()))
@@ -605,7 +617,7 @@ vector<field> field_factory::get_splits(const field& f1, const field& f2) const
     for (line l : f1.get_lines())
     {
         for (line l2 : f2.get_lines())
-            if (l == l2) 
+            if (l == l2)
             {
                 found = true;
                 shared = l;
@@ -620,7 +632,7 @@ vector<field> field_factory::get_splits(const field& f1, const field& f2) const
 
     field s1 = field(o1,o2,shared.get_d_point());
     field s2 = field(o1,o2,shared.get_o_point());
-    
+
     splits.push_back(s1);
     splits.push_back(s2);
 
@@ -680,7 +692,7 @@ std::vector<field> field_factory::make_fields_from_single_links_v2(const std::ve
     for (const auto& pair : adj_list) {
         const point& p1 = pair.first;
         const std::unordered_set<point>& neighbors_set = pair.second;
-        
+
         // Convert set to vector to iterate with indices
         std::vector<point> neighbors(neighbors_set.begin(), neighbors_set.end());
 
