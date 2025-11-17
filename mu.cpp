@@ -73,6 +73,19 @@ pair<int,int> range(double area, uniform_distribution mucell, uniform_distributi
 	return res;
 }
 
+pair<int,int> range(const field& f, string celltok)
+{
+    field_factory* ff = field_factory::get_instance();
+
+	unordered_map<string,double> intersections = ff->cell_intersection(f);
+	vector<string> cells = ff->celltokens(f);
+	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
+
+	uniform_distribution othermu = other_contribution(celltok,intersections,cellmu);
+
+    return range(intersections[celltok], cellmu[celltok], othermu);
+}
+
 vector<uniform_distribution> ranges(const field& f1, uniform_distribution mucell, string cell_token)
 {
 	field_factory* ff = field_factory::get_instance();
@@ -208,7 +221,38 @@ void show_matrix_improvements(const vector<field>& f, string celltok)
 
 void show_field_invalidation(const vector<field>& f, string celltok)
 {
+    field_factory* ff = field_factory::get_instance();
 
+	uniform_distribution cellmu = ff->query_mu(celltok);
+	vector<vector<uniform_distribution>> field_ranges = multi_ranges(f, cellmu, celltok);
+
+    for (int cc=0; cc < f.size(); cc++)
+    {
+        field fi = f[cc];
+       	pair<int,int> murange = range(fi,celltok);
+
+        int mu = murange.first;
+        for (uniform_distribution fud : field_ranges[cc])
+        {
+            cerr << "f"<<cc+1 << " (" << mu++ <<"): makes redundant ";
+            for (int icc=0; icc < f.size(); icc++)
+            {
+                if (cc != icc)
+                {
+                    cerr << "f" << icc+1 << ": " ;
+                    bool redundant = true;
+                    for (uniform_distribution ifud : field_ranges[icc])
+                    {
+                        uniform_distribution nfud = fud.intersection(ifud);
+                        if (nfud.range()!=0 && nfud.range() != fud.range())
+                            redundant = false;
+                    }
+                    cerr << redundant << " ";
+                }
+            }
+            cerr << endl;
+        }
+    }
 }
 
 vector<string> intcells (vector<field> f)
@@ -318,6 +362,7 @@ int main (int argc, char* argv[])
 		{
 			cerr << "[" << ctok << "]" <<endl;
 			show_matrix_improvements (fields,ctok);
+			show_field_invalidation(fields,ctok);
 		}
 	}
     cout << total << endl;
