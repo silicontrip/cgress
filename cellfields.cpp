@@ -46,8 +46,8 @@ private:
 	bool compare_improvement(const field& f1, const field& f2) const;
 	vector<field> new_fields(vector<field>& current, const field& f) const;
 	double pimprovement(const field& f) const;
-	vector<uniform_distribution> ranges(const field& f1, uniform_distribution mucell) const;
-	pair<int,int> range(const field& f1, double area, uniform_distribution mucell, uniform_distribution othermu) const;
+	vector<uniform_distribution> muranges(const field& f1, uniform_distribution mucell) const;
+	pair<int,int> murange(const field& f1, double area, uniform_distribution mucell, uniform_distribution othermu) const;
 
 
 public:
@@ -105,7 +105,7 @@ uniform_distribution other_contribution(const field& f, string celltok, const un
 	return othermu;
 }
 
-pair<int,int> cellfields::range(const field& f1, double area, uniform_distribution mucell, uniform_distribution othermu) const
+pair<int,int> cellfields::murange(const field& f1, double area, uniform_distribution mucell, uniform_distribution othermu) const
 {
 
 	//uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
@@ -125,14 +125,14 @@ pair<int,int> cellfields::range(const field& f1, double area, uniform_distributi
 	return res;
 }
 
-vector<uniform_distribution> cellfields::ranges(const field& f1, uniform_distribution mucell) const
+vector<uniform_distribution> cellfields::muranges(const field& f1, uniform_distribution mucell) const
 {
 	unordered_map<string,double> intersections1 = ff->cell_intersection(f1);
 	vector<string> cells1 = ff->celltokens(f1);
 	unordered_map<string,uniform_distribution> cellmu1 = ff->query_mu(cells1);
 
 	uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
-	pair<int,int> murange = range(f1,intersections1[cell_token], mucell,othermu1);
+	pair<int,int> murange = murange(f1,intersections1[cell_token], mucell,othermu1);
 
 	vector<uniform_distribution> res;
 	for (int tmu1 = murange.first; tmu1 <= murange.second; tmu1++)
@@ -209,7 +209,11 @@ uniform_distribution cellfields::opt_lowest(const vector<vector<uniform_distribu
         for(int icc=0; icc<field_length; icc++)
         {
             uniform_distribution field_int = r[icc][current[icc]];
-            itworst = itworst.intersection(field_int);
+            //itworst = itworst.intersection(field_int);
+
+            uniform_distribution cworst=itworst.intersection(field_int);
+            if (cworst.range() > 0)
+                itworst = cworst;
         }
         // not sure if I can directly compare them
         if (itworst.range() >= c.range())
