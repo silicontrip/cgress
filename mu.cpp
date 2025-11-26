@@ -14,6 +14,7 @@ void print_usage()
 		cerr << "Shows mu for field plan gives breakdown of cell contributions." << endl;
 		cerr << "Options:" << endl;
 		cerr << " -i          Show potential improvements to the cells if this field is made." << endl;
+		cerr << " -f          Filter out known MU fields and show regenerated plan." << endl;
 }
 
 uniform_distribution remaining(uniform_distribution v, const field& f, string celltok)
@@ -158,6 +159,55 @@ uniform_distribution lowest(uniform_distribution o, vector<vector<uniform_distri
 	return worst;
 }
 
+vector<int> decomb(const vector<int>& outcomes_per_field, int current_index)
+{
+    vector<int> result_indices(outcomes_per_field.size());
+
+    // Iterate from the last field to the first (or first to last, depending on convention)
+    // Let's assume we fill result_indices from right to left (least significant "digit" first)
+    for (int i = outcomes_per_field.size() - 1; i >= 0; --i) {
+        result_indices[i] = current_index % outcomes_per_field[i];
+        current_index /= outcomes_per_field[i];
+    }
+    return result_indices;
+}
+
+uniform_distribution opt_lowest(const vector<vector<uniform_distribution> >& r,uniform_distribution c)
+{
+    vector<int> fval;
+    int all = 1;
+    int field_length = r.size();
+    for (vector<uniform_distribution> vud : r)
+    {
+        all *= vud.size();
+        fval.push_back(vud.size());
+    }
+
+    uniform_distribution worst(0.0,0.0);
+    for (int cc =0; cc< all; cc++)
+    {
+        uniform_distribution itworst = c;
+        vector<int>current = decomb(fval,cc);
+        for(int icc=0; icc<field_length; icc++)
+        {
+            uniform_distribution field_int = r[icc][current[icc]];
+            double imp = c.range() / field_int.range();
+            cerr << "f" << icc+1 << ": " << imp << " ";
+            uniform_distribution cworst=itworst.intersection(field_int);
+            if (cworst.range() > 0)
+                itworst = cworst;
+        }
+        double imp = c.range() / itworst.range();
+        cerr << "(" << imp << ")" << endl;
+        // not sure if I can directly compare them
+      //  if (itworst.range() >= c.range())
+        //    return c;
+       // if (itworst.range() > worst.range())
+       //     worst = itworst;
+    }
+    return worst;
+}
+
 vector<vector<uniform_distribution>> multi_ranges(const vector<field>& vf, uniform_distribution current_mu, string cell_token)
 {
 	vector<vector<uniform_distribution>> existing;
@@ -217,6 +267,8 @@ void show_matrix_improvements(const vector<field>& f, string celltok)
 
 	string ss;
 	lowest(cellmu,field_ranges,cellmu,0,ss);
+	cerr << "===" << endl;
+	opt_lowest(field_ranges, cellmu);
 }
 
 void show_field_invalidation(const vector<field>& f, string celltok)
@@ -301,11 +353,14 @@ uniform_distribution muround(const uniform_distribution& ud)
 		u=1;
 	return uniform_distribution(l,u);
 }
+
 int main (int argc, char* argv[])
 {
     arguments ag(argc,argv);
 
-    ag.add_req("i","improvements",false); // show improvements
+    ag.add_req("i","improvements",false); //show improvements
+    ag.add_req("f","filter",false); // filter out known MU fields and print a new plan
+    ag.add_req("r","redundant",false); // show redundant
 
     if(!ag.parse())
     {
@@ -321,6 +376,7 @@ int main (int argc, char* argv[])
 
 	draw_tools dtp = draw_tools(ag.get_argument_at(0));
     draw_tools otp;
+    draw_tools fdt;
 
     vector<field> fields = dtp.get_fields();
 
@@ -353,6 +409,9 @@ int main (int argc, char* argv[])
             //predict(ctok);
         }
         cout << ftotal << " " << ftotal.range() << endl;
+        uniform_distribution rmu = muround(ftotal);
+        if (ag.has_option("f") && rmu.range()>0)
+           fdt.add(f);
         total = total + muround(ftotal);
 
     }
@@ -365,6 +424,17 @@ int main (int argc, char* argv[])
 			show_field_invalidation(fields,ctok);
 		}
 	}
+	if (ag.has_option("r") && fields.size() > 1) // although why would you specify this option if you only had 1 field
+	{
+    	vector<string>cc = intcells(fields);
+    	for (string ctok : cc)
+    	{
+    		cerr << "[" << ctok << "]" <<endl;
+    		show_field_invalidation(fields,ctok);
+    	}
+	}
+	if (ag.has_option("f"))
+	    cout << fdt.to_string() << endl;
     cout << total << endl;
 
 }
