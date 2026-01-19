@@ -2,13 +2,14 @@ OPTFLAGS=-O3
 #OPTFLAGS=-g -fsanitize=address
 #OPTFLAGS=-g
 CC=clang++
-#CC=/usr/local/Cellar/llvm/19.1.4/bin/clang++
-CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
+#CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
+CFLAGS=$(OPTFLAGS) -I/opt/homebrew/include -std=c++17
 S2FLAGS=-ls2
 ABSLFLAGS=-labsl_log_internal_message -labsl_log_internal_check_op
 JSONCPP=-ljsoncpp
 LIBCURLFLAGS=-lcurl -lcurlpp
-LDFLAGS=-std=c++17 -L/usr/local/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
+#LDFLAGS=-std=c++17 -L/usr/local/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
+LDFLAGS=-std=c++17 -L/opt/homebrew/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
 
 OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
@@ -16,7 +17,8 @@ OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 
 EXEOBJ=test_run_timer.o test_point.o test_point.o test_point.o test_factory.o \
 	test_team_count.o test_field.o test_arguments.o maxlayers.o maxfields.o \
-	cyclonefields.o planner.o exofields.o cellfields.o mu.o shadow.o agentassign.o
+	cyclonefields.o planner.o exofields.o cellfields.o mu.o shadow.o agentassign.o \
+	portallist.o
 
 all: maxlayers maxfields cyclonefields cellfields planner portallist mu shadow agentassign
 
