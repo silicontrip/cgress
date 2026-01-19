@@ -132,10 +132,10 @@ vector<uniform_distribution> cellfields::muranges(const field& f1, uniform_distr
 	unordered_map<string,uniform_distribution> cellmu1 = ff->query_mu(cells1);
 
 	uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
-	pair<int,int> murange = murange(f1,intersections1[cell_token], mucell,othermu1);
+	pair<int,int> murange_result = murange(f1,intersections1[cell_token], mucell,othermu1);
 
 	vector<uniform_distribution> res;
-	for (int tmu1 = murange.first; tmu1 <= murange.second; tmu1++)
+	for (int tmu1 = murange_result.first; tmu1 <= murange_result.second; tmu1++)
     {
         uniform_distribution mu1(tmu1-0.5,tmu1+0.5);
         if (tmu1==1)
@@ -232,7 +232,7 @@ vector<vector<uniform_distribution> > cellfields::multi_ranges(const vector<fiel
 		for (int j =0; j < vf.size(); j++)
 		{
 			field f = vf[j];
-			vector<uniform_distribution> fd = ranges(f,current_mu);
+			vector<uniform_distribution> fd = muranges(f,current_mu);
 			existing.push_back(fd);
 		}
 	}
@@ -243,7 +243,7 @@ double cellfields::multi_improvement(const vector<field>& vf, const field& fi) c
 {
 	vector<vector<uniform_distribution> > existing = multi_ranges(vf);
 
-	vector<uniform_distribution> fd = ranges(fi,current_mu);
+	vector<uniform_distribution> fd = muranges(fi,current_mu);
 	existing.push_back(fd);
 
 	uniform_distribution best = opt_lowest(existing,current_mu);
@@ -261,7 +261,7 @@ double cellfields::multi_improvement(const vector<field>& vf) const
 double cellfields::pimprovement(const field& f) const
 {
 
-	vector<uniform_distribution> field_improvements = ranges(f,current_mu);
+	vector<uniform_distribution> field_improvements = muranges(f,current_mu);
 
 	double current_range = current_mu.range();
 	double worst = 0.0;
