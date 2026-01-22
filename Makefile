@@ -9,7 +9,7 @@ ABSLFLAGS=-labsl_log_internal_message -labsl_log_internal_check_op
 JSONCPP=-ljsoncpp
 LIBCURLFLAGS=-lcurl -lcurlpp
 #LDFLAGS=-std=c++17 -L/usr/local/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
-LDFLAGS=-std=c++17 -L/opt/homebrew/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
+LDFLAGS= $(OPTFLAGS) -std=c++17 -L/opt/homebrew/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
 
 OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
@@ -45,8 +45,6 @@ test_field: $(OBJ) test_field.o field.o
 test_arguments: $(OBJ) test_arguments.o arguments.o
 	$(CC)  $(LDFLAGS) $(OBJ) -o test_arguments test_arguments.o
 
-layerlinker: $(OBJ) layerlinker.o 
-	$(CC)  $(LDFLAGS) $(OBJ) -o layerlinker layerlinker.o
 
 maxlayers: $(OBJ) maxlayers.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o maxlayers maxlayers.o

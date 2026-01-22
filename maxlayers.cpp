@@ -531,6 +531,12 @@ int main (int argc, char* argv[])
 	}
 
 	cerr << "==  fields filtered " << rt.split() << " seconds ==" << endl;
+
+	if (all_fields.size() == 0)
+	{
+		cerr << "No fields remaining after filtering" << endl;
+		exit(1);
+	}
 	cerr << "== sorting fields ==" << endl;
 
 	sort(all_fields.begin(),all_fields.end(),geo_comparison);
