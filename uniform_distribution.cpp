@@ -13,6 +13,16 @@ double uniform_distribution::rounded_mean() const { return round(( lower + upper
 double uniform_distribution::range() const { return upper - lower; }
 double uniform_distribution::rounded_range() const { return round(upper+0.000000001) - round(lower+0.000000001); }
 
+uniform_distribution uniform_distribution::mu_rounded() const { 
+	double l = round(lower+0.000000001);
+	if (l<1)
+		l=1;
+	double u = round(upper+0.000000001);
+	if (u<1)
+		u=1;
+	return uniform_distribution(l,u);
+}
+
 // some say it should be (upper - lower)/2  / ((lower + upper) / 2)
 double uniform_distribution::perror() const { return 100 * (upper - lower) / ((lower + upper) / 2.0 ); }
 

@@ -20,7 +20,7 @@ EXEOBJ=test_run_timer.o test_point.o test_point.o test_point.o test_factory.o \
 	cyclonefields.o planner.o exofields.o cellfields.o mu.o shadow.o agentassign.o \
 	portallist.o
 
-all: maxlayers maxfields cyclonefields cellfields planner portallist mu shadow agentassign
+all: maxlayers maxfields cyclonefields cellfields planner portallist mu shadow agentassign targetmu
 
 tests: test_run_timer test_point test_line test_factory test_team_count test_field
 
@@ -75,6 +75,9 @@ shadow: $(OBJ) shadow.o
 
 agentassign: $(OBJ) agentassign.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o agentassign agentassign.o
+
+targetmu: $(OBJ) targetmu.o 
+	$(CC)  $(LDFLAGS) $(OBJ) -o targetmu targetmu.o
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^

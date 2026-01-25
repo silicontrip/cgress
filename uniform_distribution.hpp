@@ -27,7 +27,7 @@ class uniform_distribution {
 		double get_lower() const;
 		double get_upper() const;
 		bool contains(double d) const;
-
+		uniform_distribution mu_rounded() const;	
 		uniform_distribution intersection (const uniform_distribution& o) const;
 
 		uniform_distribution operator+(const uniform_distribution& o) const;
