@@ -17,6 +17,7 @@ using namespace silicontrip;
 struct score {
 	int count;
 	double balance;
+	long mu_val;
 };
 
 class maxfields {
@@ -28,19 +29,22 @@ private:
 	int calculation_type;
 	vector<field> all;
 	int sameSize;
+	long target_mu;
+	int max_fields_limit;
 
 	int cached_mu (field f);
 	string draw_fields(const vector<field>& f);
 	double calculate_balance_score(const vector<field>& fields);
 	double get_value (vector<field> fd);
+	bool is_certain(const field& f);
 
 public:
-	maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss);
+	maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss, long tm = -1, int field_limit = 0);
 	struct score search_fields(vector<field>& current, int start, int max, double balance);
 
 };
 
-maxfields::maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss)
+maxfields::maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss, long tm, int field_limit)
 {
 	dt = dts;
 	rt = rtm;
@@ -48,6 +52,14 @@ maxfields::maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field
 	// this can be a shallow copy.  is this right?
 	all = a;
 	sameSize = ss;
+	target_mu = tm;
+	max_fields_limit = field_limit;
+}
+
+bool maxfields::is_certain(const field& f)
+{
+	uniform_distribution ud = field_factory::get_instance()->get_cache_ud_mu(f);
+	return round(ud.get_lower()) == round(ud.get_upper());
 }
 
 int maxfields::cached_mu (field f)
@@ -117,23 +129,74 @@ double maxfields::get_value (vector<field> fd)
 
 struct score maxfields::search_fields(vector<field>& current, int start, int max, double balance)
 {
+	long current_mu = 0;
+	if (target_mu != -1) {
+		for (const field& f : current) {
+			current_mu += cached_mu(f);
+		}
+	}
+
 	if (current.size() > 0)
 	{
+		
 		int newSize = current.size();
 		double dispSize = get_value(current);
 
-		if (newSize > max || (sameSize != 0 && newSize == max)) {
+		bool best = false;
+
+		if (target_mu != -1) {
+			// In Target MU mode, 'max' stores the best (smallest) difference found so far.
+			// Initialize max with a large value if it's the first run (e.g., passed as -1 or a flag).
+			// But here 'max' is passed from caller. Let's assume the caller passes INT_MAX or similar if finding min diff.
+			// Actually, let's look at how it's used.
+			// The original code used 'max' to store the max count.
+			// We need to repurpose it or change logic.
+			
+			long diff = abs(current_mu - target_mu);
+			// We want to minimize diff.
+			// 'max' parameter logic in original code: if (newSize > max) we found a better one.
+			// Here: if (diff < best_diff) we found a better one.
+			// But 'max' is an int.
+			
+			if (diff < max) { // Here 'max' is used as 'min_diff'
+				best = true;
+			}
+		} else {
+			if (newSize > max || (sameSize != 0 && newSize == max)) {
+				best = true;
+			}
+		}
+
+
+		if (best) {
 
 			double bal = calculate_balance_score (current);
 			if (sameSize == 2)
 				bal = dispSize;
-			// want to maximise geo or mu
-			if (newSize > max || (sameSize == -1 && bal > balance) || ( sameSize == 1 && bal < balance) || (sameSize == 2 && bal > balance))
+			
+			bool update = false;
+			if (target_mu != -1) {
+				update = true;
+				// balance check? Maybe later.
+			} else {
+				if (newSize > max || (sameSize == -1 && bal > balance) || ( sameSize == 1 && bal < balance) || (sameSize == 2 && bal > balance))
+					update = true;
+			}
+
+			if (update)
 			{
-				cerr << bal << " : " << newSize << " : " << dispSize << " : "  << rt.split() << " seconds." << endl;
+				if (target_mu != -1) {
+					cerr << "Diff: " << abs(current_mu - target_mu) << " MU: " << current_mu << " Fields: " << newSize << " : "  << rt.split() << " seconds." << endl;
+				} else {
+					cerr << bal << " : " << newSize << " : " << dispSize << " : "  << rt.split() << " seconds." << endl;
+				}
 				cout << draw_fields(current) << endl;
 				cerr << endl;
-				max = newSize;
+				if (target_mu != -1) {
+					max = abs(current_mu - target_mu);
+				} else {
+					max = newSize;
+				}
 				balance = bal;
 			}
 		}
@@ -141,7 +204,33 @@ struct score maxfields::search_fields(vector<field>& current, int start, int max
 
 	for (int i=start; i<all.size(); i++)
 	{
+		// Respect max fields limit
+		if (max_fields_limit > 0 && current.size() >= max_fields_limit) {
+			break; // Can't add more fields
+		}
+
 		field thisField = all.at(i);
+		
+		if (target_mu != -1) {
+			if (!is_certain(thisField)) continue;
+			if (current_mu >= target_mu) {
+               // If we are already over target, adding more positive MU fields will only increase the difference.
+               // Check if this 'overshoot' is already worse than the best we've found.
+               // Actually we only care if we add thisField (which has positive MU).
+               // If current_mu >= target_mu, then current_mu - target_mu is the diff.
+               // Any added field increases this diff.
+               // So we can strictly break/continue.
+               continue;
+            }
+            // Check if adding this field would exceed target by more than the current best margin
+             long f_mu = cached_mu(thisField);
+             long projected_mu = current_mu + f_mu;
+             if (projected_mu > target_mu) {
+                 long projected_diff = projected_mu - target_mu;
+                 if (projected_diff >= max) continue;
+             }
+		}
+
 		if (!thisField.intersects(current))
 		{
 
@@ -217,6 +306,8 @@ void print_usage()
 		cerr << " -s				Display plans that have the same size as the best found with decreasing variance" << endl;
 		cerr << " -S				Same as -s but with increasing variance (can't use with -s)" << endl;
 		cerr << " -M                Use MU calculation" << endl;
+		cerr << " -x <MU>           Target exactly <MU> amount" << endl;
+		cerr << " -l <number>       Limit maximum number of fields" << endl;
 		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
 }
 
@@ -232,6 +323,8 @@ int main (int argc, char* argv[])
 	vector<portal>ignore_links;
 	bool limit2k = false;
 	double percentile = 100;
+	long target_mu = -1;
+	int max_fields = 0;
 
 	arguments ag(argc,argv);
 
@@ -251,7 +344,10 @@ int main (int argc, char* argv[])
 	ag.add_req("M","MU",false); // calculate as MU
 	ag.add_req("S","same",false); // display same size plans
 	ag.add_req("s","samesmall",false); // display same size plans
+	ag.add_req("s","samesmall",false); // display same size plans
 	ag.add_req("G","geo",false); // display same size plans
+	ag.add_req("x","target_mu",true); // Target MU
+	ag.add_req("l","limit",true); // Limit fields
 
 	ag.add_req("T","target",true); // target fields over location
 	ag.add_req("h","help",false);
@@ -289,6 +385,17 @@ int main (int argc, char* argv[])
 
 	if (ag.has_option("p"))
 		percentile = ag.get_option_for_key_as_double("p");
+
+	if (ag.has_option("x")) {
+		calc = 1; // Force MU calculation
+		target_mu = ag.get_option_for_key_as_int("x"); // Assuming int handles long enough for MU? 
+		// get_option_for_key_as_int returns int. MU could be large. 
+		// I should check arguments.hpp if there is as_long or just use atol(get_option_for_key).
+		target_mu = atol(ag.get_option_for_key("x").c_str());
+	}
+
+	if (ag.has_option("l"))
+		max_fields = ag.get_option_for_key_as_int("l");
 
 	portal_factory* pf = portal_factory::get_instance();
 	link_factory* lf = link_factory::get_instance();
@@ -433,11 +540,19 @@ int main (int argc, char* argv[])
 
 	vector<field> search;
 		//search.push_back(tfi);
-	maxfields mf = maxfields(dt,rt,calc,all_fields,same_size);
-	field fi = all_fields[0];
-	search.push_back(fi);
-	struct score result = mf.search_fields(search, 1, 0, 0.0);
-	search.pop_back();
+	maxfields mf = maxfields(dt,rt,calc,all_fields,same_size, target_mu, max_fields);
+	//field fi = all_fields[0];
+	//search.push_back(fi);
+	
+	// If target_mu is set, we need to initialize 'max' (which becomes min_diff) to a large value.
+	int initial_max = 0;
+	if (target_mu != -1) {
+		initial_max = 2000000000; // 2 billion should be enough for diff?
+	}
+
+	// Start search with empty list, index 0.
+	struct score result = mf.search_fields(search, 0, initial_max, 0.0);
+	//search.pop_back();
 	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 
 	cerr << "==  plans searched " << rt.split() << " seconds ==" << endl;
