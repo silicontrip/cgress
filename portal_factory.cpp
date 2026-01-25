@@ -127,9 +127,8 @@ vector<portal> portal_factory::cluster_from_description(const string desc) const
     }
     if (desc[0]=='0' && desc[1]=='x') 
     {
-        char* end;
-        uint64_t result = strtoul(desc.c_str(), &end, 16);
-        S2CellId id = S2CellId(result << 32);
+        string token = desc.substr(2);
+        S2CellId id = S2CellId::FromToken(token);
         S2Cell s2c = S2Cell(id);
         search_region = &s2c;
         return cluster_from_region(search_region);
