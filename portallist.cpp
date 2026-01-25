@@ -66,6 +66,10 @@ int main (int argc, char* argv[])
 
 	if (ag.argument_size() == 1)
 		all_portals = pf->cluster_from_description(ag.get_argument_at(0));
+	
+	sort(all_portals.begin(), all_portals.end(), [](const portal& a, const portal& b) {
+		return a.get_title() < b.get_title();
+	});
 
 	if (output_type == 0)
 	{
