@@ -15,7 +15,8 @@ void print_usage()
 		cerr << "Usage:" << endl;
 		cerr << "portallist [options] <portal cluster> " << endl;
 		cerr << "Options:" << endl;
-		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
+		cerr << " -C|--colour <#colour>   Set Drawtools output colour" << endl;
+		cerr << " -p|--portallist         Output portal list" << endl;	
 }
 
 int main (int argc, char* argv[])
