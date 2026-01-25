@@ -235,6 +235,11 @@ int main (int argc, char* argv[])
 		// I should check arguments.hpp if there is as_long or just use atol(get_option_for_key).
 	}
 
+	if (target_mu == -1) {
+		cerr << "No target MU specified" << endl;
+		exit(1);
+	}
+
 	if (ag.has_option("l"))
 		max_fields = ag.get_option_for_key_as_int("l");
 
@@ -355,8 +360,7 @@ int main (int argc, char* argv[])
 				cerr << "Duplicate: " << all_fields[i] << endl;
 	*/
 
-	vector<pair<double,string>> plan;
-	int bestbest = 0;
+
 
 	vector<field> search;
 		//search.push_back(tfi);
@@ -366,10 +370,7 @@ int main (int argc, char* argv[])
 	
 	// If target_mu is set, we need to initialize 'max' (which becomes min_diff) to a large value.
 	int initial_max = 0;
-	if (target_mu == -1) {
-		cerr << "No target MU specified" << endl;
-		exit(1);
-	}
+
 	initial_max = 2000000000; // 2 billion should be enough for diff?
 	
 
