@@ -73,16 +73,34 @@ int targetmu::search_fields(vector<field>& current, int start, int max)
 {
 	
 
+	// We use a large penalty to separate "matches" (containing the target) from "non-matches".
+	// This allows us to find *any* match first, then continue searching for *other* matches
+	// (even if they are wider/less precise) without pruning them, while still refining/pruning
+	// the non-matching solutions to get us closer to a match.
+	const int PENALTY = 1000000000;
+
 	if (current.size() > 0)
 	{
 		uniform_distribution current_mu = get_value(current);
+		long lower = round(current_mu.get_lower());
+		long upper = round(current_mu.get_upper());
 		
-		int score = abs(round(current_mu.get_lower()) - target_mu) + abs (round(current_mu.get_upper()) - target_mu);
+		int width = upper - lower;
+		int dist = 0;
+		if (target_mu < lower) dist = lower - target_mu;
+		if (target_mu > upper) dist = target_mu - upper;
 
-		if (score < max)
+		int score = width + 2 * dist;
+
+		if (dist > 0) score += PENALTY;
+
+		if (score <= max)
 		{
+			
 			max = score;
-			cerr << " " << max << ": MU: " << current_mu << " Fields: " << current.size() << " : "  << rt.split() << " seconds." << endl;
+			
+			
+			cerr << " " << score << ": MU: " << current_mu << " Fields: " << current.size() << " : "  << rt.split() << " seconds." << endl;
 			cout << draw_fields(current) << endl;
 			cerr << endl;
 		}
@@ -98,8 +116,17 @@ int targetmu::search_fields(vector<field>& current, int start, int max)
 			current.push_back(thisField);
 			int score = search_fields(current, i+1, max);
 			current.pop_back();
-			if (score < max)
+
+			// If the recursive call found a match (score < PENALTY),
+			// and our current 'max' is still geared for non-matches (>= PENALTY),
+			// update max to help prune.
+			// Actually, the recursion passes 'max' by value, but returns the best score found.
+			// We need to update our local 'max' if the returned score is better,
+			// to pass the tighter bound to subsequent iterations of the loop.
+			
+			if (score < max) {
 				max = score;
+			}
 		}
 	}
 	return max;
