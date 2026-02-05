@@ -48,6 +48,7 @@ private:
 	double pimprovement(const field& f) const;
 	vector<uniform_distribution> muranges(const field& f1, uniform_distribution mucell) const;
 	pair<int,int> murange(const field& f1, double area, uniform_distribution mucell, uniform_distribution othermu) const;
+	vector<field> filter_fields (const vector<field>& fields);
 
 
 public:
@@ -304,9 +305,22 @@ vector<field> cellfields::new_fields(vector<field>& current, const field& f) con
 	return result;
 }
 
+// remove fields that don't improve the score
+vector<field> cellfields::filter_fields (const vector<field>& fields)
+{
+	vector<field> filtered_fields;
+	for(const field &f : fields)
+	{
+		double im = pimprovement(f);
+		if (im > 1.0)
+			filtered_fields.push_back(f);
+	}
+	return filtered_fields;
+}
+
 double cellfields::start_search(double best, const vector<field>& af)
 {
-	all = af;
+	all = filter_fields(af);
 	vector<field> current;
 	for (int i=0; i<all.size(); i++)
 	{
@@ -502,6 +516,9 @@ vector<portal> cluster_and_filter_from_description(const vector<portal>& remove,
         portals = pf->remove_portals(portals, remove);
     return portals;
 }
+
+
+
 
 int main (int argc, char* argv[])
 {
