@@ -29,6 +29,7 @@ line::line(point d, point o): d_point(d), o_point(o)
 { 
 	o_s2Point = o_point.s2latlng().ToPoint();
 	d_s2Point = d_point.s2latlng().ToPoint();
+	colour = "";
 }
 line::line(long dla, long dlo, long ola, long olo): d_point(dla,dlo), o_point(ola,olo)
 { 
@@ -45,7 +46,7 @@ line::line(const line& l)
 
 	o_s2Point = o_point.s2latlng().ToPoint();
 	d_s2Point = d_point.s2latlng().ToPoint();
-	colour="";
+	colour=l.get_colour();
 }
 
 bool line::operator==(const line& l) const { return (l.o_point==o_point && l.d_point==d_point) || ( l.o_point==d_point && l.d_point==o_point); }
@@ -94,7 +95,7 @@ double line::geo_distance(const point& p) const
 
 std::string line::to_string() const
 {
-	return "" + o_point.to_string() + "-" + d_point.to_string() + " " + std::to_string(geo_distance()) +"km.";
+	return "" + o_point.to_string() + "-" + d_point.to_string() + " " + std::to_string(geo_distance()) +"km. " + colour ;
 }
 
 bool line::has_point(const point& p) const { return p==d_point || p==o_point; }

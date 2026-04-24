@@ -728,6 +728,9 @@ int main (int argc, char* argv[])
 	draw_tools dtp = draw_tools(ag.get_argument_at(0));
 
 	vector<line> poly_lines = dtp.get_lines();
+	//for (line l: poly_lines)
+	//	cerr << l << endl;
+
 	vector<point> combination = dtp.get_points();
 
 	if (ag.has_option("p"))
