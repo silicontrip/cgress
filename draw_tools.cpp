@@ -315,7 +315,7 @@ Json::Value draw_tools::make_polygon (Json::Value ll1, Json::Value ll2, Json::Va
     return obj;
 }
 
-Json::Value draw_tools::make_polyline (Json::Value ll1, Json::Value ll2) const
+Json::Value draw_tools::make_polyline (Json::Value ll1, Json::Value ll2, string c) const
 {
     Json::Value latLngs;
     // order so that lines are unique
@@ -336,7 +336,7 @@ Json::Value draw_tools::make_polyline (Json::Value ll1, Json::Value ll2) const
 
     Json::Value obj;
     obj["type"] = "polyline";
-    obj["color"] = colour;
+    obj["color"] = c;
     obj["latLngs"] = latLngs;
 
     return obj;
@@ -437,11 +437,11 @@ Json::Value draw_tools::as_polyline() const
     {
         if (po["type"] == "polygon")
         {
-            lines.insert(make_polyline(po["latLngs"][0],po["latLngs"][1]));
-            lines.insert(make_polyline(po["latLngs"][1],po["latLngs"][2]));
-            lines.insert(make_polyline(po["latLngs"][2],po["latLngs"][0]));
+            lines.insert(make_polyline(po["latLngs"][0],po["latLngs"][1],po["color"].asString()));
+            lines.insert(make_polyline(po["latLngs"][1],po["latLngs"][2],po["color"].asString()));
+            lines.insert(make_polyline(po["latLngs"][2],po["latLngs"][0],po["color"].asString()));
         } else if (po["type"] == "polyline") {
-            lines.insert(make_polyline(po["latLngs"][0],po["latLngs"][1]));
+            lines.insert(make_polyline(po["latLngs"][0],po["latLngs"][1],po["color"].asString()));
         } else {
             out.append(po);
         }
@@ -547,6 +547,7 @@ vector<line> draw_tools::get_lines() const
         if (dto1["type"] == "polyline")
         {
             Json::Value ll = dto1["latLngs"];
+            // we don't handle true polylines.
             double lato = ll[0]["lat"].asDouble();
             double lngo = ll[0]["lng"].asDouble();
             double latd = ll[1]["lat"].asDouble();
@@ -556,6 +557,7 @@ vector<line> draw_tools::get_lines() const
             point pd = point(latd,lngd);
             line l = line (po,pd);
             l.set_colour(dto1["color"].asString());
+            //cerr << "Colour: " << l << endl;
             line_set.insert(l);
         }
     }

@@ -66,7 +66,9 @@ draw_tools agentassign::plan(vector<int>assign)
 	{
 		int agent = assign[i];
 		dt.set_colour(agent);
-		dt.add(poly_lines[i]);
+		line l = poly_lines[i];
+		l.set_colour(dt.get_colour());
+		dt.add(l);
 	}
 	return dt;
 }
