@@ -1,6 +1,7 @@
 #include "draw_tools.hpp"
 #include "run_timer.hpp"
 #include "arguments.hpp"
+#include "portal_factory.hpp"
 
 #include <algorithm>
 #include <random>
@@ -510,6 +511,8 @@ draw_tools planner::plan(draw_tools dts, vector<point>combination)
 				{
 					// not sure why but the definition is line(destination, origin)
 					line nline = line(visit_point,this_point);
+					// handle colour override.
+					nline.set_colour(po.get_colour());
 					out_links.push_back(nline);
 				}
 			}
@@ -678,6 +681,8 @@ int main (int argc, char* argv[])
 	ag.add_req("C","colour",true);
 	ag.add_req("I","intel",false);
 	ag.add_req("r","reverse",false);
+	ag.add_req("p","portal",false);
+	ag.add_req("f","file",true);
 
 	if (!ag.parse() || ag.has_option("h"))
 	{
@@ -725,11 +730,27 @@ int main (int argc, char* argv[])
 	vector<line> poly_lines = dtp.get_lines();
 	vector<point> combination = dtp.get_points();
 
+	if (ag.has_option("p"))
+	{
+		portal_factory* pf = portal_factory::get_instance();
+		vector<string> portal_names;
+		for (point p : combination)
+			portal_names.push_back(p.to_string());
+		vector<portal> all_portals = pf->cluster_from_array(portal_names);
+		for (portal p : all_portals)
+			cerr << p.get_title() << endl;
+	} else if (ag.has_option("f")) {
+		portal_factory* pf = portal_factory::get_instance();
+		vector<portal> all_portals = pf->cluster_from_description(ag.get_option_for_key("f"));
+		for (portal p : all_portals)
+			cerr << p.get_title() << endl;
+	} else {
+
 	//	planner::planner (int k, int s, draw_tools d, vector<point> din, vector<line>p, bool a2k)
 
-	planner p(cost_percentage, sbul_count, dt, combination, poly_lines, allow2km, rev);
+		planner p(cost_percentage, sbul_count, dt, combination, poly_lines, allow2km, rev);
 
-	p.simulated_annealing(combination, initial_temperature, 0.95, iterations);
+		p.simulated_annealing(combination, initial_temperature, 0.95, iterations);
 
-
+	}
 }

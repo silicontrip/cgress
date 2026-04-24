@@ -399,7 +399,12 @@ int main (int argc, char* argv[])
 
         for (string ctok : cells)
         {
-            uniform_distribution tud = cellmu[ctok] * intersections[ctok];
+			uniform_distribution tud;
+			if (cellmu.count(ctok) > 0)
+            	tud = cellmu[ctok] * intersections[ctok];
+			else 
+				tud = uniform_distribution(0.0,0.0); // * intersections[ctok];
+
             ftotal = ftotal + tud;
             cout << ctok << " " << cellmu[ctok] << " x " << intersections[ctok] << " = " << tud << endl;
             if (ag.has_option("i")) {

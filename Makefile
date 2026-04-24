@@ -2,6 +2,7 @@ OPTFLAGS=-O3
 #OPTFLAGS=-g -fsanitize=address
 #OPTFLAGS=-g
 CC=clang++
+METALCC=xcrun --sdk macosx metal
 #CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
 CFLAGS=$(OPTFLAGS) -I/opt/homebrew/include -std=c++17
 S2FLAGS=-ls2
@@ -82,5 +83,20 @@ targetmu: $(OBJ) targetmu.o
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
 
+maxfields_metal: $(OBJ) maxfields_metal.o field_metal.o default.metallib
+	$(CC)  $(LDFLAGS) $(OBJ) -framework Metal -framework Foundation -o maxfields_metal maxfields_metal.o field_metal.o 
+
+test_clique: $(OBJ) test_clique.o field_metal.o default.metallib
+	$(CC)  $(LDFLAGS) $(OBJ) -framework Metal -framework Foundation -o test_clique test_clique.o field_metal.o
+
+default.metallib: field_metal.metal
+	$(METALCC) field_metal.metal -o default.metallib
+
+field_metal.o: field_metal.mm
+	$(CC) $(CFLAGS) -c field_metal.mm
+
 clean:
 	rm -f $(OBJ) $(EXEOBJ)
+	rm -f field_metal_test.air field_metal_test.metallib test_field_metal
+	rm -f test_clique test_clique.o field_metal.o default.metallib
+

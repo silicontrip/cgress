@@ -3,7 +3,7 @@
 using namespace std;
 
 namespace silicontrip {
-uniform_distribution::uniform_distribution() { lower = 0; upper =FLT_MAX; }
+uniform_distribution::uniform_distribution() { lower = 0; upper =DBL_MAX; }
 uniform_distribution::uniform_distribution(double a, double b) { lower = a; upper = b; }
 uniform_distribution::uniform_distribution(const uniform_distribution& u) { lower = u.lower; upper = u.upper; }
 
@@ -28,6 +28,13 @@ double uniform_distribution::perror() const { return 100 * (upper - lower) / ((l
 
 double uniform_distribution::get_lower() const { return lower; }
 double uniform_distribution::get_upper() const { return upper; }
+
+uniform_distribution uniform_distribution::clamp_upper(double u) const {
+    if (lower > u)
+        return uniform_distribution(lower,upper);  // is this the best idea?
+    return uniform_distribution(lower,min(upper,u));
+}
+
 
 
 uniform_distribution uniform_distribution::inverse() const 

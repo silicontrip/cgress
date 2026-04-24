@@ -8,6 +8,46 @@
 #include "link.hpp"
 #include "field.hpp"
 
+/*
+  max() returning int (line 332-343) — it calls tl.level.max() which collapses the three dimensions back to one. For    
+  per-team independence this needs to become either a team_count or three separate passes.
+                                                                                                                        
+  The main loop (line 507) — for (int l=0; l <= ss.max(); l++) iterates a single integer. With independent team         
+  strengths, this should be three nested or parallel counts — or iterate team_count(l,l,l) up to the per-team maxima
+  separately.                                                                                                           
+                                                                                                                      
+  make_layer() lines 359-364 — the layermax selection uses tl.team to pick one team's count, which was the right idea   
+  but assumes the angular segment was "owned" by one team's link endpoint. When a ray crosses links from multiple teams,
+   that attribution breaks.                                                                                             
+                                                                                                                      
+  The operator overloading observation is sound. If team_count already has <= and > (implied by lines 139, 194, 297,    
+  353), then adding arithmetic operators (+, -, scalar comparisons) would let most of the integer arithmetic in
+  make_layer() migrate naturally. The thislayer / thisstart / thisend calculations are the dense part — they'd become   
+  per-component operations on team_count rather than a single integer.      
+  
+
+  
+  The breakage is downstream in the point selection. tl.points is vector<point> — the geographic intersection positions 
+  along the ray, sorted by distance from source. But they've lost their team labels. thislayer needs to answer "how far 
+  along this ray can I go given the layer limit?" but with only distances and no team attribution, the only scalar      
+  available is tl.level.max() — which is wrong under intersection semantics.                                          
+
+  The commented-out code gives it away. filter_points at lines 129-143 takes vector<pair<point, enum ingressteam>> — it 
+  was written for exactly this purpose: walk the sorted intersections, count per-team, stop when any constrained team
+  hits its limit. And lines 291-295 in prep() are the commented-out call site:                                          
+                                                                                                                      
+  //vector<pair<point,enum ingressteam>> interi = get_intersections(links,l,UNKNOWN);
+  //sort(interi.begin(), interi.end(), dist_compare(pp));                                                               
+  //vector<point> po = filter_points(interi,strength);
+                                                                                                                        
+  So get_intersections needs a version that returns pair<point, enum ingressteam> instead of plain point, and tl.points 
+  needs to carry those pairs through to make_layer(). filter_points then does the right thing — walking the ray,        
+  accumulating per-team counts, stopping at the first team that hits its limit.                                         
+                                                                                                                      
+  That's the half-state boundary: the data structure for tl.points was the blocker. 
+  
+*/
+
 using namespace std;
 using namespace silicontrip;
 
@@ -512,11 +552,11 @@ int main (int argc, char* argv[])
 			enl = tc.get_enlightened();
 
 		int res = l;
-		if (!tc.no_resistance() && tc.get_resistance() < enl)
+		if (!tc.no_resistance() && tc.get_resistance() < res)
 			res = tc.get_resistance();
 
 		int neu = l;
-		if (!tc.no_neutral() && tc.get_neutral() < enl)
+		if (!tc.no_neutral() && tc.get_neutral() < neu)
 			neu = tc.get_neutral();
 
 		team_count layertc(enl,res,neu);

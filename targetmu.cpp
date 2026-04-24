@@ -28,17 +28,18 @@ private:
 	int sameSize;
 	long target_mu;
 	int max_fields_limit;
+	vector<silicontrip::link> all_links;
 
 	string draw_fields(const vector<field>& f);
 	uniform_distribution get_value (vector<field> fd);
 
 public:
-	targetmu(draw_tools dts, run_timer rtm, const vector<field>& a, long tm = -1, int field_limit = 0);
+	targetmu(draw_tools dts, run_timer rtm, const vector<field>& a, long tm = -1, int field_limit = 0, const vector<silicontrip::link>& l = {});
 	int search_fields(vector<field>& current, int start, int max);
 
 };
 
-targetmu::targetmu(draw_tools dts, run_timer rtm, const vector<field>& a, long tm, int field_limit)
+targetmu::targetmu(draw_tools dts, run_timer rtm, const vector<field>& a, long tm, int field_limit, const vector<silicontrip::link>& l)
 {
 	dt = dts;
 	rt = rtm;
@@ -46,6 +47,7 @@ targetmu::targetmu(draw_tools dts, run_timer rtm, const vector<field>& a, long t
 	all = a;
 	target_mu = tm;
 	max_fields_limit = field_limit;
+	all_links = l;
 }
 
 string targetmu::draw_fields(const vector<field>& f)
@@ -100,7 +102,24 @@ int targetmu::search_fields(vector<field>& current, int start, int max)
 			max = score;
 			
 			
-			cerr << " " << score << ": MU: " << current_mu << " Fields: " << current.size() << " : "  << rt.split() << " seconds." << endl;
+			team_count tc(0,0,0);
+			if (!all_links.empty()) {
+				vector<silicontrip::link> crossed;
+				for (const field& f : current) {
+					for (const silicontrip::link& l : f.get_intersections(all_links)) {
+						bool found = false;
+						for (const silicontrip::link& c : crossed) {
+							if (c.get_guid() == l.get_guid()) { found = true; break; }
+						}
+						if (!found) {
+							crossed.push_back(l);
+							tc.inc_team_enum(l.get_team_enum());
+						}
+					}
+				}
+			}
+			
+			cerr << " " << score  << " E: " << tc.get_enlightened() << " R: " << tc.get_resistance() << " N: " << tc.get_neutral() << ": MU: " << current_mu << " Fields: " << current.size()  << " : "  << rt.split() << " seconds." << endl;
 			cout << draw_fields(current) << endl;
 			cerr << endl;
 		}
@@ -391,7 +410,7 @@ int main (int argc, char* argv[])
 
 	vector<field> search;
 		//search.push_back(tfi);
-	targetmu tm = targetmu(dt,rt,all_fields,target_mu, max_fields);
+	targetmu tm = targetmu(dt,rt,all_fields,target_mu, max_fields, links);
 	//field fi = all_fields[0];
 	//search.push_back(fi);
 	

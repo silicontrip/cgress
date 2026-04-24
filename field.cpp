@@ -263,8 +263,8 @@ std::vector<link> field::get_intersections(const std::vector<link>& l) const
 
 team_count field::count_intersections(const std::vector<link>& l) const
 {
-    vector<link> blocks;
-    team_count block;
+    vector<link> blocks = get_intersections(l);
+    team_count block(0,0,0);
 
     for (link li: blocks)
         block.inc_team_enum(li.get_team_enum());

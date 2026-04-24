@@ -223,6 +223,10 @@ Json::Value field_factory::json_from_array(const vector<string>& desc) const
 unordered_map<string, uniform_distribution>field_factory::query_mu_from_servlet(const vector<string>& cell_tokens) const
 {
     unordered_map<string, uniform_distribution> result;
+    //cerr << "DEBUG query_mu_from_servlet: querying " << cell_tokens.size() << " token(s) from server" << endl;
+    //for (const string& t : cell_tokens)
+    //    cerr << "DEBUG   requesting token: " << t << endl;
+
     Json::Value rv = json_from_array(cell_tokens);
     Json::Value def = 0;
     for (string key: rv.getMemberNames())
@@ -230,8 +234,14 @@ unordered_map<string, uniform_distribution>field_factory::query_mu_from_servlet(
         double lower = rv.get(key,def)[0].asDouble();
         double upper = rv.get(key,def)[1].asDouble();
         uniform_distribution ud = uniform_distribution(lower,upper);
+        //cerr << "DEBUG   server returned token: " << key << " = [" << lower << "," << upper << "]" << endl;
         result[key]=ud;
     }
+
+    // Report any tokens the server had no data for
+    //for (const string& t : cell_tokens)
+    //    if (!result.count(t))
+    //        cerr << "DEBUG   server has NO data for token: " << t << endl;
 
     return result;
 }
@@ -240,7 +250,7 @@ unordered_map<string, uniform_distribution>field_factory::query_mu_from_servlet(
 // uses a cell token cache to limit calls to web api
 unordered_map<string, uniform_distribution>field_factory::query_mu(const vector<string>& cell_tokens)
 {
-unordered_map<std::string, uniform_distribution> result; // = new unordered_map<std::string, uniform_distribution>();
+    unordered_map<std::string, uniform_distribution> result;
 
     // List to collect tokens that need to be queried from servlet
     vector<string> tokens_to_query;
@@ -249,25 +259,30 @@ unordered_map<std::string, uniform_distribution> result; // = new unordered_map<
     for (string token : cell_tokens) {
         if (mu_cache.count(token)) {
             // If value exists in cache, retrieve it
+            //cerr << "DEBUG query_mu: cache hit for token: " << token << " = " << mu_cache.at(token) << endl;
             result[token] = mu_cache.at(token);
         } else {
             // If not in cache, add to tokensToQuery list
+            //cerr << "DEBUG query_mu: cache miss for token: " << token << endl;
             tokens_to_query.push_back(token);
         }
     }
     if (tokens_to_query.size()) {
         unordered_map<string, uniform_distribution> servlet_mu_values = query_mu_from_servlet(tokens_to_query);
 
-        // Step 3: Cache retrieved MU values
-        for (pair<string, uniform_distribution> entry : servlet_mu_values) {
-            string token = entry.first;;
-            uniform_distribution mu_value = entry.second;
-
-            // Cache the retrieved value
-            mu_cache[token]= mu_value;
-
-            // Add to the result map
-            result[token]= mu_value;
+        // Step 3: Cache retrieved MU values and cache missing tokens as [0,0]
+        for (const string& token : tokens_to_query) {
+            if (servlet_mu_values.count(token)) {
+                uniform_distribution mu_value = servlet_mu_values.at(token).clamp_upper(1000000.0);
+                // cerr << "DEBUG query_mu: caching server value for token: " << token << " = " << mu_value << endl;
+                mu_cache[token] = mu_value;
+                result[token] = mu_value;
+            } else {
+                // Server has no data for this token; cache as default (maximally uncertain) to prevent re-querying
+                cerr << "WARNING query_mu: server returned no data for token: " << token << " -- using default [0,1000000.0]" << endl;
+                mu_cache[token] = uniform_distribution(0,1000000.0);
+                // Do NOT add to result so callers can detect absence via result.count()
+            }
         }
     }
 
@@ -276,14 +291,24 @@ unordered_map<std::string, uniform_distribution> result; // = new unordered_map<
 
 uniform_distribution field_factory::query_mu(string token)
 {
-    if (mu_cache.count(token))
+    if (mu_cache.count(token)) {
+        //cerr << "DEBUG query_mu(single): cache hit for token: " << token << " = " << mu_cache.at(token) << endl;
         return mu_cache.at(token);
+    }
 
+    //cerr << "DEBUG query_mu(single): cache miss for token: " << token << endl;
     vector<string> tokens_to_query;
     tokens_to_query.push_back(token);
     unordered_map<string, uniform_distribution> servlet_mu_values = query_mu_from_servlet(tokens_to_query);
-    mu_cache[token] = servlet_mu_values[token];
-    return servlet_mu_values[token];
+    if (servlet_mu_values.count(token)) {
+        //cerr << "DEBUG query_mu(single): server returned value for token: " << token << " = " << servlet_mu_values.at(token) << endl;
+        mu_cache[token] = servlet_mu_values.at(token).clamp_upper(1000000.0);
+        return mu_cache.at(token);
+    } else {
+        //cerr << "DEBUG query_mu(single): server returned NO data for token: " << token << " -- caching as default [0,FLT_MAX]" << endl;
+        mu_cache[token] = uniform_distribution(0,1000000.0);
+        return mu_cache.at(token);
+    }
 }
 
 uniform_distribution field_factory::calculate_mu(const S2Polygon& p)
