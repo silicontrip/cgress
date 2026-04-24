@@ -217,7 +217,10 @@ void draw_tools::add(line l)
 
     Json::Value obj;
     obj["type"] = "polyline";
-    obj["color"] = colour;
+    if (l.has_colour())
+        obj["color"] = l.get_colour();
+    else
+        obj["color"] = colour;
     obj["latLngs"] = latLngs;
 
     entities.append(obj);
@@ -552,6 +555,7 @@ vector<line> draw_tools::get_lines() const
             point po = point(lato,lngo);
             point pd = point(latd,lngd);
             line l = line (po,pd);
+            l.set_colour(dto1["color"].asString());
             line_set.insert(l);
         }
     }

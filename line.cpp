@@ -45,6 +45,7 @@ line::line(const line& l)
 
 	o_s2Point = o_point.s2latlng().ToPoint();
 	d_s2Point = d_point.s2latlng().ToPoint();
+	colour="";
 }
 
 bool line::operator==(const line& l) const { return (l.o_point==o_point && l.d_point==d_point) || ( l.o_point==d_point && l.d_point==o_point); }
@@ -146,6 +147,19 @@ int line::great_circle_intersection_type(line l) const
 {
 	S2Point int_point = S2::GetIntersection(o_s2Point,d_s2Point,l.o_s2Point,l.d_s2Point);
 	return point_on(int_point,l);
+}
+
+void line::set_colour(std::string c)
+{
+	colour = c;
+}
+std::string line::get_colour() const
+{
+	return colour;
+}
+bool line::has_colour() const
+{
+	return colour.length() > 0;
 }
 
 }

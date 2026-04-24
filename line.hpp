@@ -18,6 +18,7 @@ namespace silicontrip {
 		protected:
 			point o_point;
 			point d_point;
+			std::string colour;
 
 			S2Point o_s2Point;
 			S2Point d_s2Point;
@@ -68,6 +69,10 @@ namespace silicontrip {
 			bool has_point(const point& p) const;
 			int great_circle_intersection_type(line l) const;
 
+			void set_colour(std::string c);
+			std::string get_colour() const;
+			bool has_colour() const;
+			
 
 	};
 
