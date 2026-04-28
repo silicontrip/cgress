@@ -298,7 +298,7 @@ void print_usage()
 		cerr << " -a <cluster>      Avoid linking to these portals" << endl;
 		cerr << " -i <cluster>      Ignore blocking links from these portals" << endl;
 		cerr << " -k                Limit links to 2km" << endl;
-
+		cerr << " -R <drawtools>    Remove these fields from the plan" << endl;
 
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
@@ -325,6 +325,7 @@ int main (int argc, char* argv[])
 	double percentile = 100;
 	long target_mu = -1;
 	int max_fields = 0;
+	draw_tools remove;
 
 	arguments ag(argc,argv);
 
@@ -348,6 +349,7 @@ int main (int argc, char* argv[])
 	ag.add_req("G","geo",false); // display same size plans
 	ag.add_req("x","target_mu",true); // Target MU
 	ag.add_req("l","limit",true); // Limit fields
+	ag.add_req("R","remove",true); // remove fields based on drawtools.
 
 	ag.add_req("T","target",true); // target fields over location
 	ag.add_req("h","help",false);
@@ -431,6 +433,9 @@ int main (int argc, char* argv[])
 	if (ag.has_option("a"))
 		avoid_single = pf->cluster_from_description(ag.get_option_for_key("a"));
 
+	if (ag.has_option("R"))
+		remove = draw_tools(ag.get_option_for_key("R"));
+
 	cerr << "== Reading links and portals ==" << endl;
 	rt.start();
 
@@ -512,6 +517,23 @@ int main (int argc, char* argv[])
 	if (!target.empty())
 	{
 		all_fields = ff->over_target(all_fields,target);
+	}
+
+	if (!remove.empty())
+	{
+		vector<field> dtfs = remove.get_fields();
+		for (field dtf : dtfs)
+		{
+			for (size_t i ; i < all_fields.size(); i++)
+			{
+				field af = all_fields[i];
+				if (af == dtf)
+				{
+					swap(all_fields[i],all_fields.back());
+					all_fields.pop_back();
+				}
+			}
+		}
 	}
 
 	cerr << "== " << all_fields.size() << " fields filtered " << rt.split() << " seconds ==" << endl;

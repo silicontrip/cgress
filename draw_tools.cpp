@@ -299,6 +299,7 @@ void draw_tools::add(vector<point> pp)
 }
 
 int draw_tools::size() const { return entities.size(); }
+bool draw_tools::empty() const { return entities.size() == 0; }
 
 Json::Value draw_tools::make_polygon (Json::Value ll1, Json::Value ll2, Json::Value ll3) const
 {

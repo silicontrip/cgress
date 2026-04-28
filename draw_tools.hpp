@@ -68,6 +68,7 @@ class draw_tools {
 
         std::string to_string() const;
         int size() const;
+        bool empty() const;
 
         std::vector<line> get_lines() const;
         std::vector<point> get_points() const;
