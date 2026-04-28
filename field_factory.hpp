@@ -58,6 +58,8 @@ class field_factory {
         std::vector<field> filter_fields(const std::vector<field>&f, const std::vector<link>&l, team_count tc) const;
         std::vector<field> filter_existing_fields(const std::vector<field>&f, const std::vector<link>&l) const;
         std::vector<field> filter_fields_with_cell(const std::vector<field>&f,std::string s2cellid_token) const;
+        std::vector<field> filter_existing_fields(const std::vector<field>&f, const std::vector<field>&fr) const;
+
 
         std::unordered_map<std::string,double> cell_intersection(const field& f) const; // prefered for cellfields
         std::vector<std::string> celltokens(const field& f) const; // prefered for cellfields

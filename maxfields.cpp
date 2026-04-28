@@ -522,6 +522,9 @@ int main (int argc, char* argv[])
 	if (!remove.empty())
 	{
 		vector<field> dtfs = remove.get_fields();
+		all_fields = ff->filter_existing_fields(all_fields,remove);
+		/*
+		vector<field> dtfs = remove.get_fields();
 		for (field dtf : dtfs)
 		{
 			for (size_t i ; i < all_fields.size(); i++)
@@ -534,6 +537,7 @@ int main (int argc, char* argv[])
 				}
 			}
 		}
+		*/
 	}
 
 	cerr << "== " << all_fields.size() << " fields filtered " << rt.split() << " seconds ==" << endl;

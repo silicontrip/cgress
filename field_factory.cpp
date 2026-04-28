@@ -114,6 +114,29 @@ vector<field> field_factory::filter_existing_fields(const vector<field>&f, const
 
 }
 
+vector<field> field_factory::filter_existing_fields(const vector<field>&f, const vector<field>&fr) const
+{
+    vector<field> ff;
+
+    // Iterate through each field in the fieldArray
+    for (field ofi : f) {
+        bool found = false;
+        for (field ifi : fr)
+        {
+            if (ifi == ofi)
+            {
+                found = true;
+                break;
+            }
+
+        }
+        if (!found)
+            ff.push_back(ofi);
+
+    }
+    return ff;
+}
+
 // return only fields which have specified cell token
 // used in cellfields
 vector<field> field_factory::filter_fields_with_cell(const vector<field>&f,string s2cellid_token) const
