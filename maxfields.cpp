@@ -298,7 +298,7 @@ void print_usage()
 		cerr << " -a <cluster>      Avoid linking to these portals" << endl;
 		cerr << " -i <cluster>      Ignore blocking links from these portals" << endl;
 		cerr << " -k                Limit links to 2km" << endl;
-		cerr << " -R <drawtools>    Remove these fields from the plan" << endl;
+		cerr << " -r <drawtools>    Remove these fields from the plan" << endl;
 
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
@@ -349,7 +349,7 @@ int main (int argc, char* argv[])
 	ag.add_req("G","geo",false); // display same size plans
 	ag.add_req("x","target_mu",true); // Target MU
 	ag.add_req("l","limit",true); // Limit fields
-	ag.add_req("R","remove",true); // remove fields based on drawtools.
+	ag.add_req("r","remove",true); // remove fields based on drawtools.
 
 	ag.add_req("T","target",true); // target fields over location
 	ag.add_req("h","help",false);
@@ -433,7 +433,7 @@ int main (int argc, char* argv[])
 	if (ag.has_option("a"))
 		avoid_single = pf->cluster_from_description(ag.get_option_for_key("a"));
 
-	if (ag.has_option("R"))
+	if (ag.has_option("r"))
 		remove = draw_tools(ag.get_option_for_key("R"));
 
 	cerr << "== Reading links and portals ==" << endl;
@@ -522,7 +522,7 @@ int main (int argc, char* argv[])
 	if (!remove.empty())
 	{
 		vector<field> dtfs = remove.get_fields();
-		all_fields = ff->filter_existing_fields(all_fields,remove);
+		all_fields = ff->filter_existing_fields(all_fields,dtfs);
 		/*
 		vector<field> dtfs = remove.get_fields();
 		for (field dtf : dtfs)
