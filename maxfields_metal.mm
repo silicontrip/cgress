@@ -55,8 +55,6 @@ struct global_state {
 
 }
 
-
-
 - (id<MTLBuffer>)cliqueBufferWithFields:(vector<field>&)f;
 
 @end
@@ -113,7 +111,6 @@ double get_mu_value (const vector<field>& fd)
 
 	return total;
 }
-
 
 @implementation Field
 
@@ -172,6 +169,7 @@ double get_mu_value (const vector<field>& fd)
 
 	uint32_t fsize = bytesPerBlock * threads;
 
+	NSLog(@"allocating %u bytes for results",fsize);
 	id<MTLBuffer> resultBuffer = [mDevice newBufferWithLength:fsize
 	                                        options:MTLResourceStorageModeShared];
 
@@ -387,9 +385,9 @@ double get_mu_value (const vector<field>& fd)
 	if (calc_type == 2)
 		return get_geo_value(fd);
 	if (calc_type == 3)
-		return calculate_balance_score(fd);
-	if (calc_type == 4)
 		return 10.0 - calculate_balance_score(fd);
+	if (calc_type == 4)
+		return calculate_balance_score(fd);
 
 	return 0.0;
 }
@@ -574,8 +572,8 @@ void print_usage()
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
 		cerr << " -I                Output as Intel Link" << endl;
-		cerr << " -s				Display plans that have the same size as the best found with decreasing variance" << endl;
-		cerr << " -S				Same as -s but with increasing variance (can't use with -s)" << endl;
+		cerr << " -s                Display plans that have the same size as the best found with decreasing variance" << endl;
+		cerr << " -S                Same as -s but with increasing variance (can't use with -s)" << endl;
 		cerr << " -M                Use MU calculation" << endl;
 		cerr << " -x <MU>           Target exactly <MU> amount" << endl;
 		cerr << " -l <number>       Limit maximum number of fields" << endl;
