@@ -87,20 +87,20 @@ getlinks: $(OBJ) getlinks.o
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
 
-maxfields_metal: $(OBJ) maxfields_metal.o field_metal.o default.metallib
-	$(CC)  $(LDFLAGS) $(OBJ) -framework Metal -framework Foundation -o maxfields_metal maxfields_metal.o field_metal.o 
+maxfields_metal: $(OBJ) maxfields_metal.o default.metallib
+	$(CC)  $(LDFLAGS) $(OBJ) -framework Metal -framework Foundation -o maxfields_metal maxfields_metal.o 
 
-test_clique: $(OBJ) test_clique.o field_metal.o default.metallib
+test_clique: $(OBJ) test_clique.o maxfields_metal.o default.metallib
 	$(CC)  $(LDFLAGS) $(OBJ) -framework Metal -framework Foundation -o test_clique test_clique.o field_metal.o
 
 default.metallib: field_metal.metal
 	$(METALCC) field_metal.metal -o default.metallib
 
-field_metal.o: field_metal.mm
-	$(CC) $(CFLAGS) -c field_metal.mm
+maxfields_metal.o: maxfields_metal.mm
+	$(CC) $(CFLAGS) -c maxfields_metal.mm
 
 clean:
 	rm -f $(OBJ) $(EXEOBJ)
 	rm -f field_metal_test.air field_metal_test.metallib test_field_metal
-	rm -f test_clique test_clique.o field_metal.o default.metallib
+	rm -f test_clique test_clique.o maxfields_metal.o default.metallib
 
