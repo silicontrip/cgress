@@ -11,18 +11,23 @@ JSONCPP=-ljsoncpp
 LIBCURLFLAGS=-lcurl -lcurlpp
 #LDFLAGS=-std=c++17 -L/usr/local/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
 LDFLAGS= $(OPTFLAGS) -std=c++17 -L/opt/homebrew/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
-
+LDFLAGS_DYN= $(OPTFLAGS) -std=c++17 -L. -lcgress -Wl,-rpath,@loader_path -L/opt/homebrew/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
 OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
 	uniform_distribution.o json_reader.o
+
+DYLIB=libcgress.dylib
 
 EXEOBJ=test_run_timer.o test_point.o test_point.o test_point.o test_factory.o \
 	test_team_count.o test_field.o test_arguments.o maxlayers.o maxfields.o \
 	cyclonefields.o planner.o exofields.o cellfields.o mu.o shadow.o agentassign.o \
 	portallist.o exofields.o getlinks.o orion.o
 
-all: maxlayers maxfields cyclonefields cellfields planner portallist mu shadow agentassign \
+all: $(DYLIB) maxlayers maxfields cyclonefields cellfields planner portallist mu shadow agentassign \
  targetmu exofields getlinks orion
+
+$(DYLIB): $(OBJ)
+	$(CC) -dynamiclib -o $(DYLIB) $(OBJ) -Wl,-install_name,@rpath/$(DYLIB) $(LDFLAGS)
 
 tests: test_run_timer test_point test_line test_factory test_team_count test_field
 
@@ -90,8 +95,8 @@ orion: $(OBJ) orion.o
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
 
-maxfields_metal: $(OBJ) maxfields_metal.o default.metallib
-	$(CC)  $(LDFLAGS) $(OBJ) -framework Metal -framework Foundation -o maxfields_metal maxfields_metal.o 
+maxfields_metal: $(DYLIB) maxfields_metal.o default.metallib
+	$(CC)  $(LDFLAGS_DYN) -framework Metal -framework Foundation -o maxfields_metal maxfields_metal.o 
 
 test_clique: $(OBJ) test_clique.o maxfields_metal.o default.metallib
 	$(CC)  $(LDFLAGS) $(OBJ) -framework Metal -framework Foundation -o test_clique test_clique.o field_metal.o
@@ -103,7 +108,7 @@ maxfields_metal.o: maxfields_metal.mm
 	$(CC) $(CFLAGS) -c maxfields_metal.mm
 
 clean:
-	rm -f $(OBJ) $(EXEOBJ)
+	rm -f $(OBJ) $(EXEOBJ) $(DYLIB)
 	rm -f field_metal_test.air field_metal_test.metallib test_field_metal
 	rm -f test_clique test_clique.o maxfields_metal.o default.metallib
 

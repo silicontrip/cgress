@@ -284,25 +284,33 @@ double cellfields::pimprovement(const field& f) const
 
 vector<field> cellfields::new_fields(vector<field>& current, const field& f) const
 {
-	vector<field> start (current);
-	vector<field> result;
-	start.push_back(f);
-	double original_score = multi_improvement(start);
-	for (size_t i=0; i < start.size(); i++)
+	vector<field> plan (current);
+	plan.push_back(f);
+	double original_score = multi_improvement(plan);
+
+	// Greedily drop one redundant field at a time, re-testing against the
+	// reduced plan. Removing fields independently is wrong: two mutually
+	// redundant fields would each pass the test and both be removed.
+	bool removed = true;
+	while (removed && plan.size() > 1)
 	{
-		vector<field> temp;
-		if (i>0)
-			temp.insert(temp.end(),start.begin(),start.begin()+i-1);
-		if (i<start.size()-1)
-			temp.insert(temp.end(),start.begin()+i+1,start.end());
+		removed = false;
+		for (size_t i=0; i < plan.size(); i++)
+		{
+			vector<field> temp;
+			temp.reserve(plan.size()-1);
+			temp.insert(temp.end(),plan.begin(),plan.begin()+i);
+			temp.insert(temp.end(),plan.begin()+i+1,plan.end());
 
-		double test = multi_improvement(temp);
-
-		if (test < original_score)
-			result.push_back(start[i]);
-
+			if (multi_improvement(temp) + epsilon >= original_score)
+			{
+				plan = temp;
+				removed = true;
+				break;
+			}
+		}
 	}
-	return result;
+	return plan;
 }
 
 // remove fields that don't improve the score
@@ -345,30 +353,8 @@ double cellfields::search_fields(vector<field> current, const field& f, int star
 	double total_score=fscore;
 	if (current.size() > 0)
 	{
-		total_score = multi_improvement(current,f);  // still not working properly. This function needs to be recursive.
-
-		// if (best >= total_score)
-		//	return best;
+		total_score = multi_improvement(current,f);  // still not working properly. This 
 	}
-
-	//current = new_fields(current,f);
-
-//	int newSize = current.size();
-
-
-	//cerr << "fscore: " << setprecision(20) << fscore << endl;
-	/*
-	for (field fi : current)
-		total_score += pimprovement(fi,cell_token);  // there should be a better way to calculate total score
-
-	if (current.size() == 2)
-	{
-		compare_improvement(current.at(0),current.at(1),cell_token);
-		cout << endl;
-		compare_improvement(current.at(1),current.at(0),cell_token);
-		cout << "==" << endl;
-	}
-	*/
 
 	if (total_score > best)
 	{
@@ -425,7 +411,7 @@ void print_usage()
 
 		cerr << " -c <cell id>      Use this cell. Required." << endl;
 		cerr << " -l <number>       limit fields to no more than this." << endl;
-		cerr << " -p                Display precision fields regardless." << endl;
+		cerr << " -k                Limit to 2k links" << endl;
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
 		cerr << " -I                Output as Intel Link" << endl;
