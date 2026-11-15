@@ -11,6 +11,19 @@
 #include "link.hpp"
 #include "field.hpp"
 
+/*
+  1. find_fields_with_portal is called per-portal and scans all fields linearly — a precomputed unordered_map<point,    
+  vector<field>> would make this O(1)                                                                                   
+  2. exo_spine_search scans pf (all fields for that portal) for each spine point — the inner double loop over pf ×      
+  spine_points repeats work that could be indexed by which fields share each fan-line                                   
+  3. f2.inside(f1) counting in generate_spine is O(S²) per spine — since spines are assembled incrementally, the nesting
+   order is already known during assembly and doesn't need recomputation                                                
+                                                                                                                      
+  The recursive spine extension in next_search is the expensive part. The pruning condition (f3.has_line(sh) &&         
+  !f3.intersects(sp) && f3.layers(sp)) is good but the scan is still linear over all portal fields at each depth.     
+  Preindexing fields by their shared link would cut this significantly.                                                 
+*/
+
 using namespace std;
 using namespace silicontrip;
 
@@ -427,7 +440,7 @@ int main (int argc, char* argv[])
 	ag.add_req("N","machina",true); // max machina blockers
 	
 	ag.add_req("C","colour",true); // drawtools colour
-	ag.add_req("O","polylines",false); // output as polylines
+	ag.add_req("L","polylines",false); // output as polylines
 	ag.add_req("M","MU",false); // calculate as MU
 	ag.add_req("r","rethrows",true); // limit rethrows (flip and go to new portal)
     ag.add_req("S","source",true); // source portal cluster
