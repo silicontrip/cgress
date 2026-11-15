@@ -145,20 +145,8 @@ struct score maxfields::search_fields(vector<field>& current, int start, int max
 		bool best = false;
 
 		if (target_mu != -1) {
-			// In Target MU mode, 'max' stores the best (smallest) difference found so far.
-			// Initialize max with a large value if it's the first run (e.g., passed as -1 or a flag).
-			// But here 'max' is passed from caller. Let's assume the caller passes INT_MAX or similar if finding min diff.
-			// Actually, let's look at how it's used.
-			// The original code used 'max' to store the max count.
-			// We need to repurpose it or change logic.
-			
 			long diff = abs(current_mu - target_mu);
-			// We want to minimize diff.
-			// 'max' parameter logic in original code: if (newSize > max) we found a better one.
-			// Here: if (diff < best_diff) we found a better one.
-			// But 'max' is an int.
-			
-			if (diff < max) { // Here 'max' is used as 'min_diff'
+			if (diff <= max) {
 				best = true;
 			}
 		} else {
@@ -177,7 +165,6 @@ struct score maxfields::search_fields(vector<field>& current, int start, int max
 			bool update = false;
 			if (target_mu != -1) {
 				update = true;
-				// balance check? Maybe later.
 			} else {
 				if (newSize > max || (sameSize == -1 && bal > balance) || ( sameSize == 1 && bal < balance) || (sameSize == 2 && bal > balance))
 					update = true;
@@ -193,7 +180,8 @@ struct score maxfields::search_fields(vector<field>& current, int start, int max
 				cout << draw_fields(current) << endl;
 				cerr << endl;
 				if (target_mu != -1) {
-					max = abs(current_mu - target_mu);
+					long diff = abs(current_mu - target_mu);
+					if (diff < max) max = diff;
 				} else {
 					max = newSize;
 				}
