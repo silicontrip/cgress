@@ -1,0 +1,114 @@
+#include "cell_factory.hpp"
+#include "uniform_distribution.hpp"
+
+using namespace std;
+
+
+// update for your bil data
+
+#define FILE "ausup00g/ausup00ag.bil"
+
+#define BYTEORDER      I
+#define LAYOUT         BIL
+#define NROWS          4320
+#define NCOLS          7680
+#define NBANDS         1
+#define NBITS          32
+#define BANDROWBYTES   30720
+#define TOTALROWBYTES  30720
+#define PIXELTYPE      FLOAT
+#define ULXMAP         96.0041666666666
+#define ULYMAP         -8.00416666681065
+#define XDIM           0.0083333333333
+#define YDIM           0.0083333333333
+#define NODATA         -3.4028235e+038
+
+
+namespace silicontrip {
+cell_factory* cell_factory::ptr = 0;
+
+cell_factory::cell_factory()
+{
+
+	string filename = FILE;
+
+        std::ifstream file(filename, std::ios::binary | std::ios::ate);
+
+        if (!file) {
+                std::cerr << "Error: Could not open file " << filename << "\n";
+        }
+
+        std::streamsize byteSize = file.tellg();
+        file.seekg(0, std::ios::beg);
+
+        std::size_t numFloats = byteSize / sizeof(float);
+        buffer = std::vector<float>(numFloats);
+
+        if (!file.read(reinterpret_cast<char*>(buffer.data()), numFloats * sizeof(float))) {
+                std::cerr << "Error: Failed to read complete binary data.\n";
+        }
+
+}
+
+cell_factory* cell_factory::get_instance()
+{
+    if (!ptr)
+	    ptr = new cell_factory();
+    return ptr;
+}
+
+pair<int,int> cell_factory::toXY(S2LatLng ll) 
+{
+
+        double lat = ll.lat().degrees();
+        double lng = ll.lng().degrees();
+
+
+	// 120 = 1 / XDIM
+	// 120 = 1 / YDIM
+        int x = (int) floor((lng - ULXMAP) * 120.0);
+        int y = (int) floor((ULYMAP - lat) * 120.0);
+
+        return pair(x,y);
+}
+
+
+double cell_factory::query_mu(string cellid) const
+{
+        S2CellId id = S2CellId::FromToken(cellid);
+
+        double total = 0.0;
+        for(S2CellId c = id.child_begin(15); c != id.child_end(15); c = c.next())
+        {       
+                S2Cell s2cell = S2Cell(c);
+                S2Point s2point = s2cell.GetCenter();
+                S2LatLng s2latlng = S2LatLng(s2point);
+        
+                pair<int,int> arr = toXY(s2latlng);
+        
+                int x = arr.first;
+                int y = arr.second;
+        
+                int stride = y * NCOLS + x; 
+
+                total += buffer[stride];
+
+        }
+        return total / 16.0;
+
+
+}
+
+unordered_map<string, uniform_distribution> cell_factory::query_mu(const vector<string>& cells)
+{
+	unordered_map<std::string, uniform_distribution> r;
+	for (const std::string& ctok: cells)
+	{
+		float cmu = query_mu(ctok);
+		uniform_distribution ud(cmu-1e-7, cmu+1e-7);
+		r[ctok] = ud;
+	}
+	return r;
+}	
+
+}

@@ -1,7 +1,8 @@
 OPTFLAGS=-O3
 #OPTFLAGS=-g -fsanitize=address
 #OPTFLAGS=-g
-CC=clang++
+CXX=/usr/bin/clang++
+CC=/usr/bin/clang++
 METALCC=xcrun --sdk macosx metal
 #CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
 CFLAGS=$(OPTFLAGS) -I/opt/homebrew/include -std=c++17
@@ -14,7 +15,7 @@ LDFLAGS= $(OPTFLAGS) -std=c++17 -L/opt/homebrew/lib $(S2FLAGS) $(ABSLFLAGS) $(JS
 LDFLAGS_DYN= $(OPTFLAGS) -std=c++17 -L. -lcgress -Wl,-rpath,@loader_path -L/opt/homebrew/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
 OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
-	uniform_distribution.o json_reader.o
+	uniform_distribution.o json_reader.o cell_factory.o
 
 DYLIB=libcgress.dylib
 
