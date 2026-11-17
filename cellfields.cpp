@@ -8,6 +8,7 @@
 #include "portal_factory.hpp"
 #include "link_factory.hpp"
 #include "field_factory.hpp"
+#include "cell_factory.hpp"
 #include "draw_tools.hpp"
 #include "link.hpp"
 #include "field.hpp"
@@ -28,9 +29,11 @@ private:
 	string cell_token;
 	//S2CellId cellid;
 	field_factory* ff;
+	cell_factory* cf;
 	int limit_layers;
 	uniform_distribution current_mu;
 	double epsilon = 1e-6;
+	bool use_grump;
 
 	string draw_fields(const vector<field>& f);
 	double calc_score(const field& f) const;
@@ -52,13 +55,13 @@ private:
 
 
 public:
-	cellfields(draw_tools dts, run_timer rtm, string tok, int l);
+	cellfields(draw_tools dts, run_timer rtm, string tok, int l, bool grump);
 	double start_search(double best, const vector<field>&af);
 
 
 };
 
-cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l)
+cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l, bool grump)
 {
 	dt = dts;
 	rt = rtm;
@@ -67,9 +70,12 @@ cellfields::cellfields(draw_tools dts, run_timer rtm, string tok, int l)
 	cell_token = tok;
 	//cellid = S2CellId::FromToken(tok);
 	ff = field_factory::get_instance();
+	cf = cell_factory::get_instance();
 
 	vector<string>cells;
 	cells.push_back(tok);
+	use_grump = grump;
+	// GRUMP ?
 	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
 	current_mu = cellmu[tok];
 
@@ -130,10 +136,19 @@ vector<uniform_distribution> cellfields::muranges(const field& f1, uniform_distr
 {
 	unordered_map<string,double> intersections1 = ff->cell_intersection(f1);
 	vector<string> cells1 = ff->celltokens(f1);
-	unordered_map<string,uniform_distribution> cellmu1 = ff->query_mu(cells1);
+
+	//GRUMP
+	unordered_map<string,uniform_distribution> cellmu1;
+	if (use_grump)
+		cellmu1 = cf->query_mu(cells1);
+	else
+		cellmu1 = ff->query_mu(cells1);
 
 	uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
-	pair<int,int> murange_result = murange(f1,intersections1[cell_token], mucell,othermu1);
+	//pair<int,int> murange_result = murange(f1,intersections1[cell_token], mucell, othermu1);
+
+	pair<int,int> murange_result = murange(f1,intersections1[cell_token], cellmu1[cell_token], othermu1);
+
 
 	vector<uniform_distribution> res;
 	for (int tmu1 = murange_result.first; tmu1 <= murange_result.second; tmu1++)
@@ -144,6 +159,9 @@ vector<uniform_distribution> cellfields::muranges(const field& f1, uniform_distr
 
         uniform_distribution remain1 = (mu1 - othermu1) / intersections1[cell_token]; //remaining(mu, f, celltok) / intersections[celltok];
         uniform_distribution intremain1 = remain1.intersection(mucell);
+
+		//cerr << "DEBUG: muranges tmu: " << tmu1 << " mucell:" << mucell << " remain1:" << intremain1 << endl;
+
 		res.push_back(intremain1);
 	}
 	return res;
@@ -538,6 +556,7 @@ int main (int argc, char* argv[])
 	ag.add_req("k","limit2k",false); // limit link length to that can be made under fields.
 	// ag.add_req("p","showprecision",false);  // new scoring algorithm automatically handles both general improvement and precision improvement.
 	ag.add_req("c","cellid",true); // generate plan for this cell
+	ag.add_req("G","grump",false); // use GRUMP mu data.
 	ag.add_req("h","help",false);
 
 	if (!ag.parse())
@@ -554,6 +573,7 @@ int main (int argc, char* argv[])
 
 	team_count tc = team_count(ag.get_option_for_key("E"),ag.get_option_for_key("R"),ag.get_option_for_key("N"));
 	draw_tools dt;
+	bool grump;
 
 	if (ag.has_option("C")) {
 		cerr << "set colour: " << ag.get_option_for_key("C") << endl;
@@ -574,7 +594,8 @@ int main (int argc, char* argv[])
 	if (ag.has_option("k"))
 		limit2k=true;
 
-
+	if (ag.has_option("G"))
+		grump = true;
 
 	if (cellid.length() == 0)
 	{
@@ -629,7 +650,7 @@ int main (int argc, char* argv[])
 	{
 		// ooo fun
 		//   void GetEdgeNeighbors(S2CellId neighbors[4]) const;
-		cellfields cf = cellfields(dt,rt,cellid,limit);
+		cellfields cf = cellfields(dt,rt,cellid,limit,grump);
 
 		unordered_set<S2CellId> search_cells;
 		search_cells.insert(s2cellid);
@@ -771,7 +792,7 @@ int main (int argc, char* argv[])
 
 	vector<field> search;
 	//search.push_back(tfi);
-	cellfields cf = cellfields(dt,rt,cellid,limit);
+	cellfields cf = cellfields(dt,rt,cellid,limit,grump);
 	double result = cf.start_search(0.0,all_fields);
 	//search_fields(dt,search,all_fields,0,0,calc,same_size,0.0,rt);
 
