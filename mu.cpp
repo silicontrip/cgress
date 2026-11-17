@@ -1,6 +1,8 @@
 #include "draw_tools.hpp"
 #include "arguments.hpp"
 #include "field_factory.hpp"
+#include "cell_factory.hpp"
+
 #include "uniform_distribution.hpp"
 
 using namespace std;
@@ -15,6 +17,7 @@ void print_usage()
 		cerr << "Options:" << endl;
 		cerr << " -i          Show potential improvements to the cells if this field is made." << endl;
 		cerr << " -f          Filter out known MU fields and show regenerated plan." << endl;
+		cerr << " -G          Use GRUMP mu data." << endl;
 }
 
 uniform_distribution remaining(uniform_distribution v, const field& f, string celltok)
@@ -223,14 +226,25 @@ vector<vector<uniform_distribution>> multi_ranges(const vector<field>& vf, unifo
 	return existing;
 }
 
-void pimprovement(const field& f, string celltok)
+void pimprovement(const field& f, string celltok, bool use_grump)
 {
 
 	field_factory* ff = field_factory::get_instance();
+	cell_factory* cf = cell_factory::get_instance();
 
 	unordered_map<string,double> intersections = ff->cell_intersection(f);
 	vector<string> cells = ff->celltokens(f);
-	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
+
+	unordered_map<string,uniform_distribution> fcellmu = ff->query_mu(cells);
+	uniform_distribution cellud = fcellmu[celltok];
+
+	unordered_map<string,uniform_distribution> cellmu;
+
+
+	if (use_grump)
+		cellmu = cf->query_mu(cells);
+	else
+		cellmu = ff->query_mu(cells);
 
 	uniform_distribution othermu = other_contribution(celltok,intersections,cellmu);
 
@@ -244,12 +258,12 @@ void pimprovement(const field& f, string celltok)
             mu = uniform_distribution(0.0,1.5);
 
         uniform_distribution remain = remaining(mu, f, celltok) / intersections[celltok];
-        uniform_distribution intremain = remain.intersection(cellmu[celltok]);
+        uniform_distribution intremain = remain.intersection(cellud);
 
         if (intremain.range() > worst)
             worst = intremain.range();
 
-        cerr << "mu: " << tmu << " rem: " << remain << " range: " << intremain << " " << intremain.range() << " imp: " << cellmu[celltok].range() / intremain.range() <<   endl;
+        cerr << "mu: " << tmu << " rem: " << remain << " range: " << intremain << " " << intremain.range() << " imp: " << fcellmu[celltok].range() / intremain.range() <<   endl;
 
     }
 
@@ -361,6 +375,7 @@ int main (int argc, char* argv[])
     ag.add_req("i","improvements",false); //show improvements
     ag.add_req("f","filter",false); // filter out known MU fields and print a new plan
     ag.add_req("r","redundant",false); // show redundant
+	ag.add_req("G","grump",false); // use GRUMP mu data
 
     if(!ag.parse())
     {
@@ -377,10 +392,15 @@ int main (int argc, char* argv[])
 	draw_tools dtp = draw_tools(ag.get_argument_at(0));
     draw_tools otp;
     draw_tools fdt;
+	bool use_grump;
+
+	use_grump = ag.has_option("G");
+
 
     vector<field> fields = dtp.get_fields();
 
     field_factory* ff = field_factory::get_instance();
+	cell_factory* cf = cell_factory::get_instance();
 
     uniform_distribution total(0,0);
     cout << endl;
@@ -388,7 +408,12 @@ int main (int argc, char* argv[])
     {
         unordered_map<string,double> intersections = ff->cell_intersection(f);
     	vector<string> cells = ff->celltokens(f);
-    	unordered_map<string,uniform_distribution> cellmu = ff->query_mu(cells);
+
+		unordered_map<string,uniform_distribution> cellmu;
+		if (use_grump)
+			cellmu = cf->query_mu(cells);
+		else
+			cellmu = ff->query_mu(cells);
 
         uniform_distribution ftotal(0,0);
 
@@ -409,7 +434,7 @@ int main (int argc, char* argv[])
             cout << ctok << " " << cellmu[ctok] << " x " << intersections[ctok] << " = " << tud << endl;
             if (ag.has_option("i")) {
 				// multi_improvement(fields,ctok);
-                pimprovement(f,ctok);
+                pimprovement(f,ctok,use_grump);
 			}
             //predict(ctok);
         }

@@ -78,6 +78,7 @@ double cell_factory::query_mu(string cellid) const
         S2CellId id = S2CellId::FromToken(cellid);
 
         double total = 0.0;
+        int count = 0;
         for(S2CellId c = id.child_begin(15); c != id.child_end(15); c = c.next())
         {       
                 S2Cell s2cell = S2Cell(c);
@@ -92,9 +93,10 @@ double cell_factory::query_mu(string cellid) const
                 int stride = y * NCOLS + x; 
 
                 total += buffer[stride];
+                count ++;
 
         }
-        return total / 16.0;
+        return total / count;
 
 
 }
