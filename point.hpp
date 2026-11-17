@@ -17,8 +17,13 @@ namespace silicontrip {
 			S2LatLng latlng;
 		public:
 			// The older S2 library used this definition
-			static constexpr double earth_radius = 6367.0;
-			static constexpr double earth_radius_2 = 40538689.0;
+			//static constexpr double earth_radius = 6367.0;
+			//static constexpr double earth_radius_2 = 40538689.0;
+
+			// Possibly not because the GRUMP data MU is based on is using 6371.01
+			static constexpr double earth_radius = 6371.01;
+			static constexpr double earth_radius_2 = 40589768.4201;
+
 			point(S2Point p);
 			point(long la, long ln);
 			point(std::string ld);
