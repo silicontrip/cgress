@@ -7,6 +7,7 @@
 #include "portal_factory.hpp"
 #include "link_factory.hpp"
 #include "field_factory.hpp"
+#include "cell_factory.hpp"
 #include "draw_tools.hpp"
 #include "link.hpp"
 #include "field.hpp"
@@ -27,6 +28,7 @@ private:
 	double threshold;
 	int link_limit;
 	bool splits;
+	bool grump;
 
 	double get_value (vector<field> fd);
 	string draw_fields(vector<field> f);
@@ -35,11 +37,11 @@ private:
 	int count_links(const vector<field>& fields);
 
 public:
-	maxlayers(const draw_tools& d, const vector<field>& a, int c, int ll, const run_timer& r, double t, int link, bool s);
+	maxlayers(const draw_tools& d, const vector<field>& a, int c, int ll, const run_timer& r, double t, int link, bool s, bool g);
 	vector<pair<double,string>> start_search();
 };
 
-maxlayers::maxlayers(const draw_tools& d, const vector<field>& a, int c, int layer, const run_timer& r, double t, int link, bool s)
+maxlayers::maxlayers(const draw_tools& d, const vector<field>& a, int c, int layer, const run_timer& r, double t, int link, bool s, bool g)
 {
 	dt = d;
 	all = a;
@@ -49,6 +51,7 @@ maxlayers::maxlayers(const draw_tools& d, const vector<field>& a, int c, int lay
 	threshold = t;
 	link_limit = link;
 	splits = s;
+	grump = g;
 }
 
 string maxlayers::draw_fields(vector<field> f)
@@ -91,17 +94,27 @@ int maxlayers::count_links(const vector<field>& fields)
 double maxlayers::get_value (vector<field> fd)
 {
 	field_factory* ff = field_factory::get_instance();
+	cell_factory* cf = cell_factory::get_instance();
 	double total = 0;
 	if (splits)
 		fd = ff->add_splits(fd);
 
 	for (field f : fd)
 		if (calculation_type == 0)
+		{
 			total += f.geo_area();
+		}
 		else if (calculation_type ==1)
-			total += ff->get_cache_mu(f);
+		{
+			if (grump)
+				total += cf->get_mu(f);
+			else
+				total += ff->get_mu(f);
+		}
 		else
+		{
 			total += f.equilateral_percentage();
+		}
 
 	return total;
 }
@@ -310,6 +323,7 @@ void print_usage()
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
 		cerr << " -I                Output as Intel Link" << endl;
 		cerr << " -M                Use MU calculation" << endl;
+		cerr << " -G                Use GRUMP MU data" << endl;
 		cerr << " -Q                Use equilateral percentage calculation" << endl;
 		cerr << " -t <number>       Threshold for similar fields (larger less similar)" << endl;
 		cerr << " -l <number>       Maximum number of layers in plan" << endl;
@@ -337,6 +351,7 @@ int main (int argc, char* argv[])
 	int calc = 0;  // area or mu
 	bool splits = false;
 	bool limit2k = false;
+	bool grump = false;
 
 	arguments ag(argc,argv);
 
@@ -351,6 +366,7 @@ int main (int argc, char* argv[])
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polylines",false); // output as polylines
 	ag.add_req("M","MU",false); // calculate as MU
+	ag.add_req("G","grump",false); // use grump data
 	ag.add_req("Q","equilateral",false);
 	//ag.add_req("m","",true); // maximum size
 	ag.add_req("t","threshold",true); // field similar threshold
@@ -412,11 +428,9 @@ int main (int argc, char* argv[])
 		}
 	}
 
-	if (ag.has_option("s"))
-		splits = true;
-
-	if (ag.has_option("k"))
-		limit2k=true;
+	splits=ag.has_option("s");
+	limit2k=ag.has_option("k");
+	grump = ag.has_option("G");
 
 	portal_factory* pf = portal_factory::get_instance();
 	link_factory* lf = link_factory::get_instance();
@@ -544,7 +558,7 @@ int main (int argc, char* argv[])
 	cerr << "==  fields sorted " << rt.split() << " ==" << endl;
 	cerr << "== show matches ==" << endl;
 
-	maxlayers ml = maxlayers(dt, all_fields, calc, mlayers, rt, threshold,mlinks,splits);
+	maxlayers ml = maxlayers(dt, all_fields, calc, mlayers, rt, threshold,mlinks,splits,grump);
 
 	vector<pair<double,string>> plan = ml.start_search();
 

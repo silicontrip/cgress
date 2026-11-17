@@ -215,7 +215,7 @@ double cyclonefields::get_value (vector<field> fd)
 		if (calculation_type == 0)
 			total += f.geo_area();
 		else
-			total += ff->get_cache_mu(f);
+			total += ff->get_mu(f);
 
 	return total;
 }

@@ -1,7 +1,8 @@
 OPTFLAGS=-O3
 #OPTFLAGS=-g -fsanitize=address
 #OPTFLAGS=-g
-CC=clang++
+CXX=/usr/bin/clang++
+CC=/usr/bin/clang++
 METALCC=xcrun --sdk macosx metal
 #CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
 CFLAGS=$(OPTFLAGS) -I/opt/homebrew/include -std=c++17
