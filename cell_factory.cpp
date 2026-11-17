@@ -107,7 +107,7 @@ unordered_map<string, uniform_distribution> cell_factory::query_mu(const vector<
 	for (const std::string& ctok: cells)
 	{
 		float cmu = query_mu(ctok);
-		uniform_distribution ud(cmu-1e-7, cmu+1e-7);
+		uniform_distribution ud(cmu-1e-9, cmu+1e-9);
 		r[ctok] = ud;
 	}
 	return r;
