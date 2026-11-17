@@ -1,6 +1,7 @@
 #ifndef SILICONTRIP_FIELD_FACTORY_HPP
 #define SILICONTRIP_FIELD_FACTORY_HPP
 
+
 #include <string>
 #include <unordered_map>
 #include <iostream>
@@ -18,6 +19,7 @@
 #include "link.hpp"
 #include "uniform_distribution.hpp"
 #include "json_reader.hpp"
+#include "s2cellid_hash.hpp"
 
 namespace silicontrip {
 
@@ -38,7 +40,7 @@ class field_factory {
         bool share_line_index(const std::unordered_map<point, std::unordered_set<size_t>>& point_exists, const point& p1, const point& p2) const;
         uniform_distribution calculate_mu(const S2Polygon& p);
         uniform_distribution get_ud_mu(const field& f);
-        int get_est_mu(const field& f);  // use get_cache_mu instead
+        int get_est_mu(const field& f);  // use get_mu instead
         S2Polygon s2polygon(const field& f) const;
         S2CellUnion cells(const S2Polygon& p) const;
         std::unordered_map<S2CellId,double> cell_intersection(const S2Polygon& p) const;
@@ -65,7 +67,7 @@ class field_factory {
         std::vector<std::string> celltokens(const field& f) const; // prefered for cellfields
         std::unordered_map<std::string, uniform_distribution>query_mu(const std::vector<std::string>& cells); // used by cellfields
         uniform_distribution query_mu(const std::string token);
-        int get_cache_mu(const field& f);
+        int get_mu(const field& f);
         uniform_distribution get_cache_ud_mu(const field& f);
 
 
@@ -82,12 +84,5 @@ class field_factory {
 };
 
 }
-
-template<> struct std::hash<S2CellId> {
-    std::size_t operator()(S2CellId const& s) const noexcept {
-        std::size_t h1 = std::hash<uint64_t>{}(s.id());
-        return h1;
-    }
-};
 
 #endif

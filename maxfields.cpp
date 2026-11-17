@@ -67,7 +67,7 @@ int maxfields::cached_mu (field f)
 	if (mucache.count(f))
 		return mucache[f];
 
-	mucache[f] = field_factory::get_instance()->get_cache_mu(f);
+	mucache[f] = field_factory::get_instance()->get_mu(f);
 	return mucache[f];
 }
 
@@ -122,7 +122,7 @@ double maxfields::get_value (vector<field> fd)
 		if (calculation_type == 0)
 			total += f.geo_area();
 		else
-			total += ff->get_cache_mu(f);
+			total += ff->get_mu(f);
 
 	return total;
 }

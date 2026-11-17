@@ -373,7 +373,7 @@ uniform_distribution field_factory::get_ud_mu(const field& f)
 }
 
 // returns the mu for a field
-int field_factory::get_cache_mu(const field& f)
+int field_factory::get_mu(const field& f)
 {
 	if (field_mu_cache.count(f))
 		return (int)field_mu_cache[f].rounded_mean();
