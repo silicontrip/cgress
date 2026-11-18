@@ -80,8 +80,8 @@ cell_factory::cell_factory()
     for (const auto& entry : fs::recursive_directory_iterator(".")) {
         if (!entry.is_regular_file()) continue;
         string name = entry.path().filename().string();
-        if (name.size() < 9) continue;
-        if (name.substr(name.size() - 9) != "up00ag.hdr") continue;
+        if (name.size() < 10) continue;
+        if (name.substr(name.size() - 10) != "up00ag.hdr") continue;
 
         BilRegion r;
         r.loaded = false;
