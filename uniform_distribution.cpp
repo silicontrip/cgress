@@ -149,7 +149,11 @@ uniform_distribution uniform_distribution::operator/(const double d) const
 
 string uniform_distribution::to_string() const
 {
-    return "[" + std::to_string(lower) + "," + std::to_string(upper) +"]";
+    std::ostringstream os;
+    os << std::setprecision(numeric_limits<double>::max_digits10)
+       << "[" << lower << "," << upper << "]";
+    return os.str();
+
 }
 
 }
