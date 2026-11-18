@@ -31,6 +31,7 @@ private:
 	int sameSize;
 	long target_mu;
 	int max_fields_limit;
+	bool grump;
 
 	int cached_mu (field f);
 	string draw_fields(const vector<field>& f);
@@ -39,12 +40,12 @@ private:
 	bool is_certain(const field& f);
 
 public:
-	maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss, long tm = -1, int field_limit = 0);
+	maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss, bool g, long tm = -1, int field_limit = 0);
 	struct score search_fields(vector<field>& current, int start, int max, double balance);
 
 };
 
-maxfields::maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss, long tm, int field_limit)
+maxfields::maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, bool g, int ss, long tm, int field_limit)
 {
 	dt = dts;
 	rt = rtm;
@@ -53,6 +54,7 @@ maxfields::maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field
 	all = a;
 	sameSize = ss;
 	target_mu = tm;
+	grump = g;
 	max_fields_limit = field_limit;
 }
 
@@ -116,13 +118,21 @@ double maxfields::calculate_balance_score(const vector<field>& fields)
 double maxfields::get_value (vector<field> fd)
 {
 	field_factory* ff = field_factory::get_instance();
+	cell_factory* cf = cell_factory::get_instance();
 	double total = 0;
 
 	for (field f : fd)
 		if (calculation_type == 0)
+		{
 			total += f.geo_area();
+		}
 		else
-			total += ff->get_mu(f);
+		{
+			if (grump)
+				total += cf->get_mu(f);
+			else
+				total += ff->get_mu(f);
+		}
 
 	return total;
 }
@@ -291,9 +301,11 @@ void print_usage()
 		cerr << " -C <#colour>      Set Drawtools output colour" << endl;
 		cerr << " -L                Set Drawtools to output as polylines" << endl;
 		cerr << " -I                Output as Intel Link" << endl;
-		cerr << " -s				Display plans that have the same size as the best found with decreasing variance" << endl;
-		cerr << " -S				Same as -s but with increasing variance (can't use with -s)" << endl;
+		cerr << " -s                Display plans that have the same size as the best found with decreasing variance" << endl;
+		cerr << " -S                Same as -s but with increasing variance (can't use with -s)" << endl;
+		cerr << " -g                maximise geo coverage (overrides -S or -s)" << endl;
 		cerr << " -M                Use MU calculation" << endl;
+		cerr << " -G                Use GRUMP data" << endl;
 		cerr << " -x <MU>           Target exactly <MU> amount" << endl;
 		cerr << " -l <number>       Limit maximum number of fields" << endl;
 		cerr << " -T <lat,lng,...>  Use only fields covering target points" << endl;
@@ -313,6 +325,7 @@ int main (int argc, char* argv[])
 	double percentile = 100;
 	long target_mu = -1;
 	int max_fields = 0;
+	bool grump;
 	draw_tools remove;
 
 	arguments ag(argc,argv);
@@ -331,10 +344,12 @@ int main (int argc, char* argv[])
 	ag.add_req("I","intel",false); // output as intel
 	ag.add_req("L","polyline",false); // output as polylines
 	ag.add_req("M","MU",false); // calculate as MU
+	ag.add_req("G","grump",false); // calculate as MU
+
 	ag.add_req("S","same",false); // display same size plans
 	ag.add_req("s","samesmall",false); // display same size plans
 	ag.add_req("s","samesmall",false); // display same size plans
-	ag.add_req("G","geo",false); // display same size plans
+	ag.add_req("g","geo",false); // display same size plans
 	ag.add_req("x","target_mu",true); // Target MU
 	ag.add_req("l","limit",true); // Limit fields
 	ag.add_req("r","remove",true); // remove fields based on drawtools.
@@ -370,8 +385,9 @@ int main (int argc, char* argv[])
 	if (ag.has_option("M"))
 		calc = 1;
 
-	if (ag.has_option("k"))
-		limit2k=true;
+	grump = ag.has_option("G");
+
+	limit2k=ag.has_option("k");
 
 	if (ag.has_option("p"))
 		percentile = ag.get_option_for_key_as_double("p");
@@ -407,7 +423,7 @@ int main (int argc, char* argv[])
 				exit(1);
 		}
 	}
-	if (ag.has_option("G"))
+	if (ag.has_option("g"))
 	{
 		same_size = 2;
 	}
@@ -554,7 +570,7 @@ int main (int argc, char* argv[])
 
 	vector<field> search;
 		//search.push_back(tfi);
-	maxfields mf = maxfields(dt,rt,calc,all_fields,same_size, target_mu, max_fields);
+	maxfields mf = maxfields(dt,rt,calc,all_fields, same_size, grump, target_mu, max_fields);
 	//field fi = all_fields[0];
 	//search.push_back(fi);
 	
