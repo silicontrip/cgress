@@ -139,12 +139,15 @@ vector<uniform_distribution> cellfields::muranges(const field& f1, uniform_distr
 
 	//GRUMP
 	unordered_map<string,uniform_distribution> cellmu1;
+	unordered_map<string,uniform_distribution> cellmu2;
+	cellmu2 = ff->query_mu(cells1);
+
 	if (use_grump)
 		cellmu1 = cf->query_mu(cells1);
 	else
 		cellmu1 = ff->query_mu(cells1);
 
-	uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu1);
+	uniform_distribution othermu1 = other_contribution(f1,cell_token,intersections1,cellmu2);
 	//pair<int,int> murange_result = murange(f1,intersections1[cell_token], mucell, othermu1);
 
 	pair<int,int> murange_result = murange(f1,intersections1[cell_token], cellmu1[cell_token], othermu1);
