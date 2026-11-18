@@ -4,8 +4,8 @@ OPTFLAGS=-O3
 CXX=/usr/bin/clang++
 CC=/usr/bin/clang++
 METALCC=xcrun --sdk macosx metal
-#CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
-CFLAGS=$(OPTFLAGS) -I/opt/homebrew/include -std=c++17
+CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
+#CFLAGS=$(OPTFLAGS) -I/opt/homebrew/include -std=c++17
 S2FLAGS=-ls2
 ABSLFLAGS=-labsl_log_internal_message -labsl_log_internal_check_op
 JSONCPP=-ljsoncpp
@@ -22,7 +22,7 @@ DYLIB=libcgress.dylib
 EXEOBJ=test_run_timer.o test_point.o test_point.o test_point.o test_factory.o \
 	test_team_count.o test_field.o test_arguments.o maxlayers.o maxfields.o \
 	cyclonefields.o planner.o exofields.o cellfields.o mu.o shadow.o agentassign.o \
-	portallist.o exofields.o getlinks.o orion.o  muconverter.o mudump.o
+	portallist.o exofields.o getlinks.o orion.o  muconverter.o mudump.o mucomp.o
 
 all: $(DYLIB) maxlayers maxfields cyclonefields cellfields planner portallist mu shadow agentassign \
  targetmu exofields getlinks orion
@@ -94,6 +94,9 @@ orion: $(OBJ) orion.o
 	$(CC)  $(LDFLAGS) $(OBJ) -o orion orion.o
 
 muconverter: $(OBJ) muconverter.o 
+	$(CC)  $(LDFLAGS)  $^ -o $@
+
+mucomp: $(OBJ) mucomp.o 
 	$(CC)  $(LDFLAGS)  $^ -o $@
 
 mudump: $(OBJ) mudump.o 

@@ -21,15 +21,28 @@ namespace silicontrip {
 class cell_factory {
 	private:
 
-		std::vector<float> buffer;
-                static cell_factory* ptr;
+		struct BilRegion {
+			std::string bil_path;
+			double ulxmap, ulymap;
+			double xdim, ydim;
+			int ncols, nrows;
+			float nodata;
+			mutable std::vector<float> buffer;
+			mutable bool loaded = false;
 
+			bool covers(double lng, double lat) const;
+			std::pair<int,int> toXY(double lng, double lat) const;
+			void load() const;
+			float get_value(int x, int y) const;
+		};
 
+		std::vector<BilRegion> regions;
+		static cell_factory* ptr;
 
-		cell_factory();  // no one else can create one
-		~cell_factory(); // prevent accidental deletion
+		cell_factory();
+		~cell_factory();
 
-		static std::pair<int,int> toXY(S2LatLng ll);
+		static bool parse_hdr(const std::string& hdr_path, BilRegion& r);
 		static S2Polygon s2polygon(const field& f);
 		static std::vector<std::string> union_to_tokens(const S2CellUnion& s2u);
 		static std::unordered_map<S2CellId,double> cell_intersection(const S2Polygon& p);

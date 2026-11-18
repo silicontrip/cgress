@@ -1,108 +1,158 @@
 #include "cell_factory.hpp"
 #include "uniform_distribution.hpp"
 
+#include <filesystem>
+#include <sstream>
+#include <stdexcept>
+#include <cmath>
+
 using namespace std;
-
-
-// update for your bil data
-
-#define FILE "ausup00g/ausup00ag.bil"
-
-#define BYTEORDER      I
-#define LAYOUT         BIL
-#define NROWS          4320
-#define NCOLS          7680
-#define NBANDS         1
-#define NBITS          32
-#define BANDROWBYTES   30720
-#define TOTALROWBYTES  30720
-#define PIXELTYPE      FLOAT
-#define ULXMAP         96.0041666666666
-#define ULYMAP         -8.00416666681065
-#define XDIM           0.0083333333333
-#define YDIM           0.0083333333333
-#define NODATA         -3.4028235e+038
-
+namespace fs = std::filesystem;
 
 namespace silicontrip {
+
 cell_factory* cell_factory::ptr = 0;
+
+// --- BilRegion ---
+
+bool cell_factory::BilRegion::covers(double lng, double lat) const
+{
+    int x = (int)floor((lng - ulxmap) / xdim);
+    int y = (int)floor((ulymap - lat) / ydim);
+    return x >= 0 && x < ncols && y >= 0 && y < nrows;
+}
+
+pair<int,int> cell_factory::BilRegion::toXY(double lng, double lat) const
+{
+    int x = (int)floor((lng - ulxmap) / xdim);
+    int y = (int)floor((ulymap - lat) / ydim);
+    return {x, y};
+}
+
+void cell_factory::BilRegion::load() const
+{
+    if (loaded) return;
+    ifstream file(bil_path, ios::binary | ios::ate);
+    if (!file)
+        throw runtime_error("Could not open BIL file: " + bil_path);
+    streamsize byteSize = file.tellg();
+    file.seekg(0, ios::beg);
+    size_t numFloats = byteSize / sizeof(float);
+    buffer.resize(numFloats);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), numFloats * sizeof(float)))
+        throw runtime_error("Failed to read BIL data: " + bil_path);
+    loaded = true;
+}
+
+float cell_factory::BilRegion::get_value(int x, int y) const
+{
+    load();
+    return buffer[(size_t)y * ncols + x];
+}
+
+// --- Parsing ---
+
+bool cell_factory::parse_hdr(const string& hdr_path, BilRegion& r)
+{
+    ifstream f(hdr_path);
+    if (!f) return false;
+
+    string line;
+    while (getline(f, line)) {
+        istringstream ss(line);
+        string key;
+        ss >> key;
+        if      (key == "ULXMAP")  ss >> r.ulxmap;
+        else if (key == "ULYMAP")  ss >> r.ulymap;
+        else if (key == "XDIM")    ss >> r.xdim;
+        else if (key == "YDIM")    ss >> r.ydim;
+        else if (key == "NCOLS")   ss >> r.ncols;
+        else if (key == "NROWS")   ss >> r.nrows;
+        else if (key == "NODATA")  ss >> r.nodata;
+    }
+    return true;
+}
+
+// --- Constructor ---
 
 cell_factory::cell_factory()
 {
+    for (const auto& entry : fs::recursive_directory_iterator(".")) {
+        if (!entry.is_regular_file()) continue;
+        string name = entry.path().filename().string();
+        if (name.size() < 9) continue;
+        if (name.substr(name.size() - 9) != "up00ag.hdr") continue;
 
-	string filename = FILE;
+        BilRegion r;
+        r.loaded = false;
 
-        std::ifstream file(filename, std::ios::binary | std::ios::ate);
-
-        if (!file) {
-                std::cerr << "Error: Could not open file " << filename << "\n";
+        if (!parse_hdr(entry.path().string(), r)) {
+            cerr << "Warning: could not parse " << entry.path() << "\n";
+            continue;
         }
 
-        std::streamsize byteSize = file.tellg();
-        file.seekg(0, std::ios::beg);
+        // derive .bil path from .hdr path
+        string hdr = entry.path().string();
+        r.bil_path = hdr.substr(0, hdr.size() - 4) + ".bil";
 
-        std::size_t numFloats = byteSize / sizeof(float);
-        buffer = std::vector<float>(numFloats);
+        regions.push_back(move(r));
+    }
 
-        if (!file.read(reinterpret_cast<char*>(buffer.data()), numFloats * sizeof(float))) {
-                std::cerr << "Error: Failed to read complete binary data.\n";
-        }
-
+    if (regions.empty())
+        cerr << "Warning: no *up00ag.hdr files found under current directory\n";
 }
 
 cell_factory* cell_factory::get_instance()
 {
     if (!ptr)
-	    ptr = new cell_factory();
+        ptr = new cell_factory();
     return ptr;
 }
 
-pair<int,int> cell_factory::toXY(S2LatLng ll) 
-{
-
-        double lat = ll.lat().degrees();
-        double lng = ll.lng().degrees();
-
-
-	// 120 = 1 / XDIM
-	// 120 = 1 / YDIM
-        int x = (int) floor((lng - ULXMAP) * 120.0);
-        int y = (int) floor((ULYMAP - lat) * 120.0);
-
-        return pair(x,y);
-}
-
+// --- Queries ---
 
 double cell_factory::query_mu(string cellid) const
 {
-        S2CellId id = S2CellId::FromToken(cellid);
+    S2CellId id = S2CellId::FromToken(cellid);
 
-        double total = 0.0;
-        int count = 0;
-        for(S2CellId c = id.child_begin(15); c != id.child_end(15); c = c.next())
-        {       
-                S2Cell s2cell = S2Cell(c);
-                S2Point s2point = s2cell.GetCenter();
-                S2LatLng s2latlng = S2LatLng(s2point);
-        
-                pair<int,int> arr = toXY(s2latlng);
-        
-                int x = arr.first;
-                int y = arr.second;
-        
-                int stride = y * NCOLS + x; 
+    double total = 0.0;
+    int count = 0;
+    for (S2CellId c = id.child_begin(15); c != id.child_end(15); c = c.next()) {
+        S2Cell s2cell = S2Cell(c);
+        S2LatLng ll = S2LatLng(s2cell.GetCenter());
+        double lat = ll.lat().degrees();
+        double lng = ll.lng().degrees();
 
-                total += buffer[stride];
-                count ++;
-
+        const BilRegion* found = nullptr;
+        for (const BilRegion& r : regions) {
+            if (r.covers(lng, lat)) { found = &r; break; }
         }
-        return total / count;
+        if (!found) {
+            ostringstream msg;
+            msg << "No BIL region covers lat=" << lat << " lng=" << lng
+                << " (from cell " << cellid << ")";
+            throw runtime_error(msg.str());
+        }
 
-
+        auto [x, y] = found->toXY(lng, lat);
+        total += found->get_value(x, y);
+        count++;
+    }
+    return total / count;
 }
 
-// arg code duplication!
-// generates a s2polygon from a field
+unordered_map<string, uniform_distribution> cell_factory::query_mu(const vector<string>& cells) const
+{
+    unordered_map<string, uniform_distribution> r;
+    for (const string& ctok : cells) {
+        float cmu = query_mu(ctok);
+        r[ctok] = uniform_distribution(cmu - 1e-9, cmu + 1e-9);
+    }
+    return r;
+}
+
+// --- Geometry helpers ---
+
 S2Polygon cell_factory::s2polygon(const field& f)
 {
     vector<S2Point> loop_points;
@@ -112,27 +162,23 @@ S2Polygon cell_factory::s2polygon(const field& f)
 
     S2Loop* field_loop = new S2Loop(loop_points);
     field_loop->Normalize();
-
     return S2Polygon(unique_ptr<S2Loop>(field_loop));
 }
 
 vector<string> cell_factory::union_to_tokens(const S2CellUnion& s2u)
 {
-        vector<string> ctok;
-        for (S2CellId s2c : s2u)
-                ctok.push_back(s2c.ToToken());
-
-        return ctok;
+    vector<string> ctok;
+    for (S2CellId s2c : s2u)
+        ctok.push_back(s2c.ToToken());
+    return ctok;
 }
 
-
-std::unordered_map<S2CellId,double> cell_factory::cell_intersection(const S2Polygon& p)
+unordered_map<S2CellId,double> cell_factory::cell_intersection(const S2Polygon& p)
 {
     unordered_map<S2CellId,double> area;
     S2CellUnion cell_union = cells(p);
 
-    for (S2CellId cellid: cell_union)
-    {
+    for (S2CellId cellid : cell_union) {
         S2Cell cell = S2Cell(cellid);
         vector<S2Point> cell_points;
         cell_points.push_back(cell.GetVertex(0));
@@ -141,17 +187,13 @@ std::unordered_map<S2CellId,double> cell_factory::cell_intersection(const S2Poly
         cell_points.push_back(cell.GetVertex(3));
         S2Loop* cell_loop = new S2Loop(cell_points);
         cell_loop->Normalize();
-        S2Polygon cell_poly = S2Polygon(unique_ptr<S2Loop>(cell_loop));
+        S2Polygon cell_poly{unique_ptr<S2Loop>(cell_loop)};
 
         S2Polygon int_poly;
         int_poly.InitToIntersection(p, cell_poly);
 
-        double sqkm = int_poly.GetArea() * point::earth_radius_2;
-
-	area[cellid] = sqkm;
-
+        area[cellid] = int_poly.GetArea() * point::earth_radius_2;
     }
-
     return area;
 }
 
@@ -162,59 +204,35 @@ S2CellUnion cell_factory::cells(const S2Polygon& p)
     opt.set_min_level(0);
     opt.set_max_cells(20);
     S2RegionCoverer rc(opt);
-
     return rc.GetCovering(p);
 }
 
-
 uniform_distribution cell_factory::calculate_mu(const S2Polygon& p) const
 {
-    // keep swapping back and forward between S2CellId and string (s2cellid tokens)
     unordered_map<S2CellId, double> cell_intersections = cell_intersection(p);
-    uniform_distribution total_mu(0.0,0.0);
+    uniform_distribution total_mu(0.0, 0.0);
 
-    // Prepare a list of S2CellIds to query
     S2CellUnion s2u = cells(p);
     vector<string> cell_ids_to_query = union_to_tokens(s2u);
-
-        // Query MU/km2 values from cache
     unordered_map<string, uniform_distribution> mu_values = query_mu(cell_ids_to_query);
 
-        // Calculate total MU
     for (pair<S2CellId, double> entry : cell_intersections) {
         string cell_id = entry.first.ToToken();
         double intersection_area = entry.second;
-        if (mu_values.count(cell_id)) {
+        if (mu_values.count(cell_id))
             total_mu += mu_values[cell_id] * intersection_area;
-        }
     }
-
     return total_mu;
-
 }
 
 uniform_distribution cell_factory::get_ud_mu(const field& f)
 {
-    S2Polygon p = s2polygon(f);
-    return calculate_mu(p);
+    return calculate_mu(s2polygon(f));
 }
-
 
 int cell_factory::get_mu(const field& f)
 {
-	return (int)get_ud_mu(f).rounded_mean();
+    return (int)get_ud_mu(f).rounded_mean();
 }
-
-unordered_map<string, uniform_distribution> cell_factory::query_mu(const vector<string>& cells) const
-{
-	unordered_map<std::string, uniform_distribution> r;
-	for (const std::string& ctok: cells)
-	{
-		float cmu = query_mu(ctok);
-		uniform_distribution ud(cmu-1e-9, cmu+1e-9);
-		r[ctok] = ud;
-	}
-	return r;
-}	
 
 }
