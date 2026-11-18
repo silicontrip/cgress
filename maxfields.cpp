@@ -7,6 +7,7 @@
 #include "portal_factory.hpp"
 #include "link_factory.hpp"
 #include "field_factory.hpp"
+#include "cell_factory.hpp"
 #include "draw_tools.hpp"
 #include "link.hpp"
 #include "field.hpp"
@@ -45,7 +46,7 @@ public:
 
 };
 
-maxfields::maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, bool g, int ss, long tm, int field_limit)
+maxfields::maxfields(draw_tools dts, run_timer rtm, int calc, const vector<field> a, int ss, bool g, long tm, int field_limit)
 {
 	dt = dts;
 	rt = rtm;
