@@ -120,7 +120,13 @@ void cell_factory::load_exempt(const string& path)
 
 bool cell_factory::is_exempt(S2CellId id) const
 {
-    return exempt_cells.count(id.ToToken()) > 0;
+	for (S2CellId cur = id; ; cur = cur.parent()) {
+		if (exempt_cells.count(cur.ToToken()))
+			return true;
+		if (cur.level() == 0)
+			break;
+	}
+	return false;
 }
 
 cell_factory* cell_factory::get_instance()
