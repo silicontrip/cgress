@@ -77,7 +77,7 @@ bool cell_factory::parse_hdr(const string& hdr_path, BilRegion& r)
 
 cell_factory::cell_factory()
 {
-    for (const auto& entry : fs::recursive_directory_iterator(".")) {
+    for (const auto& entry : fs::recursive_directory_iterator("./grump_granules")) {
         if (!entry.is_regular_file()) continue;
         string name = entry.path().filename().string();
         if (name.size() < 10) continue;
@@ -225,7 +225,7 @@ S2CellUnion cell_factory::cells(const S2Polygon& p)
 {
     S2RegionCoverer::Options opt;
     opt.set_max_level(13);
-    opt.set_min_level(0);
+    opt.set_min_level(6);
     opt.set_max_cells(20);
     S2RegionCoverer rc(opt);
     return rc.GetCovering(p);

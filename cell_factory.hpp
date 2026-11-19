@@ -1,6 +1,8 @@
 #ifndef SILICONTRIP_CELL_FACTORY_HPP
 #define SILICONTRIP_CELL_FACTORY_HPP
 
+// Global Rural-Urban Mapping Project
+
 #include <s2/s2latlng.h>
 #include <s2/s2cell_id.h>
 #include <s2/s2cell.h>

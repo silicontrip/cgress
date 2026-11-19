@@ -4,8 +4,8 @@ OPTFLAGS=-O3
 CXX=/usr/bin/clang++
 CC=/usr/bin/clang++
 METALCC=xcrun --sdk macosx metal
-CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
-#CFLAGS=$(OPTFLAGS) -I/opt/homebrew/include -std=c++17
+#CFLAGS=$(OPTFLAGS) -I/usr/local/include -std=c++17
+CFLAGS=$(OPTFLAGS) -I/opt/homebrew/include -std=c++17
 S2FLAGS=-ls2
 ABSLFLAGS=-labsl_log_internal_message -labsl_log_internal_check_op
 JSONCPP=-ljsoncpp
@@ -15,17 +15,17 @@ LDFLAGS= $(OPTFLAGS) -std=c++17 -L/opt/homebrew/lib $(S2FLAGS) $(ABSLFLAGS) $(JS
 LDFLAGS_DYN= $(OPTFLAGS) -std=c++17 -L. -lcgress -Wl,-rpath,@loader_path -L/opt/homebrew/lib $(S2FLAGS) $(ABSLFLAGS) $(JSONCPP) $(LIBCURLFLAGS)
 OBJ=run_timer.o point.o line.o portal.o link.o portal_factory.o team_count.o \
 	link_factory.o field.o field_factory.o draw_tools.o arguments.o \
-	uniform_distribution.o json_reader.o cell_factory.o
+	uniform_distribution.o json_reader.o cell_factory.o JCoverer.o
 
 DYLIB=libcgress.dylib
 
 EXEOBJ=test_run_timer.o test_point.o test_point.o test_point.o test_factory.o \
 	test_team_count.o test_field.o test_arguments.o maxlayers.o maxfields.o \
 	cyclonefields.o planner.o exofields.o cellfields.o mu.o shadow.o agentassign.o \
-	portallist.o exofields.o getlinks.o orion.o  muconverter.o mudump.o mucomp.o
+	portallist.o exofields.o getlinks.o orion.o  muconverter.o mudump.o mucomp.o s2dt.o
 
 all: $(DYLIB) maxlayers maxfields cyclonefields cellfields planner portallist mu shadow agentassign \
- targetmu exofields getlinks orion
+ targetmu exofields getlinks orion 
 
 $(DYLIB): $(OBJ)
 	$(CC) -dynamiclib -o $(DYLIB) $(OBJ) -Wl,-install_name,@rpath/$(DYLIB) $(LDFLAGS)
@@ -100,6 +100,9 @@ mucomp: $(OBJ) mucomp.o
 	$(CC)  $(LDFLAGS)  $^ -o $@
 
 mudump: $(OBJ) mudump.o 
+	$(CC)  $(LDFLAGS)  $^ -o $@
+
+s2dt: $(OBJ) s2dt.o 
 	$(CC)  $(LDFLAGS)  $^ -o $@
 
 %.o: %.cpp
