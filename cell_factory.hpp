@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "field.hpp"
@@ -38,12 +39,15 @@ class cell_factory {
 		};
 
 		std::vector<BilRegion> regions;
+		std::unordered_set<std::string> exempt_cells;
 		static cell_factory* ptr;
 
 		cell_factory();
 		~cell_factory();
 
 		static bool parse_hdr(const std::string& hdr_path, BilRegion& r);
+		void load_exempt(const std::string& path);
+		bool is_exempt(S2CellId id) const;
 		static S2Polygon s2polygon(const field& f);
 		static std::vector<std::string> union_to_tokens(const S2CellUnion& s2u);
 		static std::unordered_map<S2CellId,double> cell_intersection(const S2Polygon& p);

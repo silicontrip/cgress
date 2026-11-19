@@ -100,6 +100,27 @@ cell_factory::cell_factory()
 
     if (regions.empty())
         cerr << "Warning: no *up00ag.hdr files found under current directory\n";
+
+    load_exempt("nodata_cells.txt");
+}
+
+void cell_factory::load_exempt(const string& path)
+{
+    ifstream f(path);
+    if (!f) return;
+    string line;
+    while (getline(f, line)) {
+        // strip leading/trailing whitespace and skip comments/blanks
+        size_t start = line.find_first_not_of(" \t\r\n");
+        if (start == string::npos || line[start] == '#') continue;
+        size_t end = line.find_last_not_of(" \t\r\n");
+        exempt_cells.insert(line.substr(start, end - start + 1));
+    }
+}
+
+bool cell_factory::is_exempt(S2CellId id) const
+{
+    return exempt_cells.count(id.ToToken()) > 0;
 }
 
 cell_factory* cell_factory::get_instance()
@@ -114,6 +135,9 @@ cell_factory* cell_factory::get_instance()
 double cell_factory::query_mu(string cellid) const
 {
     S2CellId id = S2CellId::FromToken(cellid);
+
+    if (is_exempt(id))
+        return 0.0;
 
     double total = 0.0;
     int count = 0;
