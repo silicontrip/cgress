@@ -94,14 +94,14 @@ valid
 
 			field f(p0,p1,p2);
 
-			cout << line << endl;
+			//cout << line << endl;
 
 			int cmu = cf->get_mu(f);
 
-			cout << "cmu:" << cmu << " mu:" << mu << endl;
+			//cout << "cmu:" << cmu << " mu:" << mu << endl;
 
-
-			//cout << "INVALID: " << "mu:" << mu << " p0e6lat:" << p0e6lat << " p0e6lng:" << p0e6lng << " p1e6lat:" << p1e6lat << " p1e6lng:" << p1e6lng << " p2e6lat:" << p2e6lat << " p2e6lng:" << p2e6lng << " valid:" << valid << endl;
+			if (cmu != mu)
+				cout << "INVALID: cmu:" << cmu << " mu:" << mu << " p0e6lat:" << p0e6lat << " p0e6lng:" << p0e6lng << " p1e6lat:" << p1e6lat << " p1e6lng:" << p1e6lng << " p2e6lat:" << p2e6lat << " p2e6lng:" << p2e6lng << " valid:" << valid << endl;
 		}
 	}
 
