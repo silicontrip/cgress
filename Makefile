@@ -22,7 +22,7 @@ DYLIB=libcgress.dylib
 EXEOBJ=test_run_timer.o test_point.o test_point.o test_point.o test_factory.o \
 	test_team_count.o test_field.o test_arguments.o maxlayers.o maxfields.o \
 	cyclonefields.o planner.o exofields.o cellfields.o mu.o shadow.o agentassign.o \
-	portallist.o exofields.o getlinks.o orion.o  muconverter.o mudump.o mucomp.o s2dt.o
+	portallist.o exofields.o getlinks.o orion.o
 
 all: $(DYLIB) maxlayers maxfields cyclonefields cellfields planner portallist mu shadow agentassign \
  targetmu exofields getlinks orion 
@@ -92,18 +92,6 @@ getlinks: $(OBJ) getlinks.o
 
 orion: $(OBJ) orion.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o orion orion.o
-
-muconverter: $(OBJ) muconverter.o 
-	$(CC)  $(LDFLAGS)  $^ -o $@
-
-mucomp: $(OBJ) mucomp.o 
-	$(CC)  $(LDFLAGS)  $^ -o $@
-
-mudump: $(OBJ) mudump.o 
-	$(CC)  $(LDFLAGS)  $^ -o $@
-
-s2dt: $(OBJ) s2dt.o 
-	$(CC)  $(LDFLAGS)  $^ -o $@
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
