@@ -232,7 +232,30 @@ uniform_distribution cell_factory::get_ud_mu(const field& f)
 
 int cell_factory::get_mu(const field& f)
 {
-    return (int)get_ud_mu(f).rounded_mean();
+	int mu = get_ud_mu(f).rounded_mean();
+	if (mu == 0)
+		return 1;
+	return mu;
 }
+
+draw_tools cell_factory::dt_cell(S2CellId s)
+{
+        S2Cell cell = S2Cell(s);
+	vector<point> cv;
+
+	cv.push_back(point(cell.GetVertex(0)));
+	cv.push_back(point(cell.GetVertex(1)));
+	cv.push_back(point(cell.GetVertex(2)));
+	cv.push_back(point(cell.GetVertex(3)));
+
+	draw_tools dt;
+
+	dt.add(cv);
+
+	return dt;
+
+}
+
+
 
 }

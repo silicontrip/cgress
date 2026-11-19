@@ -15,6 +15,7 @@
 #include "link.hpp"
 #include "uniform_distribution.hpp"
 #include "s2cellid_hash.hpp"
+#include "draw_tools.hpp"
 
 namespace silicontrip {
 
@@ -63,6 +64,7 @@ class cell_factory {
 		uniform_distribution calculate_mu(const S2Polygon& p) const;
 		uniform_distribution get_ud_mu(const field& f);
 		int get_mu(const field& f);
+		static draw_tools dt_cell(S2CellId s);
 
 };
 
