@@ -93,18 +93,6 @@ getlinks: $(OBJ) getlinks.o
 orion: $(OBJ) orion.o 
 	$(CC)  $(LDFLAGS) $(OBJ) -o orion orion.o
 
-muconverter: $(OBJ) muconverter.o 
-	$(CC)  $(LDFLAGS)  $^ -o $@
-
-mucomp: $(OBJ) mucomp.o 
-	$(CC)  $(LDFLAGS)  $^ -o $@
-
-mudump: $(OBJ) mudump.o 
-	$(CC)  $(LDFLAGS)  $^ -o $@
-
-s2dt: $(OBJ) s2dt.o 
-	$(CC)  $(LDFLAGS)  $^ -o $@
-
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $^
 
