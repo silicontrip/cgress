@@ -3,9 +3,7 @@
 
 #include <cfloat>
 #include <cmath>
-#include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <string>
 
 namespace silicontrip
@@ -31,6 +29,8 @@ class uniform_distribution {
 		bool contains(double d) const;
 		uniform_distribution clamp_upper(double u) const;
 		uniform_distribution mu_rounded() const;	
+		uniform_distribution mu_score() const;
+
 		uniform_distribution intersection (const uniform_distribution& o) const;
 
 		uniform_distribution operator+(const uniform_distribution& o) const;

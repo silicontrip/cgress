@@ -23,6 +23,20 @@ uniform_distribution uniform_distribution::mu_rounded() const {
 	return uniform_distribution(l,u);
 }
 
+uniform_distribution uniform_distribution::mu_score() const
+{
+    double l = lower;
+    double u = upper;
+
+    if (u<1)
+        u=1;
+    if (l<1)
+        l=1;
+
+    return uniform_distribution(l,u);
+
+}
+
 // some say it should be (upper - lower)/2  / ((lower + upper) / 2)
 double uniform_distribution::perror() const { return 100 * (upper - lower) / ((lower + upper) / 2.0 ); }
 
@@ -149,11 +163,7 @@ uniform_distribution uniform_distribution::operator/(const double d) const
 
 string uniform_distribution::to_string() const
 {
-    std::ostringstream os;
-    os << std::setprecision(numeric_limits<double>::max_digits10)
-       << "[" << lower << "," << upper << "]";
-    return os.str();
-
+    return "[" + std::to_string(lower) + "," + std::to_string(upper) +"]";
 }
 
 }

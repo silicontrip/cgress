@@ -3,22 +3,28 @@
 
 // Global Rural-Urban Mapping Project
 
-#include <s2/s2latlng.h>
 #include <s2/s2cell_id.h>
 #include <s2/s2cell.h>
+#include <s2/s2latlng.h>
 
+#include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include "field.hpp"
-#include "link.hpp"
-#include "uniform_distribution.hpp"
-#include "s2cellid_hash.hpp"
 #include "draw_tools.hpp"
+#include "field.hpp"
+#include "JCoverer.hpp"
+#include "link.hpp"
+#include "s2cellid_hash.hpp"
+#include "uniform_distribution.hpp"
+
 
 namespace silicontrip {
 
@@ -52,8 +58,9 @@ class cell_factory {
 		bool is_exempt(S2CellId id) const;
 		static S2Polygon s2polygon(const field& f);
 		static std::vector<std::string> union_to_tokens(const S2CellUnion& s2u);
-		static std::unordered_map<S2CellId,double> cell_intersection(const S2Polygon& p);
 		static S2CellUnion cells(const S2Polygon& p);
+		static S2CellUnion cells_cpp(const S2Polygon& p);
+		static std::unordered_map<S2CellId,double> cell_intersection(const S2Polygon& p);
 
 
 	public:
@@ -71,6 +78,9 @@ class cell_factory {
 		uniform_distribution get_ud_mu(const field& f);
 		int get_mu(const field& f);
 		static draw_tools dt_cell(S2CellId s);
+		static std::vector<std::string> celltokens(const field& f);
+		static std::unordered_map<std::string,double> cell_intersection(const field& f);
+
 
 };
 

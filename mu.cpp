@@ -357,17 +357,6 @@ vector<string> intcells (vector<field> f)
 	return vcells;
 }
 
-uniform_distribution muround(const uniform_distribution& ud)
-{
-	double l = round(ud.get_lower());
-	if (l<1)
-		l=1;
-	double u = round(ud.get_upper());
-	if (u<1)
-		u=1;
-	return uniform_distribution(l,u);
-}
-
 int main (int argc, char* argv[])
 {
     arguments ag(argc,argv);
@@ -376,6 +365,7 @@ int main (int argc, char* argv[])
     ag.add_req("f","filter",false); // filter out known MU fields and print a new plan
     ag.add_req("r","redundant",false); // show redundant
 	ag.add_req("G","grump",false); // use GRUMP mu data
+	ag.add_req("J","java",false); // use GRUMP mu data
 
     if(!ag.parse())
     {
@@ -393,9 +383,16 @@ int main (int argc, char* argv[])
     draw_tools otp;
     draw_tools fdt;
 	bool use_grump;
+	bool java_coverer;
+	bool show_improvements;
+	bool filter;
+	bool show_redundant;
 
 	use_grump = ag.has_option("G");
-
+	java_coverer = ag.has_option("J");
+	show_improvements = ag.has_option("i");
+	filter = ag.has_option("f");
+	show_redundant = ag.has_option("r");
 
     vector<field> fields = dtp.get_fields();
 
@@ -406,8 +403,16 @@ int main (int argc, char* argv[])
     cout << endl;
     for (field f : fields)
     {
-        unordered_map<string,double> intersections = ff->cell_intersection(f);
-    	vector<string> cells = ff->celltokens(f);
+		unordered_map<string,double> intersections;
+		vector<string> cells;
+		if (java_coverer)
+		{
+			intersections = cf->cell_intersection(f);
+			cells  = cf->celltokens(f);
+		} else {
+			intersections = ff->cell_intersection(f);
+			cells  = ff->celltokens(f);
+		}
 
 		unordered_map<string,uniform_distribution> cellmu;
 		if (use_grump)
@@ -422,30 +427,49 @@ int main (int argc, char* argv[])
 
         cout << f.geo_area() << " " << otp.to_string() << endl;
 
-        for (string ctok : cells)
-        {
-			uniform_distribution tud;
-			if (cellmu.count(ctok) > 0)
-            	tud = cellmu[ctok] * intersections[ctok];
-			else 
-				tud = uniform_distribution(0.0,0.0); // * intersections[ctok];
+		unordered_set<S2CellId>scoring_cells;
+		for (const string& s : cells)
+		{
+			S2CellId cid = S2CellId::FromToken(s).parent(6);
+			scoring_cells.insert(cid);
+		}
 
-            ftotal = ftotal + tud;
-            cout << ctok << " " << cellmu[ctok] << " x " << intersections[ctok] << " = " << tud << endl;
-            if (ag.has_option("i")) {
-				// multi_improvement(fields,ctok);
-                pimprovement(f,ctok,use_grump);
+		for (S2CellId score_cell : scoring_cells)
+		{
+			uniform_distribution sub_total(0.0,0.0);
+
+			for (const string& ctok : cells)
+			{
+				S2CellId cid = S2CellId::FromToken(ctok).parent(6);
+				if (cid == score_cell)
+				{
+
+					uniform_distribution tud;
+					if (cellmu.count(ctok) > 0)
+						tud = cellmu[ctok] * intersections[ctok];
+					else
+						tud = uniform_distribution(0.0,0.0); // * intersections[ctok];
+
+					sub_total += tud;
+					cout << ctok << " " << cellmu[ctok] << " x " << intersections[ctok] << " = " << tud << endl;
+					if (show_improvements) {
+						// multi_improvement(fields,ctok);
+						pimprovement(f,ctok,use_grump);
+					}
+				}
 			}
-            //predict(ctok);
-        }
+			//predict(ctok);
+			cout << score_cell.ToToken() << ": " << sub_total << endl;
+			ftotal += sub_total.mu_score();
+		}
         cout << ftotal << " " << ftotal.range() << endl;
-        uniform_distribution rmu = muround(ftotal);
-        if (ag.has_option("f") && rmu.range()>0)
+        uniform_distribution rmu = ftotal.mu_rounded();
+        if (filter && rmu.range()>0)
            fdt.add(f);
-        total = total + muround(ftotal);
+        total = total + rmu;
 
     }
-	if (ag.has_option("i") && fields.size() > 1) {
+	if (show_improvements && fields.size() > 1) {
 		vector<string>cc = intcells(fields);
 		for (string ctok : cc)
 		{
@@ -454,7 +478,7 @@ int main (int argc, char* argv[])
 			show_field_invalidation(fields,ctok);
 		}
 	}
-	if (ag.has_option("r") && fields.size() > 1) // although why would you specify this option if you only had 1 field
+	if (show_redundant && fields.size() > 1) // although why would you specify this option if you only had 1 field
 	{
     	vector<string>cc = intcells(fields);
     	for (string ctok : cc)
@@ -463,7 +487,7 @@ int main (int argc, char* argv[])
     		show_field_invalidation(fields,ctok);
     	}
 	}
-	if (ag.has_option("f"))
+	if (filter)
 	    cout << fdt.to_string() << endl;
     cout << total << endl;
 

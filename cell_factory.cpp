@@ -1,10 +1,5 @@
 #include "cell_factory.hpp"
-#include "uniform_distribution.hpp"
 
-#include <filesystem>
-#include <sstream>
-#include <stdexcept>
-#include <cmath>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -201,6 +196,7 @@ unordered_map<S2CellId,double> cell_factory::cell_intersection(const S2Polygon& 
 {
     unordered_map<S2CellId,double> area;
     S2CellUnion cell_union = cells(p);
+    //S2CellUnion cell_union = cells(p);
 
     for (S2CellId cellid : cell_union) {
         S2Cell cell = S2Cell(cellid);
@@ -221,14 +217,21 @@ unordered_map<S2CellId,double> cell_factory::cell_intersection(const S2Polygon& 
     return area;
 }
 
-S2CellUnion cell_factory::cells(const S2Polygon& p)
+S2CellUnion cell_factory::cells_cpp(const S2Polygon& p)
 {
     S2RegionCoverer::Options opt;
     opt.set_max_level(13);
     opt.set_min_level(6);
     opt.set_max_cells(20);
     S2RegionCoverer rc(opt);
+
     return rc.GetCovering(p);
+}
+
+
+S2CellUnion cell_factory::cells(const S2Polygon& p)
+{
+    return JavaCovering::GetCovering(*p.loop(0));
 }
 
 uniform_distribution cell_factory::calculate_mu(const S2Polygon& p) const
@@ -240,11 +243,27 @@ uniform_distribution cell_factory::calculate_mu(const S2Polygon& p) const
     vector<string> cell_ids_to_query = union_to_tokens(s2u);
     unordered_map<string, uniform_distribution> mu_values = query_mu(cell_ids_to_query);
 
-    for (pair<S2CellId, double> entry : cell_intersections) {
-        string cell_id = entry.first.ToToken();
-        double intersection_area = entry.second;
-        if (mu_values.count(cell_id))
-            total_mu += mu_values[cell_id] * intersection_area;
+    unordered_set<S2CellId> scoring_cells;
+
+    for (S2CellId cid : s2u)
+        scoring_cells.insert(cid.parent(6));
+
+    for (S2CellId score_cell : scoring_cells)
+    {
+
+        uniform_distribution sub_total_mu(0.0, 0.0);
+
+
+        for (pair<S2CellId, double> entry : cell_intersections) {
+            if (entry.first.parent(6) == score_cell)
+            {
+                string cell_id = entry.first.ToToken();
+                double intersection_area = entry.second;
+                if (mu_values.count(cell_id))
+                    sub_total_mu += mu_values[cell_id] * intersection_area;
+            }
+        }
+        total_mu += sub_total_mu.mu_score();
     }
     return total_mu;
 }
@@ -280,6 +299,24 @@ draw_tools cell_factory::dt_cell(S2CellId s)
 
 }
 
+vector<string> cell_factory::celltokens(const field& f) 
+{
+	S2Polygon s2p = s2polygon(f);
+        S2CellUnion s2u = cells(s2p);
 
+	return union_to_tokens(s2u);
+}
+
+std::unordered_map<string,double> cell_factory::cell_intersection(const field& f)
+{
+	S2Polygon s2p = s2polygon(f);
+	unordered_map<S2CellId,double> intersections = cell_intersection(s2p);
+
+	unordered_map<string,double> result;
+	for (pair<S2CellId,double> ii : intersections)
+		result[ii.first.ToToken()] = ii.second;
+
+	return result;
+}
 
 }
